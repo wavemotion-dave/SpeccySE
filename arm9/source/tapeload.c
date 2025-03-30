@@ -617,7 +617,7 @@ u8 inline __attribute__((always_inline)) tape_pulse_fast(void)
 //so that we can use this same routine when the standard loader is used in other memory locations.
  void tape_sample_standard(void)
 {
-    u8 B = CPU.BC.B.h;
+    int B = 255-CPU.BC.B.h;
     // The CyclesED[] table will consume the 18 cycles that the LDA, INA would have taken here...
 ld_sample:
     u8 A;
@@ -635,14 +635,14 @@ ld_sample:
     {
         CPU.TStates += 25;              // 25 cycles from the IN to past the JR Z,05ED
         CPU.AF.B.h = A & 0x20;          // This is what the result would have been...
-        CPU.AF.B.l=H_FLAG;              // Set the appropriate flags for the AND +20
+        CPU.AF.B.l = H_FLAG;            // Set the appropriate flags for the AND +20
+        CPU.BC.B.h = (255-B);           // Let the caller know how close we got to the timeout
         CPU.PC.W += 7;                  // Jump past the JR Z,05ED check
     }
     else                                // Edge not detected - we will do another pass or timeout
     {
         CPU.TStates += 25+34;           // It takes 59 total cycles when we take another pass around the loop
-        CPU.BC.B.h++;                   // Increment the Loader timeout counter
-        if (CPU.BC.B.h) goto ld_sample; // If no time-out... take another sample.
+        if (--B) goto ld_sample;        // If no time-out... take another sample.
         
         // -----------------------------------------------------------------
         // We have timed out when B wraps back to zero... handle this here.
@@ -653,7 +653,7 @@ ld_sample:
         CPU.PC.W -= 6;                  // And return to the INC B counter and allow the timeout
     }
     
-    CPU.ICount -= (25 + (((CPU.BC.B.h - B) & 0xFF) * 59)); // Make a rough change to ICount based on number of loops
+    CPU.ICount -= (25 + 59); // Make a rough change to ICount based on number of loops. We don't really care here.
 }
 
 // SPEEDLOCK Loader:
@@ -669,7 +669,7 @@ ld_sample:
 
 ITCM_CODE void tape_sample_speedlock(void)
 {
-    u8 B = CPU.BC.B.h;
+    int B = 255-CPU.BC.B.h;
     // The CyclesED[] table will consume the 18 cycles that the LDA, INA would have taken here...
 ld_sample:
     u8 A;
@@ -687,14 +687,14 @@ ld_sample:
     {
         CPU.TStates += 20;              // 20 cycles from the IN to past the JR Z,05ED
         CPU.AF.B.h = A & 0x20;          // This is what the result would have been...
-        CPU.AF.B.l=H_FLAG;              // Set the appropriate flags for the AND +20
+        CPU.AF.B.l = H_FLAG;            // Set the appropriate flags for the AND +20
+        CPU.BC.B.h = (255-B);           // Let the caller know how close we got to the timeout
         CPU.PC.W += 6;                  // Jump past the JR Z,05ED check
     }
     else                                // Edge not detected - we will do another pass or timeout
     {
         CPU.TStates += 20+34;           // It takes 54 total cycles when we take another pass around the loop
-        CPU.BC.B.h++;                   // Increment the Loader timeout counter
-        if (CPU.BC.B.h) goto ld_sample; // If no time-out... take another sample.
+        if (--B) goto ld_sample;        // If no time-out... take another sample.
         
         // -----------------------------------------------------------------
         // We have timed out when B wraps back to zero... handle this here.
@@ -705,7 +705,7 @@ ld_sample:
         CPU.PC.W -= 6;                  // And return to the INC B counter and allow the timeout
     }
     
-    CPU.ICount -= (20 + (((CPU.BC.B.h - B) & 0xFF) * 54)); // Make a rough change to ICount based on number of loops
+    CPU.ICount -= (25 + 55); // Make a rough change to ICount based on number of loops. We don't really care here.
 }
 
 // ALKATRAZ Loader:
@@ -722,7 +722,7 @@ ld_sample:
 //        {2} JR Z,LD-SAMP        [+12/5] Jump back to LD-SAMP unless it has changed 
 ITCM_CODE void tape_sample_alkatraz(void)
 {
-    u8 B = CPU.BC.B.h;
+    u8 B = (255-CPU.BC.B.h);
     // 11 Cycles for the IN A,(FE) have already been consumed by the CyclesED[] table
 ld_sample:
     u8 A;
@@ -740,14 +740,14 @@ ld_sample:
     {
         CPU.TStates += 25;              // 25 cycles from the IN to past the JR Z,LD-SAMP
         CPU.AF.B.h = A & 0x20;          // This is what the result would have been...
-        CPU.AF.B.l=H_FLAG;              // Set the appropriate flags for the AND +20
+        CPU.AF.B.l = H_FLAG;            // Set the appropriate flags for the AND +20
+        CPU.BC.B.h = (255-B);           // Let the caller know how close we got to the timeout
         CPU.PC.W += 6;                  // Jump past the JR Z,LD-SAMP check
     }
     else                                // Edge not detected - we will do another pass or timeout
     {
         CPU.TStates += 25+34;           // It takes 59 total cycles when we take another pass around the loop to the IN A,(FE)
-        CPU.BC.B.h++;                   // Increment the Loader timeout counter
-        if (CPU.BC.B.h) goto ld_sample; // If no time-out... take another sample.
+        if (--B) goto ld_sample;        // If no time-out... take another sample.
         
         // -----------------------------------------------------------------
         // We have timed out when B wraps back to zero... handle this here.
@@ -758,7 +758,7 @@ ld_sample:
         CPU.PC.W -= 8;                  // And return to the INC B counter and allow the timeout
     }
     
-    CPU.ICount -= (25 + (((CPU.BC.B.h - B) & 0xFF) * 59)); // Make a rough change to ICount based on number of loops
+    CPU.ICount -= (25 + 59); // Make a rough change to ICount based on number of loops. We don't really care here.
 }
 
 
@@ -773,8 +773,9 @@ ld_sample:
 //        {1} XOR  C        [+4]    Now test the byte against the 'last edge-type'
 //        {2} AND  +20      [+7]    Mask off just the bit we care about (normally 0x40 but it's been shifted down)
 //            JR   Z,05ED   [+12/5] Jump back to LD-SAMPLE unless it has changed
-void tape_sample_microsphere(void)
+ITCM_CODE void tape_sample_microsphere(void)
 {
+    u8 B = (255-CPU.BC.B.h);
      // The CyclesED[] table will consume the 18 cycles that the LDA, INA would have taken here...
 ld_sample:
     u8 A = (~tape_pulse() >> 1) ^ CPU.BC.B.l;
@@ -784,26 +785,26 @@ ld_sample:
         CPU.TStates += 24;              // 24 cycles from the IN to past the JR Z,LD-SAMP
         CPU.ICount -= 24;               // Make the corresponding change to ICount
         CPU.AF.B.h = A & 0x20;          // This is what the result would have been...
-        CPU.AF.B.l=H_FLAG;              // Set the appropriate flags for the AND +20
+        CPU.AF.B.l = H_FLAG;            // Set the appropriate flags for the AND +20
+        CPU.BC.B.h = (255-B);           // Let the caller know how close we got to the timeout
         CPU.PC.W += 7;                  // Jump past the JR Z,LD-SAMP check
     }
     else                                // Edge not detected - we will do another pass or timeout
     {
         CPU.TStates += 24+34;           // It takes 58 total cycles when we take another pass around the loop
-        CPU.ICount -= 24+34;            // Make the corresponding change to ICount
-        CPU.BC.B.h++;                   // Increment the Loader timeout counter
-        if (CPU.BC.B.h) goto ld_sample; // If no time-out... take another sample.
+        if (--B) goto ld_sample;        // If no time-out... take another sample.
         
         // -----------------------------------------------------------------
         // We have timed out when B wraps back to zero... handle this here.
         // -----------------------------------------------------------------
         CPU.TStates -= (24+34-27);      // Give back the time up to the INCB/RETZ as we are going to run those real instructions.
-        CPU.ICount +=  (24+34-27);      // And increment ICount to give it time back
         CPU.BC.B.h = 0xFF;              // Set this up so that we WILL timeout when returning
         CPU.AF.W = 0x0000;              // Clear flags (mainly Carry Reset) and A register will be clear
         CPU.PC.W -= 6;                  // And return to the INC B counter and allow the timeout
         return;
     }
+
+    CPU.ICount -= (25 + 58); // Make a rough change to ICount based on number of loops. We don't really care here.
 }
 
 
@@ -820,6 +821,7 @@ ld_sample:
 //            JR   Z,05ED   [+12/5] Jump back to LD-SAMPLE unless it has changed
 void tape_sample_bleepload(void)
 {
+    u8 B = (255-CPU.BC.B.h);
      // The CyclesED[] table will consume the 18 cycles that the LDA, INA would have taken here...
 ld_sample:
     u8 A = (~tape_pulse() >> 1) ^ CPU.BC.B.l;
@@ -829,26 +831,26 @@ ld_sample:
         CPU.TStates += 24;              // 24 cycles from the IN to past the JR Z,LD-SAMP
         CPU.ICount -= 24;               // Make the corresponding change to ICount
         CPU.AF.B.h = A & 0x20;          // This is what the result would have been...
-        CPU.AF.B.l=H_FLAG;              // Set the appropriate flags for the AND +20
+        CPU.AF.B.l = H_FLAG;            // Set the appropriate flags for the AND +20
+        CPU.BC.B.h = (255-B);           // Let the caller know how close we got to the timeout
         CPU.PC.W += 7;                  // Jump past the JR Z,LD-SAMP check
     }
     else                                // Edge not detected - we will do another pass or timeout
     {
         CPU.TStates += 24+34;           // It takes 58 total cycles when we take another pass around the loop
-        CPU.ICount -= 24+34;            // Make the corresponding change to ICount
-        CPU.BC.B.h++;                   // Increment the Loader timeout counter
-        if (CPU.BC.B.h) goto ld_sample; // If no time-out... take another sample.
+        if (--B) goto ld_sample;        // If no time-out... take another sample.
         
         // -----------------------------------------------------------------
         // We have timed out when B wraps back to zero... handle this here.
         // -----------------------------------------------------------------
         CPU.TStates -= (24+34-27);      // Give back the time up to the INCB/RETZ as we are going to run those real instructions.
-        CPU.ICount +=  (24+34-27);      // And increment ICount to give it time back
         CPU.BC.B.h = 0xFF;              // Set this up so that we WILL timeout when returning
         CPU.AF.W = 0x0000;              // Clear flags (mainly Carry Reset) and A register will be clear
         CPU.PC.W -= 6;                  // And return to the INC B counter and allow the timeout
         return;
     }
+
+    CPU.ICount -= (25 + 58); // Make a rough change to ICount based on number of loops. We don't really care here.
 }
 
 // ---------------------------------------------------------------------------------

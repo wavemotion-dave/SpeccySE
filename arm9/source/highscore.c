@@ -626,7 +626,7 @@ void highscore_display(u32 crc)
     // ---------------------------------------------
     // Setup lower screen for High Score dispay...
     // ---------------------------------------------
-    BottomScreenOptions(0);
+    BottomScreenOptions();
 
     // ---------------------------------------------------------------------------------
     // Check if the current CRC32 is in our High Score database...

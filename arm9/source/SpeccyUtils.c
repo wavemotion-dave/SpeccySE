@@ -19,9 +19,7 @@
 
 #include "SpeccyDS.h"
 #include "SpeccyUtils.h"
-#include "options.h"
 #include "topscreen.h"
-#include "loadgame.h"
 #include "mainmenu.h"
 #include "soundbank.h"
 #include "pdev_tbg0.h"
@@ -130,8 +128,8 @@ u8 showMessage(char *szCh1, char *szCh2) {
   u16 iTx, iTy;
   u8 uRet=ID_SHM_CANCEL;
   u8 ucGau=0x00, ucDro=0x00,ucGauS=0x00, ucDroS=0x00, ucCho = ID_SHM_YES;
-    
-  BottomScreenOptions(0);
+
+  BottomScreenOptions();
 
   DSPrint(16-strlen(szCh1)/2,10,6,szCh1);
   DSPrint(16-strlen(szCh2)/2,12,6,szCh2);
@@ -398,7 +396,7 @@ u8 speccyDSLoadFile(void)
   // Show the menu...
   while ((keysCurrent() & (KEY_TOUCH | KEY_START | KEY_SELECT | KEY_A | KEY_B))!=0);
   
-  BottomScreenOptions(1);
+  BottomScreenOptions();
   
   DSPrint(1,3,0,"A=LOAD 48K, B=EXIT, Y=128K");
 
@@ -1320,7 +1318,7 @@ void speccyDSChangeOptions(void)
   dmaFillWords(dmaVal | (dmaVal<<16),(void*) bgGetMapPtr(bg1),32*24*2);
 
   // Lower Screen Background
-  BottomScreenOptions(0);
+  BottomScreenOptions();
   
   dispInfoOptions(ucY);
   
@@ -1367,7 +1365,7 @@ void speccyDSChangeOptions(void)
           case 5 :      // LOAD GAME
             speccyDSLoadFile();
             dmaFillWords(dmaVal | (dmaVal<<16),(void*) bgGetMapPtr(bg1b)+5*32*2,32*19*2);
-            BottomScreenOptions(0);
+            BottomScreenOptions();
             if (ucGameChoice != -1) 
             { 
                 ReadFileCRCAndConfig(); // Get CRC32 of the file and read the config/keys
@@ -1390,7 +1388,7 @@ void speccyDSChangeOptions(void)
             if (ucGameChoice != -1) 
             { 
                 SpeccyDSChangeKeymap();
-                BottomScreenOptions(0);
+                BottomScreenOptions();
                 dispInfoOptions(ucY);
                 DisplayFileName();
             }
@@ -1403,7 +1401,7 @@ void speccyDSChangeOptions(void)
             if (ucGameChoice != -1) 
             { 
                 SpeccyDSGameOptions(false);
-                BottomScreenOptions(0);
+                BottomScreenOptions();
                 dispInfoOptions(ucY);
                 DisplayFileName();
             }
@@ -1415,7 +1413,7 @@ void speccyDSChangeOptions(void)
                 
           case 13 :     // GLOBAL OPTIONS
             SpeccyDSGameOptions(true);
-            BottomScreenOptions(0);
+            BottomScreenOptions();
             dispInfoOptions(ucY);
             DisplayFileName();
             break;

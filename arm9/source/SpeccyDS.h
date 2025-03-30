@@ -147,7 +147,7 @@ extern u8  lastBitSent;
 extern u32 current_bytes_this_block;
 extern u8 handle_last_bits;
 
-extern void BottomScreenOptions(u8 screen_type);
+extern void BottomScreenOptions(void);
 extern void BottomScreenKeypad(void);
 extern void PauseSound(void);
 extern void UnPauseSound(void);

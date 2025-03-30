@@ -25,9 +25,7 @@
 #include "SpeccyUtils.h"
 #include "speccy_kbd.h"
 #include "debug_ovl.h"
-#include "options.h"
 #include "topscreen.h"
-#include "loadgame.h"
 #include "mainmenu.h"
 #include "soundbank.h"
 #include "soundbank_bin.h"
@@ -544,7 +542,7 @@ void CassetteMenuShow(bool bClearScreen, u8 sel)
       // ---------------------------------------------------
       // Put up a generic background for this mini-menu...
       // ---------------------------------------------------
-      BottomScreenOptions(0);
+      BottomScreenOptions();
     }
     
     // ---------------------------------------------------
@@ -677,7 +675,7 @@ void MiniMenuShow(bool bClearScreen, u8 sel)
       // ---------------------------------------------------
       // Put up a generic background for this mini-menu...
       // ---------------------------------------------------
-      BottomScreenOptions(0);
+      BottomScreenOptions();
     }
 
     DSPrint(8,7,6,                                           " DS MINI MENU  ");
@@ -841,8 +839,6 @@ u8 handle_debugger_overlay(u16 iTx, u16 iTy)
     return MENU_CHOICE_NONE;
 }
 
-
-u16 SaveNow = 0, LoadNow = 0;
 u8 __attribute__((noinline)) handle_meta_key(u8 meta_key)
 {
     switch (meta_key)
@@ -879,40 +875,28 @@ u8 __attribute__((noinline)) handle_meta_key(u8 meta_key)
             break;
 
         case MENU_CHOICE_SAVE_GAME:
-            if  (!SaveNow)
+            SoundPause();
+            if  (showMessage("DO YOU REALLY WANT TO","SAVE GAME STATE ?") == ID_SHM_YES)
             {
-                SoundPause();
-                if  (showMessage("DO YOU REALLY WANT TO","SAVE GAME STATE ?") == ID_SHM_YES)
-                {
-                  SaveNow = 1;
-                  spectrumSaveState();
-                }
-                BottomScreenKeypad();
-                SoundUnPause();
+              spectrumSaveState();
             }
+            BottomScreenKeypad();
+            SoundUnPause();
             break;
 
         case MENU_CHOICE_LOAD_GAME:
-            if  (!LoadNow)
+            SoundPause();
+            if (showMessage("DO YOU REALLY WANT TO","LOAD GAME STATE ?") == ID_SHM_YES)
             {
-                SoundPause();
-                if (showMessage("DO YOU REALLY WANT TO","LOAD GAME STATE ?") == ID_SHM_YES)
-                {
-                  LoadNow = 1;
-                  spectrumLoadState();
-                }
-                BottomScreenKeypad();
-                SoundUnPause();
+              spectrumLoadState();
             }
+            BottomScreenKeypad();
+            SoundUnPause();
             break;
 
         case MENU_CHOICE_CASSETTE:
             CassetteMenu();
             break;
-            
-        default:
-            SaveNow = 0;
-            LoadNow = 0;
     }
 
     return 0;
@@ -933,7 +917,7 @@ void SpeccyDS_main(void)
   debug_init();
   
   // Returns when  user has asked for a game to run...
-  BottomScreenOptions(0);
+  BottomScreenOptions();
 
   // Get the ZX Spectrum Emulator ready
   spectrumInit(gpFic[ucGameAct].szName);
@@ -1011,7 +995,7 @@ void SpeccyDS_main(void)
                 if (--bFirstTime == 0)
                 {
                     // Tape Loader - Put the LOAD "" into the keyboard buffer 
-                    if (speccy_mode <= MODE_SNA)
+                    if (speccy_mode < MODE_SNA)
                     {
                         BufferKey('J'); BufferKey(KBD_KEY_SYMBOL); BufferKey('P'); BufferKey(KBD_KEY_SYMBOL); BufferKey('P'); BufferKey(KBD_KEY_RET);
                         bStartTapeIn = 2;
@@ -1130,7 +1114,6 @@ void SpeccyDS_main(void)
           else
           {
             touch_debounce = 0;
-            SaveNow=LoadNow = 0;
             lastUN = 0;  dampenClick = 0;
             last_kbd_key = 0;
           }
@@ -1255,14 +1238,14 @@ void speccyDSInit(void)
   dmaFillWords(dmaVal | (dmaVal<<16),(void*)  bgGetMapPtr(bg1),32*24*2);
 
   // Put up the options screen 
-  BottomScreenOptions(0);
+  BottomScreenOptions();
 
   //  Find the files
   speccyDSFindFiles();
 }
 
 
-void BottomScreenOptions(u8 screen_type)
+void BottomScreenOptions(void)
 {
     swiWaitForVBlank();
     
@@ -1273,25 +1256,9 @@ void BottomScreenOptions(u8 screen_type)
     bg1b = bgInitSub(1, BgType_Text8bpp, BgSize_T_256x256, 29,0);
     bgSetPriority(bg0b,1);bgSetPriority(bg1b,0);
     
-    if (screen_type == 0) // Main Menu
-    {
-        decompress(mainmenuTiles, bgGetGfxPtr(bg0b), LZ77Vram);
-        decompress(mainmenuMap, (void*) bgGetMapPtr(bg0b), LZ77Vram);
-        dmaCopy((void*) mainmenuPal,(void*) BG_PALETTE_SUB,256*2);
-    }
-    else
-    if (screen_type == 1) // Load Game
-    {
-        decompress(loadgameTiles, bgGetGfxPtr(bg0b), LZ77Vram);
-        decompress(loadgameMap, (void*) bgGetMapPtr(bg0b), LZ77Vram);
-        dmaCopy((void*) loadgamePal,(void*) BG_PALETTE_SUB,256*2);
-    }
-    else // Options
-    {
-        decompress(optionsTiles, bgGetGfxPtr(bg0b), LZ77Vram);
-        decompress(optionsMap, (void*) bgGetMapPtr(bg0b), LZ77Vram);
-        dmaCopy((void*) optionsPal,(void*) BG_PALETTE_SUB,256*2);
-    }
+    decompress(mainmenuTiles, bgGetGfxPtr(bg0b), LZ77Vram);
+    decompress(mainmenuMap, (void*) bgGetMapPtr(bg0b), LZ77Vram);
+    dmaCopy((void*) mainmenuPal,(void*) BG_PALETTE_SUB,256*2);
     
     unsigned short dmaVal = *(bgGetMapPtr(bg1b)+24*32);
     dmaFillWords(dmaVal | (dmaVal<<16),(void*) bgGetMapPtr(bg1b),32*24*2);
