@@ -1,0 +1,245 @@
+// =====================================================================================
+// Copyright (c) 2025 Dave Bernazzani (wavemotion-dave)
+//
+// Copying and distribution of this emulator, its source code and associated
+// readme files, with or without modification, are permitted in any medium without
+// royalty provided this copyright notice is used and wavemotion-dave (Phoenix-Edition),
+// Alekmaul (original port) and Marat Fayzullin (ColEM core) are thanked profusely.
+//
+// The SpeccyDS emulator is offered as-is, without any warranty. Please see readme.md
+// =====================================================================================
+#include <nds.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <fat.h>
+#include <dirent.h>
+
+#include "SpeccyDS.h"
+#include "CRC32.h"
+#include "cpu/z80/Z80_interface.h"
+#include "SpeccyUtils.h"
+#include "printf.h"
+
+#define SPECCYDS_SAVE_VER   0x0001        // Change this if the basic format of the .SAV file changes. Invalidates older .sav files.
+
+
+// -----------------------------------------------------------------------------------------------------
+// Since the main MemoryMap[] can point to differt things (RAM, ROM, BIOS, etc) and since we can't rely
+// on the memory being in the same spot on subsequent versions of the emulator... we need to save off
+// the type and the offset so that we can patch it back together when we load back a saved state.
+// -----------------------------------------------------------------------------------------------------
+struct RomOffset
+{
+    u8   type;
+    u32  offset;
+};
+
+struct RomOffset Offsets[8];
+
+#define TYPE_ROM   0
+#define TYPE_RAM   1
+#define TYPE_BIOS  2
+#define TYPE_OTHER 5
+
+/*********************************************************************************
+ * Save the current state - save everything we need to a single .sav file.
+ ********************************************************************************/
+u8  spare[512] = {0x00};            // We keep some spare bytes so we can use them in the future without changing the structure
+
+static char szLoadFile[256];        // We build the filename out of the base filename and tack on .sav, .ee, etc.
+static char tmpStr[32];
+
+void spectrumSaveState() 
+{
+  size_t retVal;
+
+  // Return to the original path
+  chdir(initial_path);    
+  
+  // Init filename = romname and SAV in place of ROM
+  DIR* dir = opendir("sav");
+  if (dir) closedir(dir);    // Directory exists... close it out and move on.
+  else mkdir("sav", 0777);   // Otherwise create the directory...
+  sprintf(szLoadFile,"sav/%s", initial_file);
+
+  int len = strlen(szLoadFile);
+  szLoadFile[len-3] = 's';
+  szLoadFile[len-2] = 'a';
+  szLoadFile[len-1] = 'v';
+
+  strcpy(tmpStr,"SAVING...");
+  DSPrint(6,0,0,tmpStr);
+  
+  FILE *handle = fopen(szLoadFile, "wb+");  
+  if (handle != NULL) 
+  {
+    // Write Version
+    u16 save_ver = SPECCYDS_SAVE_VER;
+    retVal = fwrite(&save_ver, sizeof(u16), 1, handle);
+      
+    // Write CZ80 CPU
+    retVal = fwrite(&CPU, sizeof(CPU), 1, handle);
+
+    // Write AY Chip info
+    retVal = fwrite(&myAY, sizeof(myAY), 1, handle);
+      
+    // Save Z80 Memory from 16K-64K
+    if (retVal) retVal = fwrite(RAM_Memory+0x4000, 0xC000,1, handle); 
+      
+    // And the Memory Map - we must only save offsets so that this is generic when we change code and memory shifts...
+    for (u8 i=0; i<8; i++)
+    {
+        if ((MemoryMap[i] >= ROM_Memory) && (MemoryMap[i] < ROM_Memory+(sizeof(ROM_Memory))))
+        {
+            Offsets[i].type = TYPE_ROM;
+            Offsets[i].offset = MemoryMap[i] - ROM_Memory;
+        }
+        else if ((MemoryMap[i] >= RAM_Memory) && (MemoryMap[i] < RAM_Memory+(sizeof(RAM_Memory))))
+        {
+            Offsets[i].type = TYPE_RAM;
+            Offsets[i].offset = MemoryMap[i] - RAM_Memory;
+        }
+        else
+        {
+            Offsets[i].type = TYPE_OTHER;
+            Offsets[i].offset =  (u32)MemoryMap[i];
+        }
+    }
+    if (retVal) retVal = fwrite(Offsets, sizeof(Offsets),1, handle);
+    
+    
+    // And now a bunch of ZX Spectrum related vars...
+    if (retVal) retVal = fwrite(&portFE,                    sizeof(portFE),                     1,handle);
+    if (retVal) retVal = fwrite(&portFD,                    sizeof(portFD),                     1, handle);
+    if (retVal) retVal = fwrite(&zx_AY_enabled,             sizeof(zx_AY_enabled),              1, handle);
+    if (retVal) retVal = fwrite(&flash_timer,               sizeof(flash_timer),                1, handle);
+    if (retVal) retVal = fwrite(&bFlash,                    sizeof(bFlash),                     1, handle);
+    if (retVal) retVal = fwrite(&zx_128k_mode,              sizeof(zx_128k_mode),               1, handle);
+    if (retVal) retVal = fwrite(&zx_ScreenRendering,        sizeof(zx_ScreenRendering),         1, handle);
+    if (retVal) retVal = fwrite(&zx_current_line,           sizeof(zx_current_line),            1, handle);
+    
+    if (retVal) retVal = fwrite(&num_blocks_available,      sizeof(num_blocks_available),       1, handle);
+    if (retVal) retVal = fwrite(&current_block,             sizeof(current_block),              1, handle);
+    if (retVal) retVal = fwrite(&tape_state,                sizeof(tape_state),                 1, handle);
+    if (retVal) retVal = fwrite(&current_block_data_idx,    sizeof(current_block_data_idx),     1, handle);
+    if (retVal) retVal = fwrite(&tape_bytes_processed,      sizeof(tape_bytes_processed),       1, handle);
+    if (retVal) retVal = fwrite(&header_pulses,             sizeof(header_pulses),              1, handle);
+    if (retVal) retVal = fwrite(&current_bit,               sizeof(current_bit),                1, handle);
+    if (retVal) retVal = fwrite(&lastBitSent,               sizeof(lastBitSent),                1, handle);
+    if (retVal) retVal = fwrite(&current_bytes_this_block,  sizeof(current_bytes_this_block),   1, handle);
+    if (retVal) retVal = fwrite(&handle_last_bits,          sizeof(handle_last_bits),           1, handle);
+   
+    strcpy(tmpStr, (retVal ? "OK ":"ERR"));  
+    DSPrint(15,0,0,tmpStr);
+    WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;
+    DSPrint(6,0,0,"             "); 
+    DisplayStatusLine(true);
+  }
+  else {
+    strcpy(tmpStr,"Error opening SAV file ...");
+  }
+  fclose(handle);
+}
+
+
+/*********************************************************************************
+ * Load the current state - read everything back from the .sav file.
+ ********************************************************************************/
+void spectrumLoadState() 
+{
+    size_t retVal;
+
+    // Return to the original path
+    chdir(initial_path);    
+
+    // Init filename = romname and .SAV in place of ROM
+    sprintf(szLoadFile,"sav/%s", initial_file);
+    int len = strlen(szLoadFile);
+    
+    szLoadFile[len-3] = 's';
+    szLoadFile[len-2] = 'a';
+    szLoadFile[len-1] = 'v';
+    
+    FILE* handle = fopen(szLoadFile, "rb"); 
+    if (handle != NULL) 
+    {    
+         strcpy(tmpStr,"LOADING...");
+         DSPrint(6,0,0,tmpStr);
+       
+        // Read Version
+        u16 save_ver = 0xBEEF;
+        retVal = fread(&save_ver, sizeof(u16), 1, handle);
+        
+        if (save_ver == SPECCYDS_SAVE_VER)
+        {
+            // Load CZ80 CPU
+            retVal = fread(&CPU, sizeof(CPU), 1, handle);
+
+            // Load AY Chip info
+            if (retVal) retVal = fread(&myAY, sizeof(myAY), 1, handle);
+              
+            // Load Z80 Memory from 16K-64K
+            if (retVal) retVal = fread(RAM_Memory+0x4000, 0xC000,1, handle); 
+            
+            // Load back the Memory Map - these were saved as offsets so we must reconstruct actual pointers
+            if (retVal) retVal = fread(Offsets, sizeof(Offsets),1, handle);     
+            for (u8 i=0; i<8; i++)
+            {
+                if (Offsets[i].type == TYPE_ROM)
+                {
+                    MemoryMap[i] = (u8 *) (ROM_Memory + Offsets[i].offset);
+                }
+                else if (Offsets[i].type == TYPE_RAM)
+                {
+                    MemoryMap[i] = (u8 *) (RAM_Memory + Offsets[i].offset);
+                }
+                else // TYPE_OTHER - this is just a pointer to memory
+                {
+                    MemoryMap[i] = (u8 *) (Offsets[i].offset);
+                }
+            }            
+        }
+        else retVal = 0;
+        
+        // And now a bunch of ZX Spectrum related vars...
+        if (retVal) retVal = fread(&portFE,                    sizeof(portFE),                     1,handle);
+        if (retVal) retVal = fread(&portFD,                    sizeof(portFD),                     1, handle);
+        if (retVal) retVal = fread(&zx_AY_enabled,             sizeof(zx_AY_enabled),              1, handle);
+        if (retVal) retVal = fread(&flash_timer,               sizeof(flash_timer),                1, handle);
+        if (retVal) retVal = fread(&bFlash,                    sizeof(bFlash),                     1, handle);
+        if (retVal) retVal = fread(&zx_128k_mode,              sizeof(zx_128k_mode),               1, handle);
+        if (retVal) retVal = fread(&zx_ScreenRendering,        sizeof(zx_ScreenRendering),         1, handle);
+        if (retVal) retVal = fread(&zx_current_line,           sizeof(zx_current_line),            1, handle);
+
+        if (retVal) retVal = fread(&num_blocks_available,      sizeof(num_blocks_available),       1, handle);
+        if (retVal) retVal = fread(&current_block,             sizeof(current_block),              1, handle);
+        if (retVal) retVal = fread(&tape_state,                sizeof(tape_state),                 1, handle);
+        if (retVal) retVal = fread(&current_block_data_idx,    sizeof(current_block_data_idx),     1, handle);
+        if (retVal) retVal = fread(&tape_bytes_processed,      sizeof(tape_bytes_processed),       1, handle);
+        if (retVal) retVal = fread(&header_pulses,             sizeof(header_pulses),              1, handle);
+        if (retVal) retVal = fread(&current_bit,               sizeof(current_bit),                1, handle);
+        if (retVal) retVal = fread(&lastBitSent,               sizeof(lastBitSent),                1, handle);
+        if (retVal) retVal = fread(&current_bytes_this_block,  sizeof(current_bytes_this_block),   1, handle);
+        if (retVal) retVal = fread(&handle_last_bits,          sizeof(handle_last_bits),           1, handle);
+
+        strcpy(tmpStr, (retVal ? "OK ":"ERR"));
+        DSPrint(15,0,0,tmpStr);
+        
+        WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;
+        DSPrint(6,0,0,"             ");  
+        DisplayStatusLine(true);
+      }
+      else
+      {
+        DSPrint(6,0,0,"NO SAVED GAME");
+        WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;
+        DSPrint(6,0,0,"             ");  
+      }
+
+    fclose(handle);
+}
+
+// End of file
