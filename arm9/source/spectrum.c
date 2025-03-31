@@ -29,7 +29,6 @@ u8 zx_AY_enabled        __attribute__((section(".dtcm"))) = 0;
 u8 zx_AY_index_written  __attribute__((section(".dtcm"))) = 0;
 u32 flash_timer         __attribute__((section(".dtcm"))) = 0;
 u8  bFlash              __attribute__((section(".dtcm"))) = 0;
-u8 *zx_PagedRAM         __attribute__((section(".dtcm"))) = 0;
 u8  zx_128k_mode        __attribute__((section(".dtcm"))) = 0;
 u8  zx_ScreenRendering  __attribute__((section(".dtcm"))) = 0;
 u8  zx_force_128k_mode  __attribute__((section(".dtcm"))) = 0;
@@ -210,7 +209,7 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
         u8 *floatBusPtr;
         
         // For the ZX 128K, we might be using page 7 for video display... it's rare, but possible...
-        if (zx_128k_mode) floatBusPtr = zx_PagedRAM + (((portFD & 0x08) ? 7:5) * 0x4000) + 0x1800;
+        if (zx_128k_mode) floatBusPtr = RAM_Memory128 + (((portFD & 0x08) ? 7:5) * 0x4000) + 0x1800;
         else floatBusPtr = RAM_Memory + 0x5800;
 
         u8 *attrPtr = &floatBusPtr[((zx_current_line - 64)/8)*32];
@@ -238,8 +237,8 @@ void zx_bank(u8 new_bank)
     }
     
     // Map in the correct page of banked memory
-    MemoryMap[6] = zx_PagedRAM + ((new_bank & 0x07) * 0x4000) + 0x0000;
-    MemoryMap[7] = zx_PagedRAM + ((new_bank & 0x07) * 0x4000) + 0x2000;
+    MemoryMap[6] = RAM_Memory128 + ((new_bank & 0x07) * 0x4000) + 0x0000;
+    MemoryMap[7] = RAM_Memory128 + ((new_bank & 0x07) * 0x4000) + 0x2000;
 
     portFD = new_bank;
 }
@@ -321,7 +320,7 @@ ITCM_CODE void speccy_render_screen(u8 line)
     if (!isDSiMode() && (flash_timer & 1)) return; // For DS-Lite/Phat, we draw every other frame...
 
     // For the ZX 128K, we might be using page 7 for video display... it's rare, but possible...
-    if (zx_128k_mode) zx_ScreenPage = zx_PagedRAM + ((portFD & 0x08) ? 7:5) * 0x4000;
+    if (zx_128k_mode) zx_ScreenPage = RAM_Memory128 + ((portFD & 0x08) ? 7:5) * 0x4000;
     else zx_ScreenPage = RAM_Memory + 0x4000;
 
     // -----------------------------------------------
@@ -441,7 +440,7 @@ u8 decompress_v2_v3(int romSize)
         if (compressedLen == 0xFFFF) {isCompressed = 0; compressedLen = (16*1024);}
         if (compressedLen > 0x4000) compressedLen = 0x4000;
         u8 pageNum = ROM_Memory[idx+2];
-        u8 *UncompressedData = zx_PagedRAM + ((pageNum-3) * 0x4000);
+        u8 *UncompressedData = RAM_Memory128 + ((pageNum-3) * 0x4000);
         idx += 3;
         offset = 0x0000;
         for (int i=0; i<compressedLen; i++)
@@ -556,8 +555,6 @@ void speccy_reset(void)
     zx_special_key = 0;
     
     zx_128k_mode = 0;   // Assume 48K until told otherwise
-
-    zx_PagedRAM = ROM_Memory + 0x40000; // 128K RAM is placed in higher part of ROM Memory...       
     
     // A bit wasteful to decompress again... but 
     // we want to ensure that the memory is exactly
@@ -614,14 +611,14 @@ void speccy_reset(void)
     else if (speccy_mode == MODE_BIOS) // Diagnostic ROM - launch in ZX 128K mode
     {
         // Now set the memory map to point to the right banks...
-        MemoryMap[2] = zx_PagedRAM + (5 * 0x4000) + 0x0000; // Bank 5
-        MemoryMap[3] = zx_PagedRAM + (5 * 0x4000) + 0x2000; // Bank 5
+        MemoryMap[2] = RAM_Memory128 + (5 * 0x4000) + 0x0000; // Bank 5
+        MemoryMap[3] = RAM_Memory128 + (5 * 0x4000) + 0x2000; // Bank 5
 
-        MemoryMap[4] = zx_PagedRAM + (2 * 0x4000) + 0x0000; // Bank 2
-        MemoryMap[5] = zx_PagedRAM + (2 * 0x4000) + 0x2000; // Bank 2
+        MemoryMap[4] = RAM_Memory128 + (2 * 0x4000) + 0x0000; // Bank 2
+        MemoryMap[5] = RAM_Memory128 + (2 * 0x4000) + 0x2000; // Bank 2
 
-        MemoryMap[6] = zx_PagedRAM + (0 * 0x4000) + 0x0000; // Bank 0
-        MemoryMap[7] = zx_PagedRAM + (0 * 0x4000) + 0x2000; // Bank 0
+        MemoryMap[6] = RAM_Memory128 + (0 * 0x4000) + 0x0000; // Bank 0
+        MemoryMap[7] = RAM_Memory128 + (0 * 0x4000) + 0x2000; // Bank 0
     }
     else if (speccy_mode < MODE_SNA) // TAP or TZX file - 48K or 128K
     {
@@ -630,17 +627,15 @@ void speccy_reset(void)
         {
             zx_128k_mode = 1;            
             
-            memset(zx_PagedRAM, 0x00, 0x20000); // Clear slate of RAM to start
-            
             // Now set the memory map to point to the right banks...
-            MemoryMap[2] = zx_PagedRAM + (5 * 0x4000) + 0x0000; // Bank 5
-            MemoryMap[3] = zx_PagedRAM + (5 * 0x4000) + 0x2000; // Bank 5
+            MemoryMap[2] = RAM_Memory128 + (5 * 0x4000) + 0x0000; // Bank 5
+            MemoryMap[3] = RAM_Memory128 + (5 * 0x4000) + 0x2000; // Bank 5
 
-            MemoryMap[4] = zx_PagedRAM + (2 * 0x4000) + 0x0000; // Bank 2
-            MemoryMap[5] = zx_PagedRAM + (2 * 0x4000) + 0x2000; // Bank 2            
+            MemoryMap[4] = RAM_Memory128 + (2 * 0x4000) + 0x0000; // Bank 2
+            MemoryMap[5] = RAM_Memory128 + (2 * 0x4000) + 0x2000; // Bank 2            
             
-            MemoryMap[6] = zx_PagedRAM + (0 * 0x4000) + 0x0000; // Bank 0
-            MemoryMap[7] = zx_PagedRAM + (0 * 0x4000) + 0x2000; // Bank 0            
+            MemoryMap[6] = RAM_Memory128 + (0 * 0x4000) + 0x0000; // Bank 0
+            MemoryMap[7] = RAM_Memory128 + (0 * 0x4000) + 0x2000; // Bank 0            
         }
     }        
     else // Z80 snapshot
@@ -699,11 +694,11 @@ void speccy_reset(void)
             if (zx_128k_mode)
             {
                 // Now set the memory map to point to the right banks...
-                MemoryMap[2] = zx_PagedRAM + (5 * 0x4000) + 0x0000; // Bank 5
-                MemoryMap[3] = zx_PagedRAM + (5 * 0x4000) + 0x2000; // Bank 5
+                MemoryMap[2] = RAM_Memory128 + (5 * 0x4000) + 0x0000; // Bank 5
+                MemoryMap[3] = RAM_Memory128 + (5 * 0x4000) + 0x2000; // Bank 5
 
-                MemoryMap[4] = zx_PagedRAM + (2 * 0x4000) + 0x0000; // Bank 2
-                MemoryMap[5] = zx_PagedRAM + (2 * 0x4000) + 0x2000; // Bank 2
+                MemoryMap[4] = RAM_Memory128 + (2 * 0x4000) + 0x0000; // Bank 2
+                MemoryMap[5] = RAM_Memory128 + (2 * 0x4000) + 0x2000; // Bank 2
 
                 zx_bank(ROM_Memory[35]);     // Last write to 0x7ffd (banking)
                 

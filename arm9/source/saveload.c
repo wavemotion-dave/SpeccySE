@@ -86,9 +86,6 @@ void spectrumSaveState()
     // Write AY Chip info
     retVal = fwrite(&myAY, sizeof(myAY), 1, handle);
       
-    // Save Z80 Memory from 16K-64K
-    if (retVal) retVal = fwrite(RAM_Memory+0x4000, 0xC000,1, handle); 
-      
     // And the Memory Map - we must only save offsets so that this is generic when we change code and memory shifts...
     for (u8 i=0; i<8; i++)
     {
@@ -109,7 +106,6 @@ void spectrumSaveState()
         }
     }
     if (retVal) retVal = fwrite(Offsets, sizeof(Offsets),1, handle);
-    
     
     // And now a bunch of ZX Spectrum related vars...
     if (retVal) retVal = fwrite(&portFE,                    sizeof(portFE),                     1,handle);
@@ -132,7 +128,38 @@ void spectrumSaveState()
     if (retVal) retVal = fwrite(&current_bytes_this_block,  sizeof(current_bytes_this_block),   1, handle);
     if (retVal) retVal = fwrite(&handle_last_bits,          sizeof(handle_last_bits),           1, handle);
     if (retVal) retVal = fwrite(&custom_pulse_idx,          sizeof(custom_pulse_idx),           1, handle);
-   
+    
+    // Save Z80 Memory Map... either 48K for 128K 
+    u8 *ptr = RAM_Memory+0x4000;
+    u32 mem_size = 0xC000;
+    if (zx_128k_mode)
+    {
+        ptr = RAM_Memory128;
+        mem_size = 0x20000;
+    }
+    
+    // Simple Run-Length-Encoding saves us on lots of zeroed memory...
+    for (u32 i=0; i<mem_size; i++)
+    {
+        u8 count = 0;
+        while (ptr[i] == 0x00)
+        {
+            if (++count == 255) break;
+            i++;
+        }
+        if (count)
+        {
+            i--;
+            u8 zero = 0x00;
+            if (retVal) retVal = fwrite(&zero,  1, 1, handle);
+            if (retVal) retVal = fwrite(&count, 1, 1, handle);
+        }
+        else
+        {
+            if (retVal) retVal = fwrite(&ptr[i], 1, 1, handle); 
+        }
+    }
+    
     strcpy(tmpStr, (retVal ? "OK ":"ERR"));  
     DSPrint(13,0,0,tmpStr);
     WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;
@@ -182,9 +209,6 @@ void spectrumLoadState()
             // Load AY Chip info
             if (retVal) retVal = fread(&myAY, sizeof(myAY), 1, handle);
               
-            // Load Z80 Memory from 16K-64K
-            if (retVal) retVal = fread(RAM_Memory+0x4000, 0xC000,1, handle); 
-            
             // Load back the Memory Map - these were saved as offsets so we must reconstruct actual pointers
             if (retVal) retVal = fread(Offsets, sizeof(Offsets),1, handle);     
             for (u8 i=0; i<8; i++)
@@ -226,7 +250,34 @@ void spectrumLoadState()
         if (retVal) retVal = fread(&current_bytes_this_block,  sizeof(current_bytes_this_block),   1, handle);
         if (retVal) retVal = fread(&handle_last_bits,          sizeof(handle_last_bits),           1, handle);
         if (retVal) retVal = fread(&custom_pulse_idx,          sizeof(custom_pulse_idx),           1, handle);            
-
+        
+        // Load Z80 Memory Map... either 48K for 128K 
+        u8 *ptr = RAM_Memory+0x4000;
+        u32 mem_size = 0xC000;
+        if (zx_128k_mode)
+        {
+            ptr = RAM_Memory128;
+            mem_size = 0x20000;
+        }
+        
+        // Simple Run-Length-Encoding saves us on lots of zeroed memory...
+        for (u32 i=0; i<mem_size; i++)
+        {
+            u8 count;
+            if (retVal) 
+            {
+                retVal = fread(&ptr[i], 1, 1, handle);
+                if (ptr[i] == 0x00) // RLE
+                {
+                    fread(&count, 1, 1, handle);
+                    while (--count)
+                    {
+                        ptr[i++] = 0x00;
+                    }
+                }
+            }
+        }
+    
         strcpy(tmpStr, (retVal ? "OK ":"ERR"));
         DSPrint(13,0,0,tmpStr);
         

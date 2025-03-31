@@ -41,9 +41,10 @@ u32 debug[0x10]={0};
 //    0x0000-0x3FFF  Spectrum BIOS. Either 48.rom or 128.rom (bank 0 or 1)
 //    0x4000-0xFFFF  Spectrum 48K of RAM / Memory
 // --------------------------------------------------------------------------
-u8 RAM_Memory[0x10000] ALIGN(32) = {0};  // The Z80 RAM is 64K
-u8 SpectrumBios[0x4000]          = {0};  // We keep the 16k ZX Spectrum 48K BIOS around
-u8 SpectrumBios128[0x8000]       = {0};  // We keep the 32k ZX Spectrum 128K BIOS around
+u8 RAM_Memory[0x10000]    ALIGN(32) = {0};  // The Z80 Memory is 64K 
+u8 RAM_Memory128[0x20000] ALIGN(32) = {0};  // The Z80 Memory is 64K but we expand this for a 128K model
+u8 SpectrumBios[0x4000]             = {0};  // We keep the 16k ZX Spectrum 48K BIOS around
+u8 SpectrumBios128[0x8000]          = {0};  // We keep the 32k ZX Spectrum 128K BIOS around
 
 u8 ROM_Memory[MAX_CART_SIZE];            // ROM Carts up to 1MB
 
@@ -1311,7 +1312,8 @@ void speccyDSInitCPU(void)
   //  -----------------------------------------
   //  Init Main Memory and VDP Video Memory
   //  -----------------------------------------
-  memset(RAM_Memory, 0x00, sizeof(RAM_Memory));
+  memset(RAM_Memory,    0x00, sizeof(RAM_Memory));
+  memset(RAM_Memory128, 0x00, sizeof(RAM_Memory128));
 
   // -----------------------------------------------
   // Init bottom screen do display the ZX Keyboard
