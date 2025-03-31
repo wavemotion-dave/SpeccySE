@@ -243,8 +243,7 @@ void tape_parse_blocks(int tapeSize)
                     break;
 
                 case BLOCK_ID_PULSE_SEQ:
-                    pilot_pulses = ROM_Memory[idx+0];
-                    idx += 1;
+                    pilot_pulses = ROM_Memory[idx++];
                     for (u16 i=0; i < pilot_pulses; i++)
                     {
                         pilot_length = ROM_Memory[idx+0]  | (ROM_Memory[idx+1]  << 8);
@@ -271,8 +270,8 @@ void tape_parse_blocks(int tapeSize)
                     TapeBlocks[num_blocks_available].block_data_idx  = idx+10;
                     TapeBlocks[num_blocks_available].block_data_len  = block_len;
                     TapeBlocks[num_blocks_available].block_flag      = block_flag;
-                    TapeBlocks[current_block].sync1_width = 0;
-                    TapeBlocks[current_block].sync2_width = 0;
+                    TapeBlocks[num_blocks_available].sync1_width = 0;
+                    TapeBlocks[num_blocks_available].sync2_width = 0;
                     num_blocks_available++;
                     idx += (block_len + 10);
                     break;
@@ -519,19 +518,19 @@ ITCM_CODE u8 tape_pulse(void)
                 break;
                 
             case CUSTOM_PULSE_SEQ:
-                pilot_pulse = (CPU.TStates / TapeBlocks[current_block].custom_pulse_len[custom_pulse_idx]); // How many pulses are we into this thing...
-
-                // Always end the custom pulse sequence on a high bit sent to simplify the logic
-                if ((pilot_pulse < TapeBlocks[current_block].pilot_pulses) || (pilot_pulse & 1)) // Are we still in the pilot tone send?
+                if (CPU.TStates < TapeBlocks[current_block].custom_pulse_len[custom_pulse_idx])
                 {
-                    if (pilot_pulse & 1) return lastBitSent ^ 0x40;    // Send the pulse bit
+                    if (custom_pulse_idx & 1) return lastBitSent ^ 0x40;    // Send the pulse bit - since we're using custom_pulse_idx which starts at zero (0) we start with low pulse
                     else return lastBitSent;
                 }
-                else  // We're done with the pulse sequence - move to next block
+                else  // Check if we're done with the custom pulse sequence...
                 {
                     CPU.TStates = 0;
-                    current_block++;
-                    tape_state = TAPE_NEXT_BLOCK;
+                    if (++custom_pulse_idx >= TapeBlocks[current_block].pilot_pulses)
+                    {
+                        current_block++;
+                        tape_state = TAPE_NEXT_BLOCK;
+                    }
                 }
                 break;
 
@@ -607,7 +606,8 @@ ITCM_CODE u8 tape_pulse(void)
                 if (CPU.TStates <= (TapeBlocks[current_block].gap_delay_after * 3500))   return lastBitSent;
                 else
                 {
-                    if (TapeBlocks[current_block].gap_delay_after == 0)
+                    // A delay of zero is not special unless we are the BLOCK_ID_PAUSE_STOP block type...
+                    if ((TapeBlocks[current_block].id == BLOCK_ID_PAUSE_STOP) && (TapeBlocks[current_block].gap_delay_after == 0))
                     {
                         current_block++;
                         tape_state = TAPE_STOP;     // To Pause/Stop the tape
@@ -663,7 +663,7 @@ u8 inline __attribute__((always_inline)) tape_pulse_fast(void)
 
 //PC will be 0x05F3 when we get here from the standard BIOS but were are being location agnostic
 //so that we can use this same routine when the standard loader is used in other memory locations.
- void tape_sample_standard(void)
+ITCM_CODE void tape_sample_standard(void)
 {
     int B = 255-CPU.BC.B.h;
     // The CyclesED[] table will consume the 18 cycles that the LDA, INA would have taken here...
@@ -689,6 +689,16 @@ ld_sample:
     }
     else                                // Edge not detected - we will do another pass or timeout
     {
+        // -----------------------------------------------------------------------
+        // For the standard loader if we're at least 4 counts away from the
+        // timeout, we can accelerate the timing a bit and still not miss an edge.
+        // -----------------------------------------------------------------------
+        if (B & 0xFC)
+        {
+            CPU.TStates += 3*(25+34);   // It takes 59 total cycles when we take another pass around the loop
+            B-=3;
+            goto ld_sample;             // If no time-out... take another sample.
+        }
         CPU.TStates += 25+34;           // It takes 59 total cycles when we take another pass around the loop
         if (--B) goto ld_sample;        // If no time-out... take another sample.
         
@@ -821,7 +831,7 @@ ld_sample:
 //        {1} XOR  C        [+4]    Now test the byte against the 'last edge-type'
 //        {2} AND  +20      [+7]    Mask off just the bit we care about (normally 0x40 but it's been shifted down)
 //            JR   Z,05ED   [+12/5] Jump back to LD-SAMPLE unless it has changed
-void tape_sample_microsphere(void)
+ITCM_CODE void tape_sample_microsphere(void)
 {
     u8 B = (255-CPU.BC.B.h);
      // The CyclesED[] table will consume the 18 cycles that the LDA, INA would have taken here...
@@ -876,7 +886,7 @@ ld_sample:
 //        {1} XOR  C        [+4]    Now test the byte against the 'last edge-type'
 //        {2} AND  +20      [+7]    Mask off just the bit we care about (normally 0x40 but it's been shifted down)
 //            JR   Z,05ED   [+12/5] Jump back to LD-SAMPLE unless it has changed
-void tape_sample_bleepload(void)
+ITCM_CODE void tape_sample_bleepload(void)
 {
     u8 B = (255-CPU.BC.B.h);
      // The CyclesED[] table will consume the 18 cycles that the LDA, INA would have taken here...

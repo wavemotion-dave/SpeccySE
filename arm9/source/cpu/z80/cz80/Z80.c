@@ -423,7 +423,7 @@ void IntZ80(Z80 *R,word Vector)
 }
 
 
-ITCM_CODE static void CodesCB_Speccy(void)
+static void CodesCB_Speccy(void)
 {
   register byte I;
 
@@ -485,7 +485,7 @@ static void CodesFDCB_Speccy(void)
 #undef XX
 }
 
-static void CodesED_Speccy(void)
+ITCM_CODE static void CodesED_Speccy(void)
 {
   register byte I;
   register pair J;
