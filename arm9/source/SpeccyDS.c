@@ -52,7 +52,7 @@ static char cmd_line_file[256];
 char initial_file[MAX_ROM_NAME] = "";
 char initial_path[MAX_ROM_NAME] = "";
 
-u8  last_speccy_mode = 99;
+u8 last_speccy_mode  = 99;
 u8 bFirstTime        = 3;
 u8 bStartTapeIn      = 2;
 
@@ -1199,10 +1199,10 @@ void SpeccyDS_main(void)
       // --------------------------------------------------
       // Handle Auto-Fire if enabled in configuration...
       // --------------------------------------------------
-      static u8 autoFireTimer[2]={0,0};
-      if ((myConfig.autoFire & 0x01) && (JoyState & JST_FIRE))  // Fire Button
+      static u8 autoFireTimer=0;
+      if (myConfig.autoFire && (JoyState & JST_FIRE))  // Fire Button
       {
-         if ((++autoFireTimer[0] & 7) > 4)  JoyState &= ~JST_FIRE;
+         if ((++autoFireTimer & 7) > 4)  JoyState &= ~JST_FIRE;
       }
     }
   }

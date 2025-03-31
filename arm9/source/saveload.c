@@ -128,6 +128,10 @@ void spectrumSaveState()
     if (retVal) retVal = fwrite(&current_bytes_this_block,  sizeof(current_bytes_this_block),   1, handle);
     if (retVal) retVal = fwrite(&handle_last_bits,          sizeof(handle_last_bits),           1, handle);
     if (retVal) retVal = fwrite(&custom_pulse_idx,          sizeof(custom_pulse_idx),           1, handle);
+    if (retVal) retVal = fwrite(&bFirstTime,                sizeof(bFirstTime),                 1, handle);
+    if (retVal) retVal = fwrite(&bStartTapeIn,              sizeof(bStartTapeIn),               1, handle);
+    if (retVal) retVal = fwrite(&loop_counter,              sizeof(loop_counter),               1, handle);
+    if (retVal) retVal = fwrite(&loop_block,                sizeof(loop_block),                 1, handle);        
     
     // Save Z80 Memory Map... either 48K for 128K 
     u8 *ptr = RAM_Memory+0x4000;
@@ -144,8 +148,8 @@ void spectrumSaveState()
         u8 count = 0;
         while (ptr[i] == 0x00)
         {
-            if (++count == 255) break;
             i++;
+            if (++count == 255) break;
         }
         if (count)
         {
@@ -250,6 +254,10 @@ void spectrumLoadState()
         if (retVal) retVal = fread(&current_bytes_this_block,  sizeof(current_bytes_this_block),   1, handle);
         if (retVal) retVal = fread(&handle_last_bits,          sizeof(handle_last_bits),           1, handle);
         if (retVal) retVal = fread(&custom_pulse_idx,          sizeof(custom_pulse_idx),           1, handle);            
+        if (retVal) retVal = fread(&bFirstTime,                sizeof(bFirstTime),                 1, handle);
+        if (retVal) retVal = fread(&bStartTapeIn,              sizeof(bStartTapeIn),               1, handle);        
+        if (retVal) retVal = fread(&loop_counter,              sizeof(loop_counter),               1, handle);
+        if (retVal) retVal = fread(&loop_block,                sizeof(loop_block),                 1, handle);        
         
         // Load Z80 Memory Map... either 48K for 128K 
         u8 *ptr = RAM_Memory+0x4000;

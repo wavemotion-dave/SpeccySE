@@ -34,6 +34,8 @@
 #define BLOCK_ID_PULSE_SEQ              0x13
 #define BLOCK_ID_PURE_DATA              0x14
 #define BLOCK_ID_PAUSE_STOP             0x20
+#define BLOCK_ID_LOOP_START             0x24
+#define BLOCK_ID_LOOP_END               0x25
 #define BLOCK_ID_STOP_IF_48K            0x2A
 
 #define TAPE_STOP                       0x00
@@ -74,6 +76,7 @@ typedef struct
   u16  data_one_width;          // How wide the zero '0' bit pulse is {1710}
   u8   last_bits_used;          // The number of bits used in the last byte
   u16  gap_delay_after;         // How many milliseconds delay after this block {1000}
+  u16  loop_counter;            // For Loops... how many times to iterate
   u32  block_data_idx;          // Where does the block data start (after header stuff is parsed)
   u32  block_data_len;          // How many bytes are in the data stream for this block?
   u16  custom_pulse_len[255];   // For the BLOCK_ID_PULSE_SEQ type of block
@@ -91,6 +94,8 @@ u8  lastBitSent                 __attribute__((section(".dtcm"))) = 0;
 u32 current_bytes_this_block    __attribute__((section(".dtcm"))) = 0;
 u8  handle_last_bits            __attribute__((section(".dtcm"))) = 0;
 u8  custom_pulse_idx            __attribute__((section(".dtcm"))) = 0;
+u16 loop_counter                __attribute__((section(".dtcm"))) = 0;
+u16 loop_block                  __attribute__((section(".dtcm"))) = 0;
 
 // -----------------------------------------------
 // This traps out the tape loader main routine...
@@ -279,28 +284,28 @@ void tape_parse_blocks(int tapeSize)
                     break;
 
                 case BLOCK_ID_STOP_IF_48K: // Stop the Tape only if 48K mode
-                    if (!zx_128k_mode) // If we are 48K Spectrum
-                    {
-                        TapeBlocks[num_blocks_available].gap_delay_after = 0;
-                        num_blocks_available++;
-                    }
+                    TapeBlocks[num_blocks_available].gap_delay_after = 0;
+                    num_blocks_available++;
                     idx += 4;
                     break;
 
-                case 0x21: // Group Start
+                case 0x21: // Group Start - skip this for now
                     block_len = ROM_Memory[idx + 0];
                     idx += (block_len + 1);
                     break;
 
-                case 0x22: // Group End
+                case 0x22: // Group End - skip this for now
                     idx += 0;
                     break;
 
-                case 0x24: // Loop Start
+                case BLOCK_ID_LOOP_START: // Loop Start
+                    TapeBlocks[num_blocks_available].loop_counter = (ROM_Memory[idx + 0] << 0) | (ROM_Memory[idx + 1] << 8);
+                    num_blocks_available++;
                     idx += 2;
                     break;
 
-                case 0x25: // Loop End
+                case BLOCK_ID_LOOP_END: // Loop End
+                    num_blocks_available++;
                     idx += 0;
                     break;
 
@@ -317,6 +322,10 @@ void tape_parse_blocks(int tapeSize)
                 case 0x33: // Machine Info
                     block_len = ROM_Memory[idx + 0];
                     idx += (block_len + 1);
+                    break;
+
+                case 0x5A: // Glue Block
+                    idx += 9;
                     break;
 #if 0
                 default:
@@ -448,9 +457,36 @@ ITCM_CODE u8 tape_pulse(void)
                         break;
 
                     case BLOCK_ID_STOP_IF_48K: // Stop if 48K
-                        tape_state = TAPE_STOP;
+                        if (!zx_128k_mode) // If we are 48K Spectrum
+                        {
+                            tape_state = TAPE_STOP;
+                        }
+                        else // For 128K we can move to the next block
+                        {
+                            current_block++;
+                            tape_state = TAPE_NEXT_BLOCK;
+                        }
+                        break;
+                        
+                    case BLOCK_ID_LOOP_START:
+                        loop_counter = TapeBlocks[current_block].loop_counter;
+                        current_block++;
+                        loop_block = current_block;
+                        tape_state = TAPE_NEXT_BLOCK;                        
                         break;
 
+                    case BLOCK_ID_LOOP_END:
+                        if (--loop_counter) // If not done with loop, go back to the block after the loop started
+                        {
+                            current_block = loop_block;
+                        }
+                        else // Done with loop... move along
+                        {
+                            current_block++;
+                        }
+                        tape_state = TAPE_NEXT_BLOCK;                        
+                        break;
+                        
                     default: //TODO: add more block IDs for TZX and trap ones we don't handle...
                         tape_state = TAPE_STOP;
                         break;
@@ -785,7 +821,7 @@ ld_sample:
 //        {1} XOR  C        [+4]    Now test the byte against the 'last edge-type'
 //        {2} AND  +20      [+7]    Mask off just the bit we care about (normally 0x40 but it's been shifted down)
 //            JR   Z,05ED   [+12/5] Jump back to LD-SAMPLE unless it has changed
-ITCM_CODE void tape_sample_microsphere(void)
+void tape_sample_microsphere(void)
 {
     u8 B = (255-CPU.BC.B.h);
      // The CyclesED[] table will consume the 18 cycles that the LDA, INA would have taken here...

@@ -29,14 +29,14 @@
 #include "CRC32.h"
 #include "printf.h"
 
-int countCV=0;
-int ucGameAct=0;
-int ucGameChoice = -1;
-FISpeccy gpFic[MAX_ROMS];  
-char szName[256];
-char szFile[256];
-u32 file_size = 0;
-char strBuf[40];
+int         countCV=0;
+int         ucGameAct=0;
+int         ucGameChoice = -1;
+FISpeccy    gpFic[MAX_ROMS];  
+char        szName[256];
+char        szFile[256];
+u32         file_size = 0;
+char        strBuf[40];
 
 struct Config_t AllConfigs[MAX_CONFIGS];
 struct Config_t myConfig __attribute((aligned(4))) __attribute__((section(".dtcm")));
@@ -867,20 +867,18 @@ const struct options_t Option_Table[2][20] =
 {
     // Game Specific Configuration
     {
-        {"FRAME SKIP",     {"OFF", "SHOW 3/4", "SHOW 1/2"},                                                                                                                                     &myConfig.frameSkip,  3},
-        {"AUTO FIRE",      {"OFF", "B1 ONLY", "B2 ONLY", "BOTH"},                                                                                                                               &myConfig.autoFire,   4},
-        {"JOYSTICK",       {"NORMAL", "DIAGONALS"},                                                                                                                                             &myConfig.dpad,       2},
-        {"TAPE SPEED",     {"NORMAL", "ACCELERATED"},                                                                                                                                           &myConfig.tapeSpeed,  2},
-        
-        {NULL,             {"",      ""},                                                                                                                                                       NULL,                 1},
+        {"FRAME SKIP",     {"OFF", "SHOW 3/4", "SHOW 1/2"},                            &myConfig.frameSkip,         3},
+        {"AUTO FIRE",      {"OFF", "ON"},                                              &myConfig.autoFire,          2},
+        {"JOYSTICK",       {"NORMAL", "DIAGONALS"},                                    &myConfig.dpad,              2},
+        {"TAPE SPEED",     {"NORMAL", "ACCELERATED"},                                  &myConfig.tapeSpeed,         2},                                                                         
+        {NULL,             {"",      ""},                                              NULL,                        1},
     },
     // Global Options
     {
-        {"FPS",            {"OFF", "ON", "ON FULLSPEED"},                                                                                                                                       &myGlobalConfig.showFPS,        3},
-        {"EMU TEXT",       {"OFF",  "ON"},                                                                                                                                                      &myGlobalConfig.emuText,        2},
-        {"DEBUGGER",       {"OFF", "BAD OPS", "DEBUG", "FULL DEBUG"},                                                                                                                           &myGlobalConfig.debugger,       4},
-        
-        {NULL,             {"",      ""},                                                                                                                                                       NULL,                           1},
+        {"FPS",            {"OFF", "ON", "ON FULLSPEED"},                              &myGlobalConfig.showFPS,     3},
+        {"EMU TEXT",       {"OFF",  "ON"},                                             &myGlobalConfig.emuText,     2},
+        {"DEBUGGER",       {"OFF", "BAD OPS", "DEBUG", "FULL DEBUG"},                  &myGlobalConfig.debugger,    4},
+        {NULL,             {"",      ""},                                              NULL,                        1},
     }
 };
 

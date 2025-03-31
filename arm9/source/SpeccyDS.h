@@ -145,6 +145,8 @@ extern u8  lastBitSent;
 extern u32 current_bytes_this_block;
 extern u8  custom_pulse_idx;
 extern u8  handle_last_bits;
+extern u16 loop_counter;
+extern u16 loop_block;
 
 extern void BottomScreenOptions(void);
 extern void BottomScreenKeypad(void);

@@ -21,7 +21,7 @@
 // We need to put a practical limit on the size of the high scores... 740 games it is!
 // ------------------------------------------------------------------------------------
 #define MAX_HS_GAMES    550         // Fits into 96K (3 SD card clusters)
-#define HS_VERSION      0x0002      // Changing this will wipe high scores on the next install
+#define HS_VERSION      0x0001      // Changing this will wipe high scores on the next install
 
 // --------------------------------------------------------------------------
 // We allow sorting on various criteria. By default sorting is high-to-low.
@@ -119,7 +119,6 @@ void highscore_init(void)
         // --------------------------------------------
         if (highscores.version != HS_VERSION) 
         {
-            if (highscores.version == 0x0005)  upgrade_database = 1;    // Special to update 400 entry database to 560
             create_defaults = 1;
         }
         if (highscore_checksum() != highscores.checksum) create_defaults = 1;

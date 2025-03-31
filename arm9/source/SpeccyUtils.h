@@ -20,7 +20,7 @@
 #define MAX_CART_SIZE               (512*1024) // 512K is big enough for any .TAP/.TZX or Snapshot 
             
 #define MAX_CONFIGS                 1024
-#define CONFIG_VER                  0x0000
+#define CONFIG_VER                  0x0001
             
 #define SPECCY_FILE                 0x01
 #define DIRECTORY                   0x02
@@ -39,6 +39,8 @@ typedef struct {
   u32 uCrc;
 } FISpeccy;
 
+
+extern u32 file_size;
 
 struct __attribute__((__packed__)) GlobalConfig_t
 {
@@ -97,7 +99,8 @@ extern u8 last_special_key_dampen;
 extern u16 JoyState;                    // Joystick / Paddle management
 
 extern u32 file_crc;
-extern u8 ctc_enabled;
+extern u8 bFirstTime;
+extern u8 bStartTapeIn;
 
 extern void ProcessBufferedKeys(void);
 extern u8 BufferedKeys[32];

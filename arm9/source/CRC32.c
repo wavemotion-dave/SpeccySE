@@ -75,7 +75,6 @@ u32 getCRC32(u8 *buf, u32 size)
 // ------------------------------------------------------------------------------------
 u32 getFileCrc(const char* filename)
 {
-    extern u32 file_size;
     u32 crc1 = 0;
     u32 crc2 = 1;
     int bytesRead1 = 0;
