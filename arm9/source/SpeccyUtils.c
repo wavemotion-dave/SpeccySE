@@ -225,7 +225,7 @@ u8 showMessage(char *szCh1, char *szCh2) {
   }
   while ((keysCurrent() & (KEY_TOUCH | KEY_LEFT | KEY_RIGHT | KEY_A ))!=0);
   
-  BottomScreenKeypad();  // Could be generic or overlay...
+  BottomScreenKeypad();
   
   return uRet;
 }
@@ -270,7 +270,7 @@ void dsDisplayFiles(u16 NoDebGame, u8 ucSel)
       maxLen=strlen(gpFic[ucGame].szName);
       strcpy(szName,gpFic[ucGame].szName);
       if (maxLen>30) szName[30]='\0';
-      if (gpFic[ucGame].uType == DIRECT) 
+      if (gpFic[ucGame].uType == DIRECTORY) 
       {
         szName[28] = 0; // Needs to be 2 chars shorter with brackets
         sprintf(szName2, "[%s]",szName);
@@ -292,7 +292,7 @@ void dsDisplayFiles(u16 NoDebGame, u8 ucSel)
 
 
 // -------------------------------------------------------------------------
-// Standard qsort routine for the games - we sort all directory
+// Standard qsort routine for the games - we sort all DIRECTORYory
 // listings first and then a case-insenstive sort of all games.
 // -------------------------------------------------------------------------
 int Filescmp (const void *c1, const void *c2) 
@@ -304,17 +304,17 @@ int Filescmp (const void *c1, const void *c2)
       return -1;
   if (p2->szName[0] == '.' && p1->szName[0] != '.')
       return 1;
-  if ((p1->uType == DIRECT) && !(p2->uType == DIRECT))
+  if ((p1->uType == DIRECTORY) && !(p2->uType == DIRECTORY))
       return -1;
-  if ((p2->uType == DIRECT) && !(p1->uType == DIRECT))
+  if ((p2->uType == DIRECTORY) && !(p1->uType == DIRECTORY))
       return 1;
   return strcasecmp (p1->szName, p2->szName);        
 }
 
 /*********************************************************************************
- * Find files (COL / ROM) available - sort them for display.
+ * Find files (TAP/TZX/Z80/SNA) available - sort them for display.
  ********************************************************************************/
-void speccyDSFindFiles(void) 
+void speccyDSFindFiles(u8 bTapeOnly) 
 {
   u32 uNbFile;
   DIR *dir;
@@ -332,40 +332,43 @@ void speccyDSFindFiles(void)
     {
       if (!((szFile[0] == '.') && (strlen(szFile) == 1))) 
       {
-        // Do not include the [sav] directory
+        // Do not include the [sav] DIRECTORYory
         if (strcasecmp(szFile, "sav") != 0)
         {
             strcpy(gpFic[uNbFile].szName,szFile);
-            gpFic[uNbFile].uType = DIRECT;
+            gpFic[uNbFile].uType = DIRECTORY;
             uNbFile++;
             countCV++;
         }
       }
     }
     else {
-      if ((strlen(szFile)>4) && (strlen(szFile)<(MAX_ROM_NAME-4)) && (szFile[0] != '.') && (szFile[0] != '_'))  // For MAC don't allow underscore files
+      if ((strlen(szFile)>4) && (strlen(szFile)<(MAX_ROM_NAME-4)) && (szFile[0] != '.') && (szFile[0] != '_'))  // For MAC don't allow files starting with an underscore
       {
-        if ( (strcasecmp(strrchr(szFile, '.'), ".z80") == 0) )  {
-          strcpy(gpFic[uNbFile].szName,szFile);
-          gpFic[uNbFile].uType = COLROM;
-          uNbFile++;
-          countCV++;
-        }
-        if ( (strcasecmp(strrchr(szFile, '.'), ".sna") == 0) )  {
-          strcpy(gpFic[uNbFile].szName,szFile);
-          gpFic[uNbFile].uType = COLROM;
-          uNbFile++;
-          countCV++;
+        if (!bTapeOnly) // If we're loading tape files only, exclude .z80 and .sna snapshots
+        {
+            if ( (strcasecmp(strrchr(szFile, '.'), ".z80") == 0) )  {
+              strcpy(gpFic[uNbFile].szName,szFile);
+              gpFic[uNbFile].uType = SPECCY_FILE;
+              uNbFile++;
+              countCV++;
+            }
+            if ( (strcasecmp(strrchr(szFile, '.'), ".sna") == 0) )  {
+              strcpy(gpFic[uNbFile].szName,szFile);
+              gpFic[uNbFile].uType = SPECCY_FILE;
+              uNbFile++;
+              countCV++;
+            }
         }
         if ( (strcasecmp(strrchr(szFile, '.'), ".tap") == 0) )  {
           strcpy(gpFic[uNbFile].szName,szFile);
-          gpFic[uNbFile].uType = COLROM;
+          gpFic[uNbFile].uType = SPECCY_FILE;
           uNbFile++;
           countCV++;
         }
         if ( (strcasecmp(strrchr(szFile, '.'), ".tzx") == 0) )  {
           strcpy(gpFic[uNbFile].szName,szFile);
-          gpFic[uNbFile].uType = COLROM;
+          gpFic[uNbFile].uType = SPECCY_FILE;
           uNbFile++;
           countCV++;
         }
@@ -383,11 +386,10 @@ void speccyDSFindFiles(void)
   }    
 }
 
-
 // ----------------------------------------------------------------
 // Let the user select a new game (rom) file and load it up!
 // ----------------------------------------------------------------
-u8 speccyDSLoadFile(void) 
+u8 speccyDSLoadFile(u8 bTapeOnly) 
 {
   bool bDone=false;
   u16 ucHaut=0x00, ucBas=0x00,ucSHaut=0x00, ucSBas=0x00, romSelected= 0, firstRomDisplay=0,nbRomPerPage, uNbRSPage;
@@ -400,13 +402,13 @@ u8 speccyDSLoadFile(void)
   
   DSPrint(1,3,0,"A=LOAD 48K, B=EXIT, Y=128K");
 
-  speccyDSFindFiles();
+  speccyDSFindFiles(bTapeOnly);
     
   ucGameChoice = -1;
 
   nbRomPerPage = (countCV>=18 ? 18 : countCV);
   uNbRSPage = (countCV>=5 ? 5 : countCV);
-  
+
   if (ucGameAct>countCV-nbRomPerPage)
   {
     firstRomDisplay=countCV-nbRomPerPage;
@@ -417,6 +419,9 @@ u8 speccyDSLoadFile(void)
     firstRomDisplay=ucGameAct;
     romSelected=0;
   }
+  
+  if (romSelected >= countCV) romSelected = 0; // Just start at the top
+  
   dsDisplayFiles(firstRomDisplay,romSelected);
     
   // -----------------------------------------------------
@@ -548,7 +553,7 @@ u8 speccyDSLoadFile(void)
     // -------------------------------------------------------------------
     if (keysCurrent() & KEY_A || keysCurrent() & KEY_Y || keysCurrent() & KEY_X)
     {
-      if (gpFic[ucGameAct].uType != DIRECT)
+      if (gpFic[ucGameAct].uType != DIRECTORY)
       {
         if (keysCurrent() & KEY_Y) zx_force_128k_mode = 1; else zx_force_128k_mode = 0;
         bDone=true;
@@ -558,7 +563,7 @@ u8 speccyDSLoadFile(void)
       else
       {
         chdir(gpFic[ucGameAct].szName);
-        speccyDSFindFiles();
+        speccyDSFindFiles(bTapeOnly);
         ucGameAct = 0;
         nbRomPerPage = (countCV>=14 ? 14 : countCV);
         uNbRSPage = (countCV>=5 ? 5 : countCV);
@@ -655,7 +660,7 @@ void SaveConfig(bool bShow)
     DIR* dir = opendir("/data");
     if (dir)
     {
-        closedir(dir);  // Directory exists.
+        closedir(dir);  // DIRECTORYory exists.
     }
     else
     {
@@ -685,7 +690,7 @@ void MapPlayer1(void)
     myConfig.keymap[4]   = 4;    // NDS A Button mapped to Kempston Fire
     
     myConfig.keymap[5]   = 43;   // NDS B Button mapped to SPACE
-    myConfig.keymap[6]   = 30;   // NDS X Button mapped to Z
+    myConfig.keymap[6]   = 0;    // NDS X Button mapped to Kempston Joystick UP
     myConfig.keymap[7]   = 44;   // NDS Y Button mapped to RETURN
     myConfig.keymap[8]   = 41;   // NDS R Button mapped to SHIFT
     myConfig.keymap[9]   = 42;   // NDS L Button mapped to SYMBOL
@@ -1363,7 +1368,7 @@ void speccyDSChangeOptions(void)
         ucA = 0x01;
         switch (ucY) {
           case 5 :      // LOAD GAME
-            speccyDSLoadFile();
+            speccyDSLoadFile(0);
             dmaFillWords(dmaVal | (dmaVal<<16),(void*) bgGetMapPtr(bg1b)+5*32*2,32*19*2);
             BottomScreenOptions();
             if (ucGameChoice != -1) 
@@ -1668,8 +1673,8 @@ u8 loadrom(const char *filename)
     romSize = stbuf.st_size;
     fclose(handle); // We only need to close the file - the game ROM is now sitting in ROM_Memory[] from the getFileCrc() handler
     
-    extern int last_z80_size;
-    last_z80_size = romSize;
+    extern int last_file_size;
+    last_file_size = romSize;
   }
   
   return bOK;

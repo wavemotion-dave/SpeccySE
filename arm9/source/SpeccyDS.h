@@ -30,7 +30,7 @@ extern u32 debug[0x10];
 // ------------------------------------------------------------------------------
 // Joystick UP, RIGHT, LEFT, DOWN and the FIRE button for the Kempston Joystick.
 // Designed specifically so each has its own bit so we can press more than one
-// direction/fire at the same time.  Keys are grafted onto this below.
+// DIRECTORYion/fire at the same time.  Keys are grafted onto this below.
 // ------------------------------------------------------------------------------
 #define JST_UP              0x0001
 #define JST_RIGHT           0x0002
@@ -118,8 +118,6 @@ extern u8 speccy_mode;
 extern u8 kbd_keys_pressed;
 extern u8 kbd_keys[12];
 
-extern u32 tape_pos, tape_len;
-
 #define WAITVBL swiWaitForVBlank(); swiWaitForVBlank(); swiWaitForVBlank(); swiWaitForVBlank(); swiWaitForVBlank();
 
 extern volatile u16 vusCptVBL;                   // Video Management
@@ -133,11 +131,11 @@ extern int bg0, bg1, bg0b, bg1b;
 
 extern u16 *pVidFlipBuf;                         // Video flipping buffer
 
-extern int last_z80_size;
-extern u8 zx_special_key;
+extern int last_file_size;
+extern u8  zx_special_key;
 extern int zx_current_line;
-extern u8 num_blocks_available;
-extern u8 current_block;
+extern u16 num_blocks_available;
+extern u16 current_block;
 extern u8  tape_state;
 extern u32 current_block_data_idx;
 extern u32 tape_bytes_processed;
@@ -145,7 +143,8 @@ extern u32 header_pulses;
 extern u16 current_bit;
 extern u8  lastBitSent;
 extern u32 current_bytes_this_block;
-extern u8 handle_last_bits;
+extern u8  custom_pulse_idx;
+extern u8  handle_last_bits;
 
 extern void BottomScreenOptions(void);
 extern void BottomScreenKeypad(void);

@@ -23,20 +23,44 @@
 #include "SpeccyUtils.h"
 #include "printf.h"
 
+#define MAX_TAPE_BLOCKS                 2048
 
-#define FLAG_HEADER             0x00
-#define FLAG_DATA               0xFF
+#define FLAG_HEADER                     0x00
+#define FLAG_DATA                       0xFF
+        
+#define BLOCK_ID_STANDARD               0x10
+#define BLOCK_ID_TURBO                  0x11
+#define BLOCK_ID_PURE_TONE              0x12
+#define BLOCK_ID_PULSE_SEQ              0x13
+#define BLOCK_ID_PURE_DATA              0x14
+#define BLOCK_ID_PAUSE_STOP             0x20
+#define BLOCK_ID_STOP_IF_48K            0x2A
 
-#define MAX_TAPE_BLOCKS         255
+#define TAPE_STOP                       0x00
+#define TAPE_START                      0x01
+#define TAPE_NEXT_BLOCK                 0x02
+#define BLOCK_PILOT_TONE                0x03
+#define SYNC_PULSE                      0x04
+#define SEND_DATA_BYTES                 0x05
+#define TAPE_DELAY_AFTER                0x06
+#define CUSTOM_PULSE_SEQ                0x07
 
-#define BLOCK_ID_STANDARD       0x10
-#define BLOCK_ID_TURBO          0x11
-#define BLOCK_ID_PURE_TONE      0x12
-#define BLOCK_ID_PULSE_SEQ      0x13
-#define BLOCK_ID_PURE_DATA      0x14
-#define BLOCK_ID_DELAY          0x20
-#define BLOCK_ID_STOP_IF_48K    0x2A
+// Yes, these are special. They happen frequently enough we trap on the high bit here...
+#define SEND_DATA_ZERO                  0x80
+#define SEND_DATA_ONE                   0x81
 
+
+// Some defaults mostly for the .TAP files as the .TZX 
+// will override some/many of these...
+#define DEFAULT_PILOT_LENGTH            2168
+#define DEFAULT_DATA_ZERO_PULSE_WIDTH    855
+#define DEFAULT_DATA_ONE_PULSE_WIDTH    1710
+#define DEFAULT_SYNC_PULSE1_WIDTH        667
+#define DEFAULT_SYNC_PULSE2_WIDTH        735
+#define DEFAULT_TAPE_GAP_DELAY_MS       1000
+#define DEFAULT_HEADER_PULSE_TOGGLES    8063
+#define DEFAULT_DATA_PULSE_TOGGLES      3223
+#define DEFAULT_LAST_USED_BITS             8
 
 typedef struct
 {
@@ -52,46 +76,21 @@ typedef struct
   u16  gap_delay_after;         // How many milliseconds delay after this block {1000}
   u32  block_data_idx;          // Where does the block data start (after header stuff is parsed)
   u32  block_data_len;          // How many bytes are in the data stream for this block?
-  u16  custom_pulse_len[255];      // For the BLOCK_ID_PULSE_SEQ type of block
+  u16  custom_pulse_len[255];   // For the BLOCK_ID_PULSE_SEQ type of block
 } TapeBlock_t;
 
-
 TapeBlock_t TapeBlocks[MAX_TAPE_BLOCKS];  // The .TAP or .TZX will be parsed and this will be filled in.
-u8 num_blocks_available = 0;
-u8 current_block        = 0;
-
-#define TAPE_STOP               0x00
-#define TAPE_START              0x01
-#define TAPE_NEXT_BLOCK         0x02
-#define BLOCK_PILOT_TONE        0x03
-#define SYNC_PULSE              0x04
-#define SEND_DATA_BYTES         0x05
-#define TAPE_DELAY_AFTER        0x06
-
-// Yes, these are special. They happen frequently enough we trap on the high bit here...
-#define SEND_DATA_ZERO          0x80
-#define SEND_DATA_ONE           0x81
-
-
-u8  tape_state              __attribute__((section(".dtcm"))) = TAPE_STOP;
-u32 current_block_data_idx  __attribute__((section(".dtcm"))) = 0;
-u32 tape_bytes_processed    __attribute__((section(".dtcm"))) = 0;
-
-#define DEFAULT_PILOT_LENGTH            2168
-#define DEFAULT_DATA_ZERO_PULSE_WIDTH    855
-#define DEFAULT_DATA_ONE_PULSE_WIDTH    1710
-#define DEFAULT_SYNC_PULSE1_WIDTH        667
-#define DEFAULT_SYNC_PULSE2_WIDTH        735
-#define DEFAULT_TAPE_GAP_DELAY_MS       1000
-#define DEFAULT_HEADER_PULSE_TOGGLES    8063
-#define DEFAULT_DATA_PULSE_TOGGLES      3223
-#define DEFAULT_LAST_USED_BITS             8
-
-u32 header_pulses                  __attribute__((section(".dtcm")))  = 0;
-u16 current_bit                    __attribute__((section(".dtcm")))  = 0x100;
-u8  lastBitSent                    __attribute__((section(".dtcm")))  = 0;
-u32 current_bytes_this_block  __attribute__((section(".dtcm")))  = 0;
-u8 handle_last_bits                __attribute__((section(".dtcm")))  = 0;
+u8  tape_state                  __attribute__((section(".dtcm"))) = TAPE_STOP;
+u16 num_blocks_available        __attribute__((section(".dtcm"))) = 0;
+u16 current_block               __attribute__((section(".dtcm"))) = 0;
+u32 current_block_data_idx      __attribute__((section(".dtcm"))) = 0;
+u32 tape_bytes_processed        __attribute__((section(".dtcm"))) = 0;
+u32 header_pulses               __attribute__((section(".dtcm"))) = 0;
+u16 current_bit                 __attribute__((section(".dtcm"))) = 0x100;
+u8  lastBitSent                 __attribute__((section(".dtcm"))) = 0;
+u32 current_bytes_this_block    __attribute__((section(".dtcm"))) = 0;
+u8  handle_last_bits            __attribute__((section(".dtcm"))) = 0;
+u8  custom_pulse_idx            __attribute__((section(".dtcm"))) = 0;
 
 // -----------------------------------------------
 // This traps out the tape loader main routine...
@@ -130,7 +129,7 @@ void tape_parse_blocks(int tapeSize)
     // ---------------------------------------------------------------
     // All tape files start with a block of 1 second 'gap' silence...
     // ---------------------------------------------------------------
-    TapeBlocks[num_blocks_available].id = BLOCK_ID_DELAY;
+    TapeBlocks[num_blocks_available].id = BLOCK_ID_PAUSE_STOP;
     TapeBlocks[num_blocks_available].gap_delay_after = 1000;
     num_blocks_available++;
 
@@ -273,7 +272,7 @@ void tape_parse_blocks(int tapeSize)
                     idx += (block_len + 10);
                     break;
 
-                case BLOCK_ID_DELAY:     // Pause / Stop the Tape
+                case BLOCK_ID_PAUSE_STOP:     // Pause / Stop the Tape
                     TapeBlocks[num_blocks_available].gap_delay_after = ROM_Memory[idx] | (ROM_Memory[idx+1] << 8);
                     num_blocks_available++;
                     idx += 2;
@@ -294,6 +293,7 @@ void tape_parse_blocks(int tapeSize)
                     break;
 
                 case 0x22: // Group End
+                    idx += 0;
                     break;
 
                 case 0x24: // Loop Start
@@ -347,6 +347,7 @@ void tape_reset(void)
     current_block = 0;
     tape_bytes_processed = 0;
     lastBitSent = 0x00;
+    custom_pulse_idx = 0;
 }
 
 void tape_stop(void)
@@ -375,6 +376,7 @@ void tape_frame(void)
 inline byte OpZ80(word A)               {return *(MemoryMap[(A)>>13] + ((A)&0x1FFF));}
 ITCM_CODE u8 tape_pulse(void)
 {
+    u32 pilot_pulse = 0;
 #if 0
     debug[1]  = OpZ80(CPU.PC.W-4);
     debug[2]  = OpZ80(CPU.PC.W-3);
@@ -411,7 +413,7 @@ ITCM_CODE u8 tape_pulse(void)
                 {
                     tape_state = TAPE_STOP; // Stop the playback
                     current_block = 0;      // Wrap back around
-                    break;                  // And move directly to the STOP state
+                    break;                  // And move DIRECTORYly to the STOP state
                 }
 
                 // ----------------------------------------------------------------
@@ -431,17 +433,17 @@ ITCM_CODE u8 tape_pulse(void)
                     case BLOCK_ID_PURE_TONE: // Pilot Tone Only Block
                         tape_state = BLOCK_PILOT_TONE;
                         break;
+                        
+                    case BLOCK_ID_PULSE_SEQ:    // Custom pulse sequence
+                        custom_pulse_idx = 0;
+                        tape_state = CUSTOM_PULSE_SEQ;
+                        break;
 
                     case BLOCK_ID_PURE_DATA: // Pure Data Block
                         tape_state = SYNC_PULSE;    // We've set the sync1/sync2 both to zero so this will immediately go into data send
                         break;
 
-                    case BLOCK_ID_PULSE_SEQ:
-                        //tape_state = TAPE_STOP;
-                        current_block++;    // TBD for now... need to work this one out
-                        break;
-
-                    case BLOCK_ID_DELAY: // Delay/Pause
+                    case BLOCK_ID_PAUSE_STOP: // Delay/Pause/Stop the Tape
                         tape_state = TAPE_DELAY_AFTER;
                         break;
 
@@ -457,7 +459,7 @@ ITCM_CODE u8 tape_pulse(void)
                 break;
 
             case BLOCK_PILOT_TONE:
-                u32 pilot_pulse = (CPU.TStates / TapeBlocks[current_block].pilot_length); // How many pulses are we into this thing...
+                pilot_pulse = (CPU.TStates / TapeBlocks[current_block].pilot_length); // How many pulses are we into this thing...
 
                 // Always end the pilot tone on a high bit sent to simplify the logic on the SYNC pulse below
                 if ((pilot_pulse < TapeBlocks[current_block].pilot_pulses) || (pilot_pulse & 1)) // Are we still in the pilot tone send?
@@ -479,6 +481,23 @@ ITCM_CODE u8 tape_pulse(void)
                     }
                 }
                 break;
+                
+            case CUSTOM_PULSE_SEQ:
+                pilot_pulse = (CPU.TStates / TapeBlocks[current_block].custom_pulse_len[custom_pulse_idx]); // How many pulses are we into this thing...
+
+                // Always end the custom pulse sequence on a high bit sent to simplify the logic
+                if ((pilot_pulse < TapeBlocks[current_block].pilot_pulses) || (pilot_pulse & 1)) // Are we still in the pilot tone send?
+                {
+                    if (pilot_pulse & 1) return lastBitSent ^ 0x40;    // Send the pulse bit
+                    else return lastBitSent;
+                }
+                else  // We're done with the pulse sequence - move to next block
+                {
+                    CPU.TStates = 0;
+                    current_block++;
+                    tape_state = TAPE_NEXT_BLOCK;
+                }
+                break;
 
             case SYNC_PULSE:
                 if (CPU.TStates < TapeBlocks[current_block].sync1_width) return lastBitSent;
@@ -497,13 +516,6 @@ ITCM_CODE u8 tape_pulse(void)
                 current_bit = current_bit>>1;
                 if (current_bit == handle_last_bits) // Are we done sending this byte?
                 {
-                    // We've gotten out of sync somehow... go back to the start of the block and hope!
-                    if (CPU.TStates > 1000000)
-                    {
-                        tape_state = TAPE_NEXT_BLOCK;
-                        break;
-                    }
-
                     tape_bytes_processed++;
                     current_block_data_idx++;
                     if (++current_bytes_this_block >= TapeBlocks[current_block].block_data_len)
@@ -778,7 +790,16 @@ ITCM_CODE void tape_sample_microsphere(void)
     u8 B = (255-CPU.BC.B.h);
      // The CyclesED[] table will consume the 18 cycles that the LDA, INA would have taken here...
 ld_sample:
-    u8 A = (~tape_pulse() >> 1) ^ CPU.BC.B.l;
+    u8 A;
+    if (tape_state & 0x80) // One or Zero... do it FAST!
+    {
+        // This version is already shifted down and inverted...
+        A = (tape_pulse_fast()) ^ CPU.BC.B.l;
+    }
+    else
+    {
+        A = (~tape_pulse() >> 1) ^ CPU.BC.B.l;
+    }
     
     if (A & 0x20)                       // Edge detected. We can exit the loop.
     {
@@ -863,117 +884,123 @@ void tape_search_for_loader(void)
     
     for (int addr = 0x4000; addr < 0xFFFE; addr++)
     {
-        // Standard Loader just moved in memory
-        if (OpZ80(addr+0) == 0x3E)
-          if (OpZ80(addr+1) == 0x7F)
-            if (OpZ80(addr+2) == 0xDB)
-              if (OpZ80(addr+3) == 0xFE)
-                if (OpZ80(addr+4) == 0x1F)
-                  if (OpZ80(addr+5) == 0xD0)
-                    if (OpZ80(addr+6) == 0xA9)
-                      if (OpZ80(addr+7) == 0xE6)
-                        if (OpZ80(addr+8) == 0x20)
-                          if (OpZ80(addr+9) == 0x28)
-                          {
-                              *(MemoryMap[(addr+0)>>13] + ((addr+0)&0x1FFF)) = 0xED;
-                              *(MemoryMap[(addr+1)>>13] + ((addr+1)&0x1FFF)) = 0xF0;
-                          }
+        // -----------------------------------------------------------------------
+        // All of our loaders have the ubiquitous IN A,+FE to read the microphone
+        // -----------------------------------------------------------------------
+        if ((OpZ80(addr+0) == 0xDB) && (OpZ80(addr+1) == 0xFE))
+        {
+            // Standard Loader just moved in memory
+            if (OpZ80(addr-2) == 0x3E)
+              if (OpZ80(addr-1) == 0x7F)
+                if (OpZ80(addr+0) == 0xDB)
+                  if (OpZ80(addr+1) == 0xFE)
+                    if (OpZ80(addr+2) == 0x1F)
+                      if (OpZ80(addr+3) == 0xD0)
+                        if (OpZ80(addr+4) == 0xA9)
+                          if (OpZ80(addr+5) == 0xE6)
+                            if (OpZ80(addr+6) == 0x20)
+                              if (OpZ80(addr+7) == 0x28)
+                              {
+                                  *(MemoryMap[(addr+0)>>13] + ((addr+0)&0x1FFF)) = 0xED;
+                                  *(MemoryMap[(addr+1)>>13] + ((addr+1)&0x1FFF)) = 0xF0;
+                              }
 
-        // Speedlock Loader
-        if (OpZ80(addr+0) == 0x3E)
-          if (OpZ80(addr+1) == 0x7F)
-            if (OpZ80(addr+2) == 0xDB)
-              if (OpZ80(addr+3) == 0xFE)
-                if (OpZ80(addr+4) == 0x1F)
-                  if (OpZ80(addr+5) == 0xA9)
-                    if (OpZ80(addr+6) == 0xE6)
-                      if (OpZ80(addr+7) == 0x20)
-                        if (OpZ80(addr+8) == 0x28)
+            // Speedlock Loader
+            if (OpZ80(addr-2) == 0x3E)
+              if (OpZ80(addr-1) == 0x7F)
+                if (OpZ80(addr+0) == 0xDB)
+                  if (OpZ80(addr+1) == 0xFE)
+                    if (OpZ80(addr+2) == 0x1F)
+                      if (OpZ80(addr+3) == 0xA9)
+                        if (OpZ80(addr+4) == 0xE6)
+                          if (OpZ80(addr+5) == 0x20)
+                            if (OpZ80(addr+6) == 0x28)
+                            {
+                                *(MemoryMap[(addr+0)>>13] + ((addr+0)&0x1FFF)) = 0xED;
+                                *(MemoryMap[(addr+1)>>13] + ((addr+1)&0x1FFF)) = 0xF1;
+                            }
+
+            // Alkatraz
+            if (OpZ80(addr+0) == 0xDB) // INA
+              if (OpZ80(addr+1) == 0xFE) // +FE
+                if (OpZ80(addr+2) == 0x1F) // RRA
+                  if (OpZ80(addr+3) == 0xA9) // XORC
+                    if (OpZ80(addr+4) == 0xE6) // AND
+                      if (OpZ80(addr+5) == 0x20) // +20
+                        if (OpZ80(addr+6) == 0x28) // JRZ
                         {
                             *(MemoryMap[(addr+0)>>13] + ((addr+0)&0x1FFF)) = 0xED;
-                            *(MemoryMap[(addr+1)>>13] + ((addr+1)&0x1FFF)) = 0xF1;
+                            *(MemoryMap[(addr+1)>>13] + ((addr+1)&0x1FFF)) = 0xF2;
                         }
+            
 
-        // Alkatraz
-        if (OpZ80(addr+0) == 0xDB) // INA
-          if (OpZ80(addr+1) == 0xFE) // +FE
-            if (OpZ80(addr+2) == 0x1F) // RRA
-              if (OpZ80(addr+3) == 0xA9) // XORC
-                if (OpZ80(addr+4) == 0xE6) // AND
-                  if (OpZ80(addr+5) == 0x20) // +20
-                    if (OpZ80(addr+6) == 0x28) // JRZ
-                    {
-                        *(MemoryMap[(addr+0)>>13] + ((addr+0)&0x1FFF)) = 0xED;
-                        *(MemoryMap[(addr+1)>>13] + ((addr+1)&0x1FFF)) = 0xF2;
-                    }
-        
+            // Owens Loader
+            if (OpZ80(addr-2) == 0x3E)
+              if (OpZ80(addr-1) == 0x7F)
+                if (OpZ80(addr+0) == 0xDB)
+                  if (OpZ80(addr+1) == 0xFE)
+                    if (OpZ80(addr+2) == 0x1F)
+                      if (OpZ80(addr+3) == 0xC8) // RET Z
+                        if (OpZ80(addr+4) == 0xA9)
+                          if (OpZ80(addr+5) == 0xE6)
+                            if (OpZ80(addr+6) == 0x20)
+                              if (OpZ80(addr+7) == 0x28)
+                              {
+                                  // Since this has the same cycle count - we can use the standard loader
+                                  *(MemoryMap[(addr+0)>>13] + ((addr+0)&0x1FFF)) = 0xED;
+                                  *(MemoryMap[(addr+1)>>13] + ((addr+1)&0x1FFF)) = 0xF0;
+                              }
 
-        // Owens Loader
-        if (OpZ80(addr+0) == 0x3E)
-          if (OpZ80(addr+1) == 0x7F)
-            if (OpZ80(addr+2) == 0xDB)
-              if (OpZ80(addr+3) == 0xFE)
-                if (OpZ80(addr+4) == 0x1F)
-                  if (OpZ80(addr+5) == 0xC8) // RET Z
-                    if (OpZ80(addr+6) == 0xA9)
-                      if (OpZ80(addr+7) == 0xE6)
-                        if (OpZ80(addr+8) == 0x20)
-                          if (OpZ80(addr+9) == 0x28)
-                          {
-                              // Since this has the same cycle count - we can use the standard loader
-                              *(MemoryMap[(addr+0)>>13] + ((addr+0)&0x1FFF)) = 0xED;
-                              *(MemoryMap[(addr+1)>>13] + ((addr+1)&0x1FFF)) = 0xF0;
-                          }
+            // Dinaload Loader
+            if (OpZ80(addr-2) == 0x3E)
+              if (OpZ80(addr-1) == 0x7F)
+                if (OpZ80(addr+0) == 0xDB)
+                  if (OpZ80(addr+1) == 0xFE)
+                    if (OpZ80(addr+2) == 0x1F)
+                      if (OpZ80(addr+3) == 0xD0) // RET NC
+                        if (OpZ80(addr+4) == 0xA9)
+                          if (OpZ80(addr+5) == 0xE6)
+                            if (OpZ80(addr+6) == 0x20)
+                              if (OpZ80(addr+7) == 0x28)
+                              {
+                                  // Since this has the same cycle count - we can use the standard loader
+                                  *(MemoryMap[(addr+0)>>13] + ((addr+0)&0x1FFF)) = 0xED;
+                                  *(MemoryMap[(addr+1)>>13] + ((addr+1)&0x1FFF)) = 0xF0;
+                              }
 
-        // Dinaload Loader
-        if (OpZ80(addr+0) == 0x3E)
-          if (OpZ80(addr+1) == 0x7F)
-            if (OpZ80(addr+2) == 0xDB)
-              if (OpZ80(addr+3) == 0xFE)
-                if (OpZ80(addr+4) == 0x1F)
-                  if (OpZ80(addr+5) == 0xD0) // RET NC
-                    if (OpZ80(addr+6) == 0xA9)
-                      if (OpZ80(addr+7) == 0xE6)
-                        if (OpZ80(addr+8) == 0x20)
-                          if (OpZ80(addr+9) == 0x28)
-                          {
-                              // Since this has the same cycle count - we can use the standard loader
-                              *(MemoryMap[(addr+0)>>13] + ((addr+0)&0x1FFF)) = 0xED;
-                              *(MemoryMap[(addr+1)>>13] + ((addr+1)&0x1FFF)) = 0xF0;
-                          }
+            // Microsphere Loader
+            if (OpZ80(addr-2) == 0x3E)
+              if (OpZ80(addr-1) == 0x7F)
+                if (OpZ80(addr+0) == 0xDB)
+                  if (OpZ80(addr+1) == 0xFE)
+                    if (OpZ80(addr+2) == 0x1F)
+                      if (OpZ80(addr+3) == 0xA7) // AND A (NOP Equivilent)
+                        if (OpZ80(addr+4) == 0xA9)
+                          if (OpZ80(addr+5) == 0xE6)
+                            if (OpZ80(addr+6) == 0x20)
+                              if (OpZ80(addr+7) == 0x28)
+                              {
+                                  *(MemoryMap[(addr+0)>>13] + ((addr+0)&0x1FFF)) = 0xED;
+                                  *(MemoryMap[(addr+1)>>13] + ((addr+1)&0x1FFF)) = 0xF3;
+                              }
 
-        // Microsphere Loader
-        if (OpZ80(addr+0) == 0x3E)
-          if (OpZ80(addr+1) == 0x7F)
-            if (OpZ80(addr+2) == 0xDB)
-              if (OpZ80(addr+3) == 0xFE)
-                if (OpZ80(addr+4) == 0x1F)
-                  if (OpZ80(addr+5) == 0xA7) // AND A (NOP Equivilent)
-                    if (OpZ80(addr+6) == 0xA9)
-                      if (OpZ80(addr+7) == 0xE6)
-                        if (OpZ80(addr+8) == 0x20)
-                          if (OpZ80(addr+9) == 0x28)
-                          {
-                              *(MemoryMap[(addr+0)>>13] + ((addr+0)&0x1FFF)) = 0xED;
-                              *(MemoryMap[(addr+1)>>13] + ((addr+1)&0x1FFF)) = 0xF3;
-                          }
-
-        // Bleepload Loader
-        if (OpZ80(addr+0) == 0x3E)
-          if (OpZ80(addr+1) == 0x7F)
-            if (OpZ80(addr+2) == 0xDB)
-              if (OpZ80(addr+3) == 0xFE)
-                if (OpZ80(addr+4) == 0x1F)
-                  if (OpZ80(addr+5) == 0x00)  // NOP
-                    if (OpZ80(addr+6) == 0xA9)
-                      if (OpZ80(addr+7) == 0xE6)
-                        if (OpZ80(addr+8) == 0x20)
-                          if (OpZ80(addr+9) == 0x28)
-                          {
-                              // Bleepload seems to do a checksum test and this will fail... Sad panda.
-                              //*(MemoryMap[(addr+0)>>13] + ((addr+0)&0x1FFF)) = 0xED;
-                              //*(MemoryMap[(addr+1)>>13] + ((addr+1)&0x1FFF)) = 0xFF;
-                          }
+            // Bleepload Loader
+            if (OpZ80(addr-2) == 0x3E)
+              if (OpZ80(addr-1) == 0x7F)
+                if (OpZ80(addr+0) == 0xDB)
+                  if (OpZ80(addr+1) == 0xFE)
+                    if (OpZ80(addr+2) == 0x1F)
+                      if (OpZ80(addr+3) == 0x00)  // NOP
+                        if (OpZ80(addr+4) == 0xA9)
+                          if (OpZ80(addr+5) == 0xE6)
+                            if (OpZ80(addr+6) == 0x20)
+                              if (OpZ80(addr+7) == 0x28)
+                              {
+                                  // Bleepload seems to do a checksum test and this will fail... Sad panda.
+                                  //*(MemoryMap[(addr+0)>>13] + ((addr+0)&0x1FFF)) = 0xED;
+                                  //*(MemoryMap[(addr+1)>>13] + ((addr+1)&0x1FFF)) = 0xFF;
+                              }
+        }
     }
 }
 

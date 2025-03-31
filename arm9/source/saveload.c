@@ -71,7 +71,7 @@ void spectrumSaveState()
   szLoadFile[len-1] = 'v';
 
   strcpy(tmpStr,"SAVING...");
-  DSPrint(6,0,0,tmpStr);
+  DSPrint(4,0,0,tmpStr);
   
   FILE *handle = fopen(szLoadFile, "wb+");  
   if (handle != NULL) 
@@ -131,11 +131,12 @@ void spectrumSaveState()
     if (retVal) retVal = fwrite(&lastBitSent,               sizeof(lastBitSent),                1, handle);
     if (retVal) retVal = fwrite(&current_bytes_this_block,  sizeof(current_bytes_this_block),   1, handle);
     if (retVal) retVal = fwrite(&handle_last_bits,          sizeof(handle_last_bits),           1, handle);
+    if (retVal) retVal = fwrite(&custom_pulse_idx,          sizeof(custom_pulse_idx),           1, handle);
    
     strcpy(tmpStr, (retVal ? "OK ":"ERR"));  
-    DSPrint(15,0,0,tmpStr);
+    DSPrint(13,0,0,tmpStr);
     WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;
-    DSPrint(6,0,0,"             "); 
+    DSPrint(4,0,0,"             "); 
     DisplayStatusLine(true);
   }
   else {
@@ -167,7 +168,7 @@ void spectrumLoadState()
     if (handle != NULL) 
     {    
          strcpy(tmpStr,"LOADING...");
-         DSPrint(6,0,0,tmpStr);
+         DSPrint(4,0,0,tmpStr);
        
         // Read Version
         u16 save_ver = 0xBEEF;
@@ -224,19 +225,20 @@ void spectrumLoadState()
         if (retVal) retVal = fread(&lastBitSent,               sizeof(lastBitSent),                1, handle);
         if (retVal) retVal = fread(&current_bytes_this_block,  sizeof(current_bytes_this_block),   1, handle);
         if (retVal) retVal = fread(&handle_last_bits,          sizeof(handle_last_bits),           1, handle);
+        if (retVal) retVal = fread(&custom_pulse_idx,          sizeof(custom_pulse_idx),           1, handle);            
 
         strcpy(tmpStr, (retVal ? "OK ":"ERR"));
-        DSPrint(15,0,0,tmpStr);
+        DSPrint(13,0,0,tmpStr);
         
         WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;
-        DSPrint(6,0,0,"             ");  
+        DSPrint(4,0,0,"             ");  
         DisplayStatusLine(true);
       }
       else
       {
-        DSPrint(6,0,0,"NO SAVED GAME");
+        DSPrint(4,0,0,"NO SAVED GAME");
         WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;
-        DSPrint(6,0,0,"             ");  
+        DSPrint(4,0,0,"             ");  
       }
 
     fclose(handle);

@@ -52,8 +52,8 @@ char initial_file[MAX_ROM_NAME] = "";
 char initial_path[MAX_ROM_NAME] = "";
 
 u8  last_speccy_mode = 99;
-u8 bFirstTime = 3;
-u8 bStartTapeIn = 2;
+u8 bFirstTime        = 3;
+u8 bStartTapeIn      = 2;
 
 // ---------------------------------------------------------------------------
 // Some timing and frame rate comutations to keep the emulation on pace...
@@ -221,7 +221,7 @@ ITCM_CODE mm_word OurSoundMixer(mm_word len, mm_addr dest, mm_stream_formats for
 // doesn't need to be sampled quite as often so we grab 4 fresh samples per scanline and then
 // use those to mix into the beeper processing which is happening at 4x per scanline.
 // --------------------------------------------------------------------------------------------
-s16 mixbufAY[4] __attribute__((section(".dtcm")));
+s16 mixbufAY[4]  __attribute__((section(".dtcm")));
 u8  mixbufAY_idx __attribute__((section(".dtcm"))) = 0;
 ITCM_CODE void processDirectBeeperAY3(void)
 {
@@ -342,9 +342,7 @@ void ResetSpectrum(void)
   JoyState = 0x00000000;                // Nothing pressed to start
 
   sound_chip_reset();                   // Reset the AY chip
-
   ResetZ80(&CPU);                       // Reset the Z80 CPU core
-
   speccy_reset();                       // Reset the ZX Spectrum memory - decompress .z80 and restore BIOS
 
   // -----------------------------------------------------------
@@ -486,6 +484,18 @@ void DisplayStatusLine(bool bForce)
 // ------------------------------------------------------------------------
 void CassetteInsert(char *filename)
 {
+    if (strstr(filename, ".tap") != 0) speccy_mode = MODE_TAP;
+    if (strstr(filename, ".TAP") != 0) speccy_mode = MODE_TAP;
+    if (strstr(filename, ".tzx") != 0) speccy_mode = MODE_TZX;
+    if (strstr(filename, ".TZX") != 0) speccy_mode = MODE_TZX;
+    FILE *inFile = fopen(filename, "rb");
+    if (inFile)
+    {
+        last_file_size = fread(ROM_Memory, 1, MAX_CART_SIZE, inFile);
+        fclose(inFile);
+        tape_parse_blocks(last_file_size);
+        tape_reset();
+    }
 }
 
 #define MENU_ACTION_END             255 // Always the last sentinal value
@@ -494,7 +504,6 @@ void CassetteInsert(char *filename)
 #define MENU_ACTION_STOP            2   // Stop Cassette
 #define MENU_ACTION_SWAP            3   // Swap Cassette
 #define MENU_ACTION_REWIND          4   // Rewind Cassette
-#define MENU_ACTION_LOAD            5   // Issue Load Command
 
 #define MENU_ACTION_RESET           98  // Reset the machine
 #define MENU_ACTION_SKIP            99  // Skip this MENU choice
@@ -624,7 +633,7 @@ void CassetteMenu(void)
                     break;
 
                 case MENU_ACTION_SWAP:
-                    speccyDSLoadFile();
+                    speccyDSLoadFile(1);
                     if (ucGameChoice >= 0)
                     {
                         CassetteInsert(gpFic[ucGameChoice].szName);
@@ -1241,7 +1250,7 @@ void speccyDSInit(void)
   BottomScreenOptions();
 
   //  Find the files
-  speccyDSFindFiles();
+  speccyDSFindFiles(0);
 }
 
 
@@ -1269,6 +1278,8 @@ void BottomScreenOptions(void)
 // ---------------------------------------------------------------------------
 void BottomScreenKeypad(void)
 {
+    swiWaitForVBlank();
+    
     if (myGlobalConfig.debugger == 3)  // Full Z80 Debug overrides things... put up the debugger overlay
     {
       //  Init bottom screen
@@ -1303,17 +1314,13 @@ void speccyDSInitCPU(void)
   memset(RAM_Memory, 0x00, sizeof(RAM_Memory));
 
   // -----------------------------------------------
-  // Init bottom screen do display correct overlay
+  // Init bottom screen do display the ZX Keyboard
   // -----------------------------------------------
   BottomScreenKeypad();
-
-  // -----------------------------------------------------
-  //  Load the correct Bios ROM for the given machine
-  // -----------------------------------------------------
 }
 
 // -------------------------------------------------------------
-// Only used for basic timing of moving the Mario sprite...
+// Only used for basic timing of splash screen fade-out
 // -------------------------------------------------------------
 void irqVBlank(void)
 {
@@ -1404,7 +1411,7 @@ int main(int argc, char **argv)
   irqEnable(IRQ_VBLANK);
 
   // -----------------------------------------------------------------
-  // Grab the BIOS before we try to switch any directories around...
+  // Grab the BIOS before we try to switch any DIRECTORYories around...
   // -----------------------------------------------------------------
   useVRAM();
   LoadBIOSFiles();
@@ -1418,7 +1425,7 @@ int main(int argc, char **argv)
   //  Handle command line argument... mostly for TWL++
   if  (argc > 1)
   {
-      //  We want to start in the directory where the file is being launched...
+      //  We want to start in the DIRECTORYory where the file is being launched...
       if  (strchr(argv[1], '/') != NULL)
       {
           static char  path[128];

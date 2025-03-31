@@ -15,15 +15,15 @@
 #include "cpu/z80/Z80_interface.h"
 #include "cpu/ay38910/AY38910.h"
 
-#define MAX_ROMS                    1500
+#define MAX_ROMS                    2048
 #define MAX_ROM_NAME                160
-#define MAX_CART_SIZE               (1024*1024) // 1MB
+#define MAX_CART_SIZE               (512*1024) // 512K is big enough for any .TAP/.TZX or Snapshot 
             
 #define MAX_CONFIGS                 1024
 #define CONFIG_VER                  0x0000
             
-#define COLROM                      0x01
-#define DIRECT                      0x02
+#define SPECCY_FILE                 0x01
+#define DIRECTORY                   0x02
             
 #define ID_SHM_CANCEL               0x00
 #define ID_SHM_YES                  0x01
@@ -31,9 +31,6 @@
             
 #define DPAD_NORMAL                 0
 #define DPAD_DIAGONALS              1
-
-#define CPU_CLEAR_INT_ON_VDP_READ   0
-#define CPU_CLEAR_INT_AUTOMATICALLY 1
 
 
 typedef struct {
@@ -133,13 +130,13 @@ extern int ucGameChoice;
 
 extern void LoadConfig(void);
 extern u8 showMessage(char *szCh1, char *szCh2);
-extern void speccyDSFindFiles(void);
+extern void speccyDSFindFiles(u8 bTapeOnly);
 extern void speccyDSChangeOptions(void);
 extern void DSPrint(int iX,int iY,int iScr,char *szMessage);
 extern unsigned int crc32 (unsigned int crc, const unsigned char *buf, unsigned int len);
 
 extern void FadeToColor(unsigned char ucSens, unsigned short ucBG, unsigned char ucScr, unsigned char valEnd, unsigned char uWait);
-extern u8 speccyDSLoadFile(void);
+extern u8 speccyDSLoadFile(u8 bTapeOnly);
 extern void DisplayFileName(void);
 extern u32 ReadFileCarefully(char *filename, u8 *buf, u32 buf_size, u32 buf_offset);
 

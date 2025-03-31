@@ -36,7 +36,7 @@ u8  zx_force_128k_mode  __attribute__((section(".dtcm"))) = 0;
 int zx_current_line     __attribute__((section(".dtcm"))) = 0;
 
 u8  zx_special_key      = 0;
-int last_z80_size       = 0;
+int last_file_size      = 0;
 u8  isCompressed        = 1;
 
 // ---------------------------------------------
@@ -562,8 +562,8 @@ void speccy_reset(void)
     // A bit wasteful to decompress again... but 
     // we want to ensure that the memory is exactly
     // as it should be when we reset the system.
-    if (speccy_mode < MODE_SNA) tape_parse_blocks(last_z80_size);
-    else if (speccy_mode <= MODE_BIOS) speccy_decompress_z80(last_z80_size);
+    if (speccy_mode < MODE_SNA) tape_parse_blocks(last_file_size);
+    else if (speccy_mode <= MODE_BIOS) speccy_decompress_z80(last_file_size);
     
     if (speccy_mode == MODE_SNA) // SNA snapshot
     {
