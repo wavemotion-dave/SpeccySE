@@ -4,4 +4,6 @@ Royalty Free Music by Anvish Parker
 
 Coming soon....
 
-[https://github.com/wavemotion-dave/SpeccyDS/blob/main/arm9/gfx_data/pdev_bg0.png]
+![image](./arm9/gfx_data/pdev_bg0.png)
+
+https://github.com/wavemotion-dave/SpeccyDS/blob/main
