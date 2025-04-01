@@ -875,7 +875,7 @@ const struct options_t Option_Table[2][20] =
     {
         {"FRAME SKIP",     {"OFF", "SHOW 3/4", "SHOW 1/2"},                            &myConfig.frameSkip,         3},
         {"AUTO FIRE",      {"OFF", "ON"},                                              &myConfig.autoFire,          2},
-        {"AUTO LOAD",      {"YES", "NO"},                                              &myConfig.autoLoad,          2},
+        {"AUTO LOAD",      {"NO", "YES"},                                              &myConfig.autoLoad,          2},
         {"JOYSTICK",       {"NORMAL", "DIAGONALS"},                                    &myConfig.dpad,              2},
         {"TAPE SPEED",     {"NORMAL", "ACCELERATED"},                                  &myConfig.tapeSpeed,         2},                                                                         
         {NULL,             {"",      ""},                                              NULL,                        1},
@@ -1046,12 +1046,14 @@ void SwapKeymap(void)
     keyMapType = (keyMapType+1) % 5;
     switch (keyMapType)
     {
-        case 0: MapPlayer1();  break;
-        case 1: MapQAOP();     break;
-        case 2: MapWASD();     break;
-        case 3: MapZXSpace();  break;
-        case 4: Sinclair1();   break;
+        case 0: MapPlayer1();  DSPrint(10,4,0,("KEMPSTON P1")); break;
+        case 1: MapQAOP();     DSPrint(10,4,0,("   QAOP    ")); break;
+        case 2: MapWASD();     DSPrint(10,4,0,("   WASD    "));break;
+        case 3: MapZXSpace();  DSPrint(10,4,0,(" ZX SPACE  "));break;
+        case 4: Sinclair1();   DSPrint(10,4,0,("SINCLAIR P1"));break;
     }
+    WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;
+    DSPrint(10,4,0,("           "));
 }
 
 

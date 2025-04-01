@@ -566,11 +566,12 @@ static void CodesFD_Speccy(void)
   }
 #undef XX
 }
-
+extern u8 zx_ScreenRendering;
 ITCM_CODE int ExecZ80_Speccy(register int RunCycles)
 {
   register byte I;
   register pair J;
+  const u8 render = zx_ScreenRendering;
 
   for(CPU.ICount=RunCycles;;)
   {
@@ -585,9 +586,8 @@ ITCM_CODE int ExecZ80_Speccy(register int RunCycles)
       // Spectrum emulator but we want to at least make an attempt to get closer on the cycle
       // timing. So we simply use an 'average' penalty of 4 cycles if we are in contended memory
       // while the screen is rendering. It's rough but gets us close enough to play games.
-      // ----------------------------------------------------------------------------------------
-      extern u8 zx_ScreenRendering;
-      if (zx_ScreenRendering)
+      // ----------------------------------------------------------------------------------------      
+      if (render)
       {
          if ((CPU.PC.W & 0xC000) == 0x4000) {CPU.ICount  -= 4; CPU.TStates += 4;}
       }

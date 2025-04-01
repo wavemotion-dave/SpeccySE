@@ -97,6 +97,7 @@ u8  handle_last_bits            __attribute__((section(".dtcm"))) = 0;
 u8  custom_pulse_idx            __attribute__((section(".dtcm"))) = 0;
 u16 loop_counter                __attribute__((section(".dtcm"))) = 0;
 u16 loop_block                  __attribute__((section(".dtcm"))) = 0;
+u32 bit_overage                 __attribute__((section(".dtcm"))) = 0;
 
 // -----------------------------------------------
 // This traps out the tape loader main routine...
@@ -396,7 +397,6 @@ void tape_frame(void)
     // Not sure if we need this yet... called after every 1 frame of timing in the main loop
 }
 
-
 // ----------------------------------------------------------------
 // This is called when the Spectrum ULA reads from port 0xFE
 // It will sift and sort the current tape block data and return
@@ -562,6 +562,7 @@ ITCM_CODE u8 tape_pulse(void)
                     current_bit = 0x100;    // So when we shift it down we'll be looking at the high (7th) bit of data
                     current_bytes_this_block = 0;
                     tape_state = SEND_DATA_BYTES;
+                    bit_overage = 0; 
                     handle_last_bits = 0x00;
                 }
                 break;
@@ -597,7 +598,7 @@ ITCM_CODE u8 tape_pulse(void)
                 else
                 {
                     // We need to send one bit of data...
-                    CPU.TStates = 0;
+                    CPU.TStates = bit_overage;
                     if (ROM_Memory[current_block_data_idx] & current_bit) tape_state = SEND_DATA_ONE;
                     else tape_state = SEND_DATA_ZERO;
                 }
@@ -608,6 +609,7 @@ ITCM_CODE u8 tape_pulse(void)
                 else if (CPU.TStates <= TapeBlocks[current_block].data_zero_widthX2) return 0x40;
                 else
                 {
+                    bit_overage = CPU.TStates - TapeBlocks[current_block].data_zero_widthX2;
                     tape_state = SEND_DATA_BYTES;
                 }
                 break;
@@ -617,6 +619,7 @@ ITCM_CODE u8 tape_pulse(void)
                 else if (CPU.TStates <= TapeBlocks[current_block].data_one_widthX2) return 0x40;
                 else
                 {
+                    bit_overage = CPU.TStates - TapeBlocks[current_block].data_one_widthX2;
                     tape_state = SEND_DATA_BYTES;
                 }
                 break;
@@ -644,6 +647,7 @@ ITCM_CODE u8 tape_pulse(void)
     }
 }
 
+
 // ----------------------------------------------------------------------------------------
 // Used in our edge-detection accelerated loaders below. This routine will invert and shift
 // down the bits so as to provide a very fast interface to edge detection when clocking in 
@@ -659,6 +663,7 @@ u8 inline __attribute__((always_inline)) tape_pulse_fast(void)
         {
              // Experimentally, this happens about 20x less frequently than the bit returns above
              tape_state = SEND_DATA_BYTES;
+             bit_overage = CPU.TStates - TapeBlocks[current_block].data_one_widthX2;
              return ~tape_pulse() >> 1; // Invert and shift down
         }
     }
@@ -670,6 +675,7 @@ u8 inline __attribute__((always_inline)) tape_pulse_fast(void)
         {
              // Experimentally, this happens about 20x less frequently than the bit returns above
              tape_state = SEND_DATA_BYTES;
+             bit_overage = CPU.TStates - TapeBlocks[current_block].data_zero_widthX2;
              return ~tape_pulse() >> 1; // Invert and shift down
         }
     }
@@ -698,18 +704,19 @@ u8 inline __attribute__((always_inline)) tape_pulse_fast(void)
 //so that we can use this same routine when the standard loader is used in other memory locations.
 ITCM_CODE void tape_sample_standard(void)
 {
-    int B = 255-CPU.BC.B.h;
     // The CyclesED[] table will consume the 18 cycles that the LDA, INA would have taken here...
+    int B = 255-CPU.BC.B.h;
+    const u8 C = CPU.BC.B.l;
 ld_sample:
     u8 A;
     if (tape_state & 0x80) // One or Zero... do it FAST!
     {
         // This version is already shifted down and inverted...
-        A = (tape_pulse_fast()) ^ CPU.BC.B.l;
+        A = (tape_pulse_fast()) ^ C;
     }
     else
     {
-        A = (~tape_pulse() >> 1) ^ CPU.BC.B.l;
+        A = (~tape_pulse() >> 1) ^ C;
     }
     
     if (A & 0x20)                       // Edge detected. We can exit the loop.
@@ -760,18 +767,19 @@ ld_sample:
 
 ITCM_CODE void tape_sample_speedlock(void)
 {
-    int B = 255-CPU.BC.B.h;
     // The CyclesED[] table will consume the 18 cycles that the LDA, INA would have taken here...
+    int B = 255-CPU.BC.B.h;
+    const u8 C = CPU.BC.B.l;
 ld_sample:
     u8 A;
     if (tape_state & 0x80) // One or Zero... do it FAST!
     {
         // This version is already shifted down and inverted...
-        A = (tape_pulse_fast()) ^ CPU.BC.B.l;
+        A = (tape_pulse_fast()) ^ C;
     }
     else
     {
-        A = (~tape_pulse() >> 1) ^ CPU.BC.B.l;
+        A = (~tape_pulse() >> 1) ^ C;
     }
     
     if (A & 0x20)                       // Edge detected. We can exit the loop.
@@ -813,18 +821,19 @@ ld_sample:
 //        {2} JR Z,LD-SAMP        [+12/5] Jump back to LD-SAMP unless it has changed 
 ITCM_CODE void tape_sample_alkatraz(void)
 {
-    u8 B = (255-CPU.BC.B.h);
-    // 11 Cycles for the IN A,(FE) have already been consumed by the CyclesED[] table
+    // The CyclesED[] table will consume the 11 cycles that the IN A, (+FE) would have taken here...
+    int B = 255-CPU.BC.B.h;
+    const u8 C = CPU.BC.B.l;
 ld_sample:
     u8 A;
     if (tape_state & 0x80) // One or Zero... do it FAST!
     {
         // This version is already shifted down and inverted...
-        A = (tape_pulse_fast()) ^ CPU.BC.B.l;
+        A = (tape_pulse_fast()) ^ C;
     }
     else
     {
-        A = (~tape_pulse() >> 1) ^ CPU.BC.B.l;
+        A = (~tape_pulse() >> 1) ^ C;
     }
     
     if (A & 0x20)                       // Edge detected. We can exit the loop.
@@ -866,18 +875,19 @@ ld_sample:
 //            JR   Z,05ED   [+12/5] Jump back to LD-SAMPLE unless it has changed
 ITCM_CODE void tape_sample_microsphere(void)
 {
-    u8 B = (255-CPU.BC.B.h);
-     // The CyclesED[] table will consume the 18 cycles that the LDA, INA would have taken here...
+    // The CyclesED[] table will consume the 18 cycles that the LDA, INA would have taken here...
+    int B = 255-CPU.BC.B.h;
+    const u8 C = CPU.BC.B.l;
 ld_sample:
     u8 A;
     if (tape_state & 0x80) // One or Zero... do it FAST!
     {
         // This version is already shifted down and inverted...
-        A = (tape_pulse_fast()) ^ CPU.BC.B.l;
+        A = (tape_pulse_fast()) ^ C;
     }
     else
     {
-        A = (~tape_pulse() >> 1) ^ CPU.BC.B.l;
+        A = (~tape_pulse() >> 1) ^ C;
     }
     
     if (A & 0x20)                       // Edge detected. We can exit the loop.
@@ -921,10 +931,20 @@ ld_sample:
 //            JR   Z,05ED   [+12/5] Jump back to LD-SAMPLE unless it has changed
 ITCM_CODE void tape_sample_bleepload(void)
 {
-    u8 B = (255-CPU.BC.B.h);
      // The CyclesED[] table will consume the 18 cycles that the LDA, INA would have taken here...
+    int B = 255-CPU.BC.B.h;
+    const u8 C = CPU.BC.B.l;
 ld_sample:
-    u8 A = (~tape_pulse() >> 1) ^ CPU.BC.B.l;
+    u8 A;
+    if (tape_state & 0x80) // One or Zero... do it FAST!
+    {
+        // This version is already shifted down and inverted...
+        A = (tape_pulse_fast()) ^ C;
+    }
+    else
+    {
+        A = (~tape_pulse() >> 1) ^ C;
+    }
     
     if (A & 0x20)                       // Edge detected. We can exit the loop.
     {

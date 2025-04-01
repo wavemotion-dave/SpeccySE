@@ -164,7 +164,7 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
             }
 
             // Handle the Symbol and Shift keys which are special "modifier keys"
-            if (((kbd_key >= 'A') && (kbd_key <= 'Z')) || ((kbd_key >= '0') && (kbd_key <= '9')))
+            if (((kbd_key >= 'A') && (kbd_key <= 'Z')) || ((kbd_key >= '0') && (kbd_key <= '9')) || (kbd_key == ' '))
             {
                 bNonSpecialKeyWasPressed = 1;
             }
@@ -174,6 +174,7 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
                 {
                     zx_special_key = 0;
                     bNonSpecialKeyWasPressed = 0;
+                    DisplayStatusLine(false);
                 }
             }
         }
@@ -747,18 +748,25 @@ ITCM_CODE u32 speccy_run(void)
     // to get more chances to render the audio beeper
     // which requires a fairly high sample rate...
     // -----------------------------------------------
-    processDirectBeeperAY3();
+    if (tape_state)
+    {
+        ExecZ80_Speccy(zx_128k_mode ? 228:224);
+    }
+    else
+    {
+        processDirectBeeperAY3();
 
-    CPU.CycleDeficit = ExecZ80_Speccy(zx_128k_mode ? 66:64);
-    processDirectBeeper();
+        CPU.CycleDeficit = ExecZ80_Speccy(zx_128k_mode ? 66:64);
+        processDirectBeeper();
 
-    CPU.CycleDeficit = ExecZ80_Speccy((zx_128k_mode ? 66:64)+CPU.CycleDeficit);
-    processDirectBeeper();
+        CPU.CycleDeficit = ExecZ80_Speccy((zx_128k_mode ? 66:64)+CPU.CycleDeficit);
+        processDirectBeeper();
 
-    zx_ScreenRendering = 0; // On this final chunk we are drawing border and doing a horizontal refresh... no contention
+        zx_ScreenRendering = 0; // On this final chunk we are drawing border and doing a horizontal sync... no contention
 
-    ExecZ80_Speccy(96+CPU.CycleDeficit);
-    processDirectBeeper();
+        ExecZ80_Speccy(96+CPU.CycleDeficit);
+        processDirectBeeper();
+    }
 
     // -----------------------------------------------------------
     // Render one line if we're in the visible area of the screen
@@ -780,6 +788,7 @@ ITCM_CODE u32 speccy_run(void)
     {
         IntZ80(&CPU, INT_RST38);
         zx_current_line = 0;
+        zx_ScreenRendering = 0;
         return 0; // End of frame
     }
         

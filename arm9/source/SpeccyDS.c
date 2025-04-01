@@ -190,8 +190,9 @@ ITCM_CODE mm_word OurSoundMixer(mm_word len, mm_addr dest, mm_stream_formats for
     if (soundEmuPause)  // If paused, just "mix" in mute sound chip... all channels are OFF
     {
         s16 *p = (s16*)dest;
-        for (int i=0; i<len*2; i++)
+        for (int i=0; i<len; i++)
         {
+           *p++ = last_sample;      // To prevent pops and clicks... just keep outputting the last sample
            *p++ = last_sample;      // To prevent pops and clicks... just keep outputting the last sample
         }
     }
@@ -425,11 +426,16 @@ void ShowDebugZ80(void)
         sprintf(tmp, "MEM Used %dK", getMemUsed()/1024); DSPrint(0,idx++,7, tmp);
         sprintf(tmp, "MEM Free %dK", getMemFree()/1024); DSPrint(0,idx++,7, tmp);
 
+        // Put out the first 8 debug registers...
         idx = 2;
-        for (u8 i=0; i< 16; i++)
+        for (u8 i=0; i<= 8; i++)
         {
             sprintf(tmp, "D%X %-7lu %04X", i, debug[i], (u16)debug[i]); DSPrint(17,idx++, 7, tmp);
         }
+        
+        // And a bit of information about the loader
+        
+        
     }
     else
     {
@@ -975,8 +981,10 @@ void SpeccyDS_main(void)
             emuFps = emuActFrames;
             if (myGlobalConfig.showFPS)
             {
-                if (emuFps == 61) emuFps=60;
-                else if (emuFps == 59) emuFps=60;
+                // Due to minor sampling of the frame rate, 49,50 and 51
+                // pretty much all represent full-speed so just show 50fps.
+                if (emuFps == 51) emuFps=50;
+                else if (emuFps == 49) emuFps=50;
                 if (emuFps/100) szChai[0] = '0' + emuFps/100;
                 else szChai[0] = ' ';
                 szChai[1] = '0' + (emuFps%100) / 10;
@@ -1002,8 +1010,11 @@ void SpeccyDS_main(void)
                     // Tape Loader - Put the LOAD "" into the keyboard buffer 
                     if (speccy_mode < MODE_SNA)
                     {
-                        BufferKey('J'); BufferKey(KBD_KEY_SYMBOL); BufferKey('P'); BufferKey(KBD_KEY_SYMBOL); BufferKey('P'); BufferKey(KBD_KEY_RET);
-                        bStartTapeIn = 2;
+                        if (myConfig.autoLoad)
+                        {
+                            BufferKey('J'); BufferKey(KBD_KEY_SYMBOL); BufferKey('P'); BufferKey(KBD_KEY_SYMBOL); BufferKey('P'); BufferKey(KBD_KEY_RET);
+                            bStartTapeIn = 2;
+                        }
                     }
                 }
             }
