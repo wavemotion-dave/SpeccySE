@@ -73,7 +73,9 @@ typedef struct
   u16  sync1_width;             // Length of SYNC first pulse {667}
   u16  sync2_width;             // Length of SYNC second pulse {735}
   u16  data_zero_width;         // How wide the one '1' bit pulse is {855}
+  u16  data_zero_widthX2;       // How wide the one '1' bit pulse is {855*2}
   u16  data_one_width;          // How wide the zero '0' bit pulse is {1710}
+  u16  data_one_widthX2;        // How wide the zero '0' bit pulse is {1710*2}
   u8   last_bits_used;          // The number of bits used in the last byte
   u16  gap_delay_after;         // How many milliseconds delay after this block {1000}
   u16  loop_counter;            // For Loops... how many times to iterate
@@ -90,7 +92,6 @@ u32 current_block_data_idx      __attribute__((section(".dtcm"))) = 0;
 u32 tape_bytes_processed        __attribute__((section(".dtcm"))) = 0;
 u32 header_pulses               __attribute__((section(".dtcm"))) = 0;
 u16 current_bit                 __attribute__((section(".dtcm"))) = 0x100;
-u8  lastBitSent                 __attribute__((section(".dtcm"))) = 0;
 u32 current_bytes_this_block    __attribute__((section(".dtcm"))) = 0;
 u8  handle_last_bits            __attribute__((section(".dtcm"))) = 0;
 u8  custom_pulse_idx            __attribute__((section(".dtcm"))) = 0;
@@ -159,6 +160,10 @@ void tape_parse_blocks(int tapeSize)
             TapeBlocks[num_blocks_available].data_one_width  = DEFAULT_DATA_ONE_PULSE_WIDTH;
             TapeBlocks[num_blocks_available].data_zero_width = DEFAULT_DATA_ZERO_PULSE_WIDTH;
             TapeBlocks[num_blocks_available].last_bits_used  = DEFAULT_LAST_USED_BITS;
+            
+            // Precompute the X2 values of the one/zero pulse width to speed up edge detection
+            TapeBlocks[num_blocks_available].data_one_widthX2  = TapeBlocks[num_blocks_available].data_one_width << 1;
+            TapeBlocks[num_blocks_available].data_zero_widthX2 = TapeBlocks[num_blocks_available].data_zero_width << 1;
 
             TapeBlocks[num_blocks_available].block_data_idx  = idx+2;
             TapeBlocks[num_blocks_available].block_data_len  = block_len;
@@ -202,6 +207,9 @@ void tape_parse_blocks(int tapeSize)
                     TapeBlocks[num_blocks_available].block_data_idx  = idx+4;
                     TapeBlocks[num_blocks_available].block_data_len  = block_len;
                     TapeBlocks[num_blocks_available].block_flag      = block_flag;
+                    // Precompute the X2 values of the one/zero pulse width to speed up edge detection
+                    TapeBlocks[num_blocks_available].data_one_widthX2  = TapeBlocks[num_blocks_available].data_one_width << 1;
+                    TapeBlocks[num_blocks_available].data_zero_widthX2 = TapeBlocks[num_blocks_available].data_zero_width << 1;
                     num_blocks_available++;
                     idx += (block_len + 4);
                     break;
@@ -229,6 +237,9 @@ void tape_parse_blocks(int tapeSize)
                     TapeBlocks[num_blocks_available].block_data_idx  = idx+18;
                     TapeBlocks[num_blocks_available].block_data_len  = block_len;
                     TapeBlocks[num_blocks_available].block_flag      = block_flag;
+                    // Precompute the X2 values of the one/zero pulse width to speed up edge detection
+                    TapeBlocks[num_blocks_available].data_one_widthX2  = TapeBlocks[num_blocks_available].data_one_width << 1;
+                    TapeBlocks[num_blocks_available].data_zero_widthX2 = TapeBlocks[num_blocks_available].data_zero_width << 1;
                     num_blocks_available++;
                     idx += (block_len + 18);
                     break;
@@ -272,6 +283,9 @@ void tape_parse_blocks(int tapeSize)
                     TapeBlocks[num_blocks_available].block_flag      = block_flag;
                     TapeBlocks[num_blocks_available].sync1_width = 0;
                     TapeBlocks[num_blocks_available].sync2_width = 0;
+                    // Precompute the X2 values of the one/zero pulse width to speed up edge detection
+                    TapeBlocks[num_blocks_available].data_one_widthX2  = TapeBlocks[num_blocks_available].data_one_width << 1;
+                    TapeBlocks[num_blocks_available].data_zero_widthX2 = TapeBlocks[num_blocks_available].data_zero_width << 1;
                     num_blocks_available++;
                     idx += (block_len + 10);
                     break;
@@ -307,6 +321,10 @@ void tape_parse_blocks(int tapeSize)
                     num_blocks_available++;
                     idx += 0;
                     break;
+                    
+                case 0x2B: // Set signal level
+                    idx += 5;
+                    break;
 
                 case 0x30: // Text Description
                     block_len = ROM_Memory[idx + 0];
@@ -323,6 +341,11 @@ void tape_parse_blocks(int tapeSize)
                     idx += (block_len + 1);
                     break;
 
+                case 0x35: // Custom Info Block
+                    block_len  = (ROM_Memory[idx + 0x10] << 0) | (ROM_Memory[idx + 0x11] << 8) | (ROM_Memory[idx + 0x12] << 16) | (ROM_Memory[idx + 0x13] << 24);
+                    idx += (block_len + 20);
+                    break;
+                    
                 case 0x5A: // Glue Block
                     idx += 9;
                     break;
@@ -354,7 +377,6 @@ void tape_reset(void)
     current_block_data_idx = 0;
     current_block = 0;
     tape_bytes_processed = 0;
-    lastBitSent = 0x00;
     custom_pulse_idx = 0;
 }
 
@@ -381,7 +403,7 @@ void tape_frame(void)
 // the appropriate bit to the caller who will put it into the port
 // read return byte.
 // ----------------------------------------------------------------
-inline byte OpZ80(word A)               {return *(MemoryMap[(A)>>13] + ((A)&0x1FFF));}
+inline byte OpZ80(word A)  {return *(MemoryMap[(A)>>13] + ((A)&0x1FFF));}
 ITCM_CODE u8 tape_pulse(void)
 {
     u32 pilot_pulse = 0;
@@ -404,8 +426,7 @@ ITCM_CODE u8 tape_pulse(void)
         switch (tape_state)
         {
             case TAPE_STOP:
-                lastBitSent = 0x00;
-                return lastBitSent;
+                return 0x00;
                 break;
 
             case TAPE_START:
@@ -499,8 +520,7 @@ ITCM_CODE u8 tape_pulse(void)
                 // Always end the pilot tone on a high bit sent to simplify the logic on the SYNC pulse below
                 if ((pilot_pulse < TapeBlocks[current_block].pilot_pulses) || (pilot_pulse & 1)) // Are we still in the pilot tone send?
                 {
-                    if (pilot_pulse & 1) return lastBitSent ^ 0x40;    // Send the pulse bit
-                    else return lastBitSent;
+                    if (pilot_pulse & 1) return 0x40; else return 0x00;  // Send the pulse bit                    
                 }
                 else  // We're done with the pilot tone... get ready to send the SYNC PULSE
                 {
@@ -520,8 +540,7 @@ ITCM_CODE u8 tape_pulse(void)
             case CUSTOM_PULSE_SEQ:
                 if (CPU.TStates < TapeBlocks[current_block].custom_pulse_len[custom_pulse_idx])
                 {
-                    if (custom_pulse_idx & 1) return lastBitSent ^ 0x40;    // Send the pulse bit - since we're using custom_pulse_idx which starts at zero (0) we start with low pulse
-                    else return lastBitSent;
+                    if (custom_pulse_idx & 1) return 0x40; else return 0x00;  // Send the pulse bit                    
                 }
                 else  // Check if we're done with the custom pulse sequence...
                 {
@@ -535,8 +554,8 @@ ITCM_CODE u8 tape_pulse(void)
                 break;
 
             case SYNC_PULSE:
-                if (CPU.TStates < TapeBlocks[current_block].sync1_width) return lastBitSent;
-                else if (CPU.TStates < (TapeBlocks[current_block].sync1_width + TapeBlocks[current_block].sync2_width)) return lastBitSent^0x40;
+                if (CPU.TStates < TapeBlocks[current_block].sync1_width) return 0x00;
+                else if (CPU.TStates < (TapeBlocks[current_block].sync1_width + TapeBlocks[current_block].sync2_width)) return 0x40;
                 else
                 {
                     CPU.TStates = 0;
@@ -557,7 +576,7 @@ ITCM_CODE u8 tape_pulse(void)
                     {
                         CPU.TStates = 0;
                         tape_state = TAPE_DELAY_AFTER; // We're done with this block... delay after
-                        return lastBitSent; // But make at least one transition back to 'low'
+                        return 0x00; // But make at least one transition back to 'low'
                     }
                     else  // We've got another byte to process...
                     {
@@ -586,7 +605,7 @@ ITCM_CODE u8 tape_pulse(void)
 
             case SEND_DATA_ZERO:
                 if      (CPU.TStates <= TapeBlocks[current_block].data_zero_width)   return 0x00;
-                else if (CPU.TStates <= 2*TapeBlocks[current_block].data_zero_width) return 0x40;
+                else if (CPU.TStates <= TapeBlocks[current_block].data_zero_widthX2) return 0x40;
                 else
                 {
                     tape_state = SEND_DATA_BYTES;
@@ -595,7 +614,7 @@ ITCM_CODE u8 tape_pulse(void)
 
             case SEND_DATA_ONE:
                 if      (CPU.TStates <= TapeBlocks[current_block].data_one_width)   return 0x00;
-                else if (CPU.TStates <= 2*TapeBlocks[current_block].data_one_width) return 0x40;
+                else if (CPU.TStates <= TapeBlocks[current_block].data_one_widthX2) return 0x40;
                 else
                 {
                     tape_state = SEND_DATA_BYTES;
@@ -603,7 +622,7 @@ ITCM_CODE u8 tape_pulse(void)
                 break;
 
             case TAPE_DELAY_AFTER: // Normally ~1 second but can be different for custom tapes
-                if (CPU.TStates <= (TapeBlocks[current_block].gap_delay_after * 3500))   return lastBitSent;
+                if (CPU.TStates <= (TapeBlocks[current_block].gap_delay_after * 3500)) return 0x00;
                 else
                 {
                     // A delay of zero is not special unless we are the BLOCK_ID_PAUSE_STOP block type...
@@ -625,12 +644,17 @@ ITCM_CODE u8 tape_pulse(void)
     }
 }
 
+// ----------------------------------------------------------------------------------------
+// Used in our edge-detection accelerated loaders below. This routine will invert and shift
+// down the bits so as to provide a very fast interface to edge detection when clocking in 
+// data Zeros or Ones which is quite common when loading tapes.
+// ----------------------------------------------------------------------------------------
 u8 inline __attribute__((always_inline)) tape_pulse_fast(void)
 {
     if (tape_state & 1) // SEND_DATA_ONE
     {
         if      (CPU.TStates <= TapeBlocks[current_block].data_one_width)   return ~0x00; // Inverted and shifted down
-        else if (CPU.TStates <= 2*TapeBlocks[current_block].data_one_width) return ~0x20; // So loader does less work
+        else if (CPU.TStates <= TapeBlocks[current_block].data_one_widthX2) return ~0x20; // So loader does less work
         else
         {
              // Experimentally, this happens about 20x less frequently than the bit returns above
@@ -641,7 +665,7 @@ u8 inline __attribute__((always_inline)) tape_pulse_fast(void)
     else // SEND_DATA_ZERO
     {
         if      (CPU.TStates <= TapeBlocks[current_block].data_zero_width)   return ~0x00; // Inverted and shifted down
-        else if (CPU.TStates <= 2*TapeBlocks[current_block].data_zero_width) return ~0x20; // So loader does less work
+        else if (CPU.TStates <= TapeBlocks[current_block].data_zero_widthX2) return ~0x20; // So loader does less work
         else
         {
              // Experimentally, this happens about 20x less frequently than the bit returns above
@@ -651,15 +675,24 @@ u8 inline __attribute__((always_inline)) tape_pulse_fast(void)
     }
 }
 
-//05ED LD-SAMPLE  INC  B        [+4]    Count each pass
-//05EE            RET  Z        [+11/5] Return carry reset & zero set if 'time-up'.
-//05EF            LD   A,+7F    [+7]    Read from port +7FFE   <== This is where the PC Trap is
-//05F1            IN   A,(+FE)  [+11]   i.e. BREAK and EAR
-//05F3            RRA           [+4]    Shift the byte
-//05F4            RET  NC       [+11/5] Return carry reset & zero reset if BREAK was pressed
-//05F5            XOR  C        [+4]    Now test the byte against the 'last edge-type'
-//05F6            AND  +20      [+7]    Mask off just the bit we care about (normally 0x40 but it's been shifted down)
-//05F8            JR   Z,05ED   [+12/5] Jump back to LD-SAMPLE unless it has changed
+
+// ---------------------------------------------------------------------------------------------------------------
+// And these are the loaders used by most of the ZX Spectrum tapes... we accelerate the edge detection loops
+// as much as possible while still preserving the original timing and keeping the loader moving. This generally
+// results in a 3-4x speedup in the loading process. Some emulators optimize most of this away but we're not
+// ready/willing to do that. At least not for now... Loading screens are part of the charm of the ZX Speccy!
+// ---------------------------------------------------------------------------------------------------------------
+
+// STANDARD Loader:
+// 05ED LD-SAMPLE  INC  B        [+4]    Count each pass
+// 05EE            RET  Z        [+11/5] Return carry reset & zero set if 'time-up'.
+// 05EF            LD   A,+7F    [+7]    Read from port +7FFE   <== This is where the PC Trap is
+// 05F1            IN   A,(+FE)  [+11]   i.e. BREAK and EAR
+// 05F3            RRA           [+4]    Shift the byte
+// 05F4            RET  NC       [+11/5] Return carry reset & zero reset if BREAK was pressed
+// 05F5            XOR  C        [+4]    Now test the byte against the 'last edge-type'
+// 05F6            AND  +20      [+7]    Mask off just the bit we care about (normally 0x40 but it's been shifted down)
+// 05F8            JR   Z,05ED   [+12/5] Jump back to LD-SAMPLE unless it has changed
 
 //PC will be 0x05F3 when we get here from the standard BIOS but were are being location agnostic
 //so that we can use this same routine when the standard loader is used in other memory locations.

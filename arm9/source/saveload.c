@@ -39,10 +39,12 @@ struct RomOffset
 
 struct RomOffset Offsets[8];
 
-#define TYPE_ROM   0
-#define TYPE_RAM   1
-#define TYPE_BIOS  2
-#define TYPE_OTHER 5
+#define TYPE_ROM        0
+#define TYPE_RAM        1
+#define TYPE_RAM128     2
+#define TYPE_BIOS       3
+#define TYPE_BIOS128    4
+#define TYPE_OTHER      5
 
 /*********************************************************************************
  * Save the current state - save everything we need to a single .sav file.
@@ -89,15 +91,25 @@ void spectrumSaveState()
     // And the Memory Map - we must only save offsets so that this is generic when we change code and memory shifts...
     for (u8 i=0; i<8; i++)
     {
-        if ((MemoryMap[i] >= ROM_Memory) && (MemoryMap[i] < ROM_Memory+(sizeof(ROM_Memory))))
+        if ((MemoryMap[i] >= SpectrumBios) && (MemoryMap[i] < SpectrumBios+(sizeof(SpectrumBios))))
         {
-            Offsets[i].type = TYPE_ROM;
-            Offsets[i].offset = MemoryMap[i] - ROM_Memory;
+            Offsets[i].type = TYPE_BIOS;
+            Offsets[i].offset = MemoryMap[i] - SpectrumBios;
+        }
+        else if ((MemoryMap[i] >= SpectrumBios128) && (MemoryMap[i] < SpectrumBios128+(sizeof(SpectrumBios128))))
+        {
+            Offsets[i].type = TYPE_BIOS128;
+            Offsets[i].offset = MemoryMap[i] - SpectrumBios;
         }
         else if ((MemoryMap[i] >= RAM_Memory) && (MemoryMap[i] < RAM_Memory+(sizeof(RAM_Memory))))
         {
             Offsets[i].type = TYPE_RAM;
             Offsets[i].offset = MemoryMap[i] - RAM_Memory;
+        }
+        else if ((MemoryMap[i] >= RAM_Memory128) && (MemoryMap[i] < RAM_Memory128+(sizeof(RAM_Memory128))))
+        {
+            Offsets[i].type = TYPE_RAM128;
+            Offsets[i].offset = MemoryMap[i] - RAM_Memory128;
         }
         else
         {
@@ -124,7 +136,6 @@ void spectrumSaveState()
     if (retVal) retVal = fwrite(&tape_bytes_processed,      sizeof(tape_bytes_processed),       1, handle);
     if (retVal) retVal = fwrite(&header_pulses,             sizeof(header_pulses),              1, handle);
     if (retVal) retVal = fwrite(&current_bit,               sizeof(current_bit),                1, handle);
-    if (retVal) retVal = fwrite(&lastBitSent,               sizeof(lastBitSent),                1, handle);
     if (retVal) retVal = fwrite(&current_bytes_this_block,  sizeof(current_bytes_this_block),   1, handle);
     if (retVal) retVal = fwrite(&handle_last_bits,          sizeof(handle_last_bits),           1, handle);
     if (retVal) retVal = fwrite(&custom_pulse_idx,          sizeof(custom_pulse_idx),           1, handle);
@@ -217,13 +228,21 @@ void spectrumLoadState()
             if (retVal) retVal = fread(Offsets, sizeof(Offsets),1, handle);     
             for (u8 i=0; i<8; i++)
             {
-                if (Offsets[i].type == TYPE_ROM)
+                if (Offsets[i].type == TYPE_BIOS)
                 {
-                    MemoryMap[i] = (u8 *) (ROM_Memory + Offsets[i].offset);
+                    MemoryMap[i] = (u8 *) (SpectrumBios + Offsets[i].offset);
+                }
+                else if (Offsets[i].type == TYPE_BIOS128)
+                {
+                    MemoryMap[i] = (u8 *) (SpectrumBios128 + Offsets[i].offset);
                 }
                 else if (Offsets[i].type == TYPE_RAM)
                 {
                     MemoryMap[i] = (u8 *) (RAM_Memory + Offsets[i].offset);
+                }
+                else if (Offsets[i].type == TYPE_RAM128)
+                {
+                    MemoryMap[i] = (u8 *) (RAM_Memory128 + Offsets[i].offset);
                 }
                 else // TYPE_OTHER - this is just a pointer to memory
                 {
@@ -250,7 +269,6 @@ void spectrumLoadState()
         if (retVal) retVal = fread(&tape_bytes_processed,      sizeof(tape_bytes_processed),       1, handle);
         if (retVal) retVal = fread(&header_pulses,             sizeof(header_pulses),              1, handle);
         if (retVal) retVal = fread(&current_bit,               sizeof(current_bit),                1, handle);
-        if (retVal) retVal = fread(&lastBitSent,               sizeof(lastBitSent),                1, handle);
         if (retVal) retVal = fread(&current_bytes_this_block,  sizeof(current_bytes_this_block),   1, handle);
         if (retVal) retVal = fread(&handle_last_bits,          sizeof(handle_last_bits),           1, handle);
         if (retVal) retVal = fread(&custom_pulse_idx,          sizeof(custom_pulse_idx),           1, handle);            
@@ -280,7 +298,7 @@ void spectrumLoadState()
                     fread(&count, 1, 1, handle);
                     while (--count)
                     {
-                        ptr[i++] = 0x00;
+                        ptr[++i] = 0x00;
                     }
                 }
             }

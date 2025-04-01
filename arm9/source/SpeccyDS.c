@@ -82,7 +82,7 @@ u8 kbd_keys[12]      __attribute__((section(".dtcm")));           // Up to 12 po
 
 u8 bStartSoundEngine = 0;      // Set to true to unmute sound after 1 frame of rendering...
 int bg0, bg1, bg0b, bg1b;      // Some vars for NDS background screen handling
-volatile u16 vusCptVBL = 0;    // We use this as a basic timer for the Mario sprite... could be removed if another timer can be utilized
+u16 vusCptVBL = 0;             // We use this as a basic timer for the Mario sprite... could be removed if another timer can be utilized
 u8 touch_debounce = 0;         // A bit of touch-screen debounce
 u8 key_debounce = 0;           // A bit of key debounce
 
@@ -142,11 +142,6 @@ u16 keyCoresp[MAX_KEY_OPTIONS] __attribute__((section(".dtcm"))) = {
     META_KBD_SPACE,
     META_KBD_RETURN
 };
-
-// ----------------------------------------------
-// Game speeds constants... first entry is 100%
-// ----------------------------------------------
-u16 GAME_SPEED_PAL[]  __attribute__((section(".dtcm"))) = {656, 596, 547, 505, 729 };
 
 static char tmp[64];    // For various sprintf() calls
 
@@ -1027,12 +1022,12 @@ void SpeccyDS_main(void)
         }
 
         // ----------------------------------------------------------------------
-        // Time 1 frame... 646 (PAL) ticks of Timer2
+        // 32,728.5 ticks of TIMER2 = 1 second
+        // 1 frame = 1/50 or 655 ticks of TIMER2
+        //
         // This is how we time frame-to frame to keep the game running at 50FPS
-        // We also allow running the game faster/slower than 100% so we use the
-        // GAME_SPEED_PAL[] array to handle that.
         // ----------------------------------------------------------------------
-        while (TIMER2_DATA < GAME_SPEED_PAL[myConfig.gameSpeed]*(timingFrames+1))
+        while (TIMER2_DATA < 655*(timingFrames+1))
         {
             if (myGlobalConfig.showFPS == 2) break;   // If Full Speed, break out...
             if (tape_is_playing()) 

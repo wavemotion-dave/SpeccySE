@@ -310,10 +310,10 @@ ITCM_CODE void speccy_render_screen(u8 line)
         if (++flash_timer & 0x10) {flash_timer=0; bFlash ^= 1;} // Same timing as real ULA - 16 frames on and 16 frames off
     }
     
-    // Only draw one out of every 64 frames!
+    // Only draw one out of every 32 frames!
     if (tape_is_playing())
     {
-        if (tape_playing_skip_frame & 0x3F) return; 
+        if (tape_playing_skip_frame & 0x1F) return; 
     }
     
     
@@ -492,14 +492,6 @@ u8 decompress_v2_v3(int romSize)
 // ----------------------------------------------------------------------
 void speccy_decompress_z80(int romSize)
 {
-    if (romSize == (16*1024)) // Assume this is a diagnostic ROM of some kind
-    {
-        memcpy(RAM_Memory, ROM_Memory, romSize);   // Load diagnostics ROM into place
-        speccy_mode = MODE_BIOS;                   // Force PC to 0x0000 to run diagnostic
-        zx_128k_mode = 1;                          // Force ZX Spectrum 128K
-        return;
-    }
-
     if (speccy_mode == MODE_SNA) // SNA snapshot - only 48K compatible
     {
         memcpy(RAM_Memory + 0x4000, ROM_Memory+27, 0xC000);
@@ -560,7 +552,8 @@ void speccy_reset(void)
     // we want to ensure that the memory is exactly
     // as it should be when we reset the system.
     if (speccy_mode < MODE_SNA) tape_parse_blocks(last_file_size);
-    else if (speccy_mode <= MODE_BIOS) speccy_decompress_z80(last_file_size);
+    else if (speccy_mode < MODE_BIOS) speccy_decompress_z80(last_file_size);
+    // else must be a diagnostic/ROM cart of some kind... 
     
     if (speccy_mode == MODE_SNA) // SNA snapshot
     {
@@ -610,15 +603,22 @@ void speccy_reset(void)
     }
     else if (speccy_mode == MODE_BIOS) // Diagnostic ROM - launch in ZX 128K mode
     {
-        // Now set the memory map to point to the right banks...
-        MemoryMap[2] = RAM_Memory128 + (5 * 0x4000) + 0x0000; // Bank 5
-        MemoryMap[3] = RAM_Memory128 + (5 * 0x4000) + 0x2000; // Bank 5
+        // Move the BIOS/Diagnostic ROM into memory...
+        memcpy(RAM_Memory, ROM_Memory, last_file_size);   // Load diagnostics ROM into place
 
-        MemoryMap[4] = RAM_Memory128 + (2 * 0x4000) + 0x0000; // Bank 2
-        MemoryMap[5] = RAM_Memory128 + (2 * 0x4000) + 0x2000; // Bank 2
+        if (zx_force_128k_mode)
+        {
+            zx_128k_mode = 1;            
+            // Now set the memory map to point to the right banks...
+            MemoryMap[2] = RAM_Memory128 + (5 * 0x4000) + 0x0000; // Bank 5
+            MemoryMap[3] = RAM_Memory128 + (5 * 0x4000) + 0x2000; // Bank 5
 
-        MemoryMap[6] = RAM_Memory128 + (0 * 0x4000) + 0x0000; // Bank 0
-        MemoryMap[7] = RAM_Memory128 + (0 * 0x4000) + 0x2000; // Bank 0
+            MemoryMap[4] = RAM_Memory128 + (2 * 0x4000) + 0x0000; // Bank 2
+            MemoryMap[5] = RAM_Memory128 + (2 * 0x4000) + 0x2000; // Bank 2
+
+            MemoryMap[6] = RAM_Memory128 + (0 * 0x4000) + 0x0000; // Bank 0
+            MemoryMap[7] = RAM_Memory128 + (0 * 0x4000) + 0x2000; // Bank 0
+        }
     }
     else if (speccy_mode < MODE_SNA) // TAP or TZX file - 48K or 128K
     {
@@ -722,9 +722,12 @@ void speccy_reset(void)
         }
     }
 
-    // Load the correct BIOS into place... either 48K Spectrum or 128K
-    if (zx_128k_mode)   memcpy(RAM_Memory, SpectrumBios128+0x4000, 0x4000);   // Load ZX 128K BIOS into place
-    else                memcpy(RAM_Memory, SpectrumBios, 0x4000);             // Load ZX 48K BIOS into place
+    if (speccy_mode != MODE_BIOS)
+    {
+        // Load the correct BIOS into place... either 48K Spectrum or 128K
+        if (zx_128k_mode)   memcpy(RAM_Memory, SpectrumBios128+0x4000, 0x4000);   // Load ZX 128K BIOS into place
+        else                memcpy(RAM_Memory, SpectrumBios, 0x4000);             // Load ZX 48K BIOS into place
+    }
 }
 
 
@@ -749,7 +752,7 @@ ITCM_CODE u32 speccy_run(void)
     CPU.CycleDeficit = ExecZ80_Speccy(zx_128k_mode ? 66:64);
     processDirectBeeper();
 
-    CPU.CycleDeficit += ExecZ80_Speccy(zx_128k_mode ? 66:64);
+    CPU.CycleDeficit = ExecZ80_Speccy((zx_128k_mode ? 66:64)+CPU.CycleDeficit);
     processDirectBeeper();
 
     zx_ScreenRendering = 0; // On this final chunk we are drawing border and doing a horizontal refresh... no contention

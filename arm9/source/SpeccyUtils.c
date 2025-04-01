@@ -357,6 +357,12 @@ void speccyDSFindFiles(u8 bTapeOnly)
               uNbFile++;
               countCV++;
             }
+            if ( (strcasecmp(strrchr(szFile, '.'), ".rom") == 0) )  {
+              strcpy(gpFic[uNbFile].szName,szFile);
+              gpFic[uNbFile].uType = SPECCY_FILE;
+              uNbFile++;
+              countCV++;
+            }
         }
         if ( (strcasecmp(strrchr(szFile, '.'), ".tap") == 0) )  {
           strcpy(gpFic[uNbFile].szName,szFile);
@@ -782,7 +788,7 @@ void SetDefaultGameConfig(void)
     myConfig.tapeSpeed   = 1;                           // Normally accelerated
     myConfig.autoFire    = 0;                           // Default to no auto-fire on either button
     myConfig.dpad        = DPAD_NORMAL;                 // Normal DPAD use - mapped to joystick
-    myConfig.gameSpeed   = 0;                           // Default is 100% game speed
+    myConfig.autoLoad    = 1;                           // Default is to to auto-load TAP and TZX games
     myConfig.reserved1   = 0;    
     myConfig.reserved2   = 0;    
     myConfig.reserved3   = 0;    
@@ -869,6 +875,7 @@ const struct options_t Option_Table[2][20] =
     {
         {"FRAME SKIP",     {"OFF", "SHOW 3/4", "SHOW 1/2"},                            &myConfig.frameSkip,         3},
         {"AUTO FIRE",      {"OFF", "ON"},                                              &myConfig.autoFire,          2},
+        {"AUTO LOAD",      {"YES", "NO"},                                              &myConfig.autoLoad,          2},
         {"JOYSTICK",       {"NORMAL", "DIAGONALS"},                                    &myConfig.dpad,              2},
         {"TAPE SPEED",     {"NORMAL", "ACCELERATED"},                                  &myConfig.tapeSpeed,         2},                                                                         
         {NULL,             {"",      ""},                                              NULL,                        1},
@@ -1251,6 +1258,8 @@ void ReadFileCRCAndConfig(void)
     if (strstr(gpFic[ucGameChoice].szName, ".TAP") != 0) speccy_mode = MODE_TAP;
     if (strstr(gpFic[ucGameChoice].szName, ".tzx") != 0) speccy_mode = MODE_TZX;
     if (strstr(gpFic[ucGameChoice].szName, ".TZX") != 0) speccy_mode = MODE_TZX;
+    if (strstr(gpFic[ucGameChoice].szName, ".rom") != 0) speccy_mode = MODE_BIOS;
+    if (strstr(gpFic[ucGameChoice].szName, ".ROM") != 0) speccy_mode = MODE_BIOS;
     
     FindConfig();    // Try to find keymap and config for this file...
 }

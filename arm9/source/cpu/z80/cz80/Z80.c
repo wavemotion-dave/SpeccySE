@@ -365,6 +365,9 @@ void IntZ80(Z80 *R,word Vector)
     /* If HALTed, take CPU off HALT instruction */
     if(CPU.IFF&IFF_HALT) { CPU.PC.W++;CPU.IFF&=~IFF_HALT; }
     
+    CPU.ICount -= 19;
+    CPU.TStates += 19;
+    
     if((CPU.IFF&IFF_1)||(Vector==INT_NMI))
     {
       /* Save PC on stack */

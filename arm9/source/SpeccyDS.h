@@ -94,16 +94,6 @@ extern u32 debug[0x10];
 #define KBD_KEY_SHIFT       2
 #define KBD_KEY_RET         13
 
-extern u16 emuFps;
-extern u16 emuActFrames;
-extern u16 timingFrames;
-
-extern char initial_file[];
-extern char initial_path[];
-
-extern u16 nds_key;
-extern u8  kbd_key;
-
 // What format is the input file?
 #define MODE_TAP        1
 #define MODE_TZX        2
@@ -113,24 +103,24 @@ extern u8  kbd_key;
 #define MODE_Z80        6
 #define MODE_BIOS       7
 
-extern u8 speccy_mode;
-
-extern u8 kbd_keys_pressed;
-extern u8 kbd_keys[12];
-
 #define WAITVBL swiWaitForVBlank(); swiWaitForVBlank(); swiWaitForVBlank(); swiWaitForVBlank(); swiWaitForVBlank();
 
-extern volatile u16 vusCptVBL;                   // Video Management
-
+extern u8 speccy_mode;
+extern u8 kbd_keys_pressed;
+extern u8 kbd_keys[12];
+extern u16 emuFps;
+extern u16 emuActFrames;
+extern u16 timingFrames;
+extern char initial_file[];
+extern char initial_path[];
+extern u16 nds_key;
+extern u8  kbd_key;
+extern u16 vusCptVBL;                   // Video Management
+extern u16 *pVidFlipBuf;                // Video flipping buffer
 extern u16 keyCoresp[MAX_KEY_OPTIONS];
 extern u16 NDS_keyMap[];
-
 extern u8 soundEmuPause;
-
 extern int bg0, bg1, bg0b, bg1b;
-
-extern u16 *pVidFlipBuf;                         // Video flipping buffer
-
 extern int last_file_size;
 extern u8  zx_special_key;
 extern int zx_current_line;
@@ -141,7 +131,6 @@ extern u32 current_block_data_idx;
 extern u32 tape_bytes_processed;
 extern u32 header_pulses;
 extern u16 current_bit;
-extern u8  lastBitSent;
 extern u32 current_bytes_this_block;
 extern u8  custom_pulse_idx;
 extern u8  handle_last_bits;
