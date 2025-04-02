@@ -87,7 +87,7 @@ static const byte CyclesED[256] __attribute__((section(".dtcm"))) =
   0,   0,  0,  0,  0,  0,  0,   0,        0,  0,  0,  0,  0,  0,  0,  0,   // 0xC0
   0,   0,  0,  0,  0,  0,  0,   0,        0,  0,  0,  0,  0,  0,  0,  0,   // 0xD0
   0,   0,  0,  0,  0,  0,  0,   0,        0,  0,  0,  0,  0,  0,  0,  0,   // 0xE0
-  18, 18, 11, 18, 18, 18, 18,  18,       18, 18, 18, 18, 18, 18, 18, 18    // 0xF0 - We are using the back end here for tape read traps... and some cycles are consumed
+  0,   0,  0,  0,  0,  0,  0,   0,        0,  0,  0,  0,  0,  0, 18, 18    // 0xF0 - We are using the back end here for tape read traps... and some cycles are consumed
 };
 
 static const byte CyclesXX[256] __attribute__((section(".dtcm"))) =

@@ -582,10 +582,10 @@ ITCM_CODE int ExecZ80_Speccy(register int RunCycles)
       CPU.TStates += Cycles_NoM1Wait[I];
       
       // ----------------------------------------------------------------------------------------
-      // If we are in contended memory - add penalty. This is not cycle accurate - this is not a
-      // Spectrum emulator but we want to at least make an attempt to get closer on the cycle
-      // timing. So we simply use an 'average' penalty of 4 cycles if we are in contended memory
-      // while the screen is rendering. It's rough but gets us close enough to play games.
+      // If we are in contended memory - add penalty. This is not cycle accurate but we want to
+      // at least make an attempt to get closer on the cycle timing. So we simply use an 'average'
+      // penalty of 4 cycles if we are in contended memory while the screen is rendering. It's 
+      // rough but gets us close enough to play games.
       // ----------------------------------------------------------------------------------------      
       if (render)
       {

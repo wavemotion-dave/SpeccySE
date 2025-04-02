@@ -41,6 +41,8 @@ u8  isCompressed        = 1;
 // ---------------------------------------------
 // ZX Spectrum 48K and 128K Emulation driver...
 // ---------------------------------------------
+typedef u8 (*patchFunc)(void);
+patchFunc *PatchLookup = (patchFunc*)0x06860000;
 
 ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
 {
@@ -48,6 +50,15 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
 
     if ((Port & 1) == 0) // Any Even Address will cause the ULA to respond
     {
+        if (PatchLookup[CPU.PC.W])
+        {
+              PatchLookup[CPU.PC.W]();
+        }
+        
+        u8 tape_sample_alkatraz(void);
+        //if (CPU.PC.W == 0xECD6) return tape_sample_alkatraz();
+        if (CPU.PC.W == 0xF033) return tape_sample_alkatraz();
+        
         extern u8 tape_state;
         if (tape_state) return ~tape_pulse(); // If we are playing the tape, get the result back as fast as possible without keys/joystick press
         
@@ -527,8 +538,10 @@ void speccy_decompress_z80(int romSize)
 // ----------------------------------------------------------------------
 void speccy_reset(void)
 {
+    memset(PatchLookup, 0x00, 256*1024);
+    
     tape_patch();
-    tape_reset();        
+    tape_reset();
     
     // Default to a simplified memory map - remap as needed below
     MemoryMap[0] = RAM_Memory + 0x0000;
@@ -750,6 +763,7 @@ ITCM_CODE u32 speccy_run(void)
     // -----------------------------------------------
     if (tape_state)
     {
+        zx_ScreenRendering = 0;
         ExecZ80_Speccy(zx_128k_mode ? 228:224);
     }
     else

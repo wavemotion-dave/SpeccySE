@@ -293,27 +293,12 @@ case CPDR:
   break;
 
 
-case 0xF0: // TRAP instruction!
+case 0xFF: // TRAP instruction!
   extern void tape_sample_standard();
   tape_sample_standard();
   break;
 
-case 0xF1: // TRAP instruction!
+case 0xFE: // TRAP instruction!
   extern void tape_sample_speedlock();
   tape_sample_speedlock();
-  break;
-
-case 0xF2: // TRAP instruction!
-  extern void tape_sample_alkatraz();
-  tape_sample_alkatraz();
-  break;
-
-case 0xF3: // TRAP instruction!
-  extern void tape_sample_microsphere();
-  tape_sample_microsphere();
-  break;
-
-case 0xFF: // TRAP instruction!
-  extern void tape_sample_bleepload();
-  tape_sample_bleepload();
   break;

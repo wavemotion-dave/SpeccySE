@@ -423,19 +423,18 @@ void ShowDebugZ80(void)
         
         idx++;            
 
+        sprintf(tmp, "LOAD: %-9s", loader_type); DSPrint(0,idx++, 7, tmp);
         sprintf(tmp, "MEM Used %dK", getMemUsed()/1024); DSPrint(0,idx++,7, tmp);
         sprintf(tmp, "MEM Free %dK", getMemFree()/1024); DSPrint(0,idx++,7, tmp);
+        
+        // CPU Disassembly!
 
         // Put out the first 8 debug registers...
         idx = 2;
-        for (u8 i=0; i<= 8; i++)
+        for (u8 i=0; i<14; i++)
         {
             sprintf(tmp, "D%X %-7lu %04X", i, debug[i], (u16)debug[i]); DSPrint(17,idx++, 7, tmp);
         }
-        
-        // And a bit of information about the loader
-        
-        
     }
     else
     {
@@ -1220,7 +1219,7 @@ void SpeccyDS_main(void)
 // ----------------------------------------------------------------------------------------
 void useVRAM(void)
 {
-  vramSetBankD(VRAM_D_LCD );        // Not using this for video but 128K of faster RAM always useful!  Mapped at 0x06860000 -   Not used
+  vramSetBankD(VRAM_D_LCD );        // Not using this for video but 128K of faster RAM always useful!  Mapped at 0x06860000 -   Used for tape patch look-up
   vramSetBankE(VRAM_E_LCD );        // Not using this for video but 64K of faster RAM always useful!   Mapped at 0x06880000 -   ..
   vramSetBankF(VRAM_F_LCD );        // Not using this for video but 16K of faster RAM always useful!   Mapped at 0x06890000 -   ..
   vramSetBankG(VRAM_G_LCD );        // Not using this for video but 16K of faster RAM always useful!   Mapped at 0x06894000 -   ..
