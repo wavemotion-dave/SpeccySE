@@ -429,9 +429,9 @@ void ShowDebugZ80(void)
         
         // CPU Disassembly!
 
-        // Put out the first 8 debug registers...
+        // Put out the debug registers...
         idx = 2;
-        for (u8 i=0; i<14; i++)
+        for (u8 i=0; i<16; i++)
         {
             sprintf(tmp, "D%X %-7lu %04X", i, debug[i], (u16)debug[i]); DSPrint(17,idx++, 7, tmp);
         }

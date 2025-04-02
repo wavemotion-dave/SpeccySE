@@ -38,10 +38,13 @@ u8  zx_special_key      = 0;
 int last_file_size      = 0;
 u8  isCompressed        = 1;
 
-// ---------------------------------------------
-// ZX Spectrum 48K and 128K Emulation driver...
-// ---------------------------------------------
-typedef u8 (*patchFunc)(void);
+// -------------------------------------------------------------------------
+// This massive patch table consumes 256K (64 x 4 byte function pointers) 
+// to allow us faster access to patch routines for tape edge detection.
+// We put it in LCD VRAM as this is slightly faster access on the DS/DSi.
+// 99% of this massive array will be zeroes but we don't have another use
+// for it and it does help speed up the patch lookup - so why not?!
+// -------------------------------------------------------------------------
 patchFunc *PatchLookup = (patchFunc*)0x06860000;
 
 ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
@@ -50,17 +53,18 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
 
     if ((Port & 1) == 0) // Any Even Address will cause the ULA to respond
     {
-        if (PatchLookup[CPU.PC.W])
+         // If we are playing the tape, get the result back as fast as possible without keys/joystick press
+        if (tape_state) 
         {
-              PatchLookup[CPU.PC.W]();
+            // ----------------------------------------------------------------
+            // See if this read is patched... for faster tape edge detection.
+            // ----------------------------------------------------------------
+            if (PatchLookup[CPU.PC.W])
+            {
+                return PatchLookup[CPU.PC.W]();
+            }
+            return ~tape_pulse();
         }
-        
-        u8 tape_sample_alkatraz(void);
-        //if (CPU.PC.W == 0xECD6) return tape_sample_alkatraz();
-        if (CPU.PC.W == 0xF033) return tape_sample_alkatraz();
-        
-        extern u8 tape_state;
-        if (tape_state) return ~tape_pulse(); // If we are playing the tape, get the result back as fast as possible without keys/joystick press
         
         u8 key = tape_pulse();
         
@@ -538,10 +542,8 @@ void speccy_decompress_z80(int romSize)
 // ----------------------------------------------------------------------
 void speccy_reset(void)
 {
-    memset(PatchLookup, 0x00, 256*1024);
-    
-    tape_patch();
     tape_reset();
+    tape_patch();
     
     // Default to a simplified memory map - remap as needed below
     MemoryMap[0] = RAM_Memory + 0x0000;

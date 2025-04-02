@@ -693,8 +693,8 @@ void MapPlayer1(void)
     myConfig.keymap[3]   = 3;    // NDS D-Pad mapped to Kempston Joystick RIGHT
     myConfig.keymap[4]   = 4;    // NDS A Button mapped to Kempston Fire
     
-    myConfig.keymap[5]   = 43;   // NDS B Button mapped to SPACE
-    myConfig.keymap[6]   = 0;    // NDS X Button mapped to Kempston Joystick UP
+    myConfig.keymap[5]   = 0;    // NDS B Button mapped to Kempston Joystick UP (jump)
+    myConfig.keymap[6]   = 43;   // NDS X Button mapped to SPACE
     myConfig.keymap[7]   = 44;   // NDS Y Button mapped to RETURN
     myConfig.keymap[8]   = 41;   // NDS R Button mapped to SHIFT
     myConfig.keymap[9]   = 42;   // NDS L Button mapped to SYMBOL
@@ -1201,8 +1201,15 @@ void DisplayFileName(void)
     DSPrint((16 - (strlen(szName)/2)),21,0,szName);
     if (strlen(gpFic[ucGameChoice].szName) >= 35)   // If there is more than a few characters left, show it on the 2nd line
     {
-        sprintf(szName,"%s",gpFic[ucGameChoice].szName+30);
-        for (u8 i=strlen(szName)-1; i>0; i--) if (szName[i] == '.') {szName[i]=0;break;}
+        if (strlen(gpFic[ucGameChoice].szName) <= 60)
+        {
+            sprintf(szName,"%s",gpFic[ucGameChoice].szName+30);
+        }
+        else
+        {
+            sprintf(szName,"%s",gpFic[ucGameChoice].szName+strlen(gpFic[ucGameChoice].szName)-30);
+        }
+        
         if (strlen(szName)>30) szName[30]='\0';
         DSPrint((16 - (strlen(szName)/2)),22,0,szName);
     }

@@ -25,9 +25,6 @@
 
 #define MAX_TAPE_BLOCKS                 2048
 
-#define FLAG_HEADER                     0x00
-#define FLAG_DATA                       0xFF
-        
 #define BLOCK_ID_STANDARD               0x10
 #define BLOCK_ID_TURBO                  0x11
 #define BLOCK_ID_PURE_TONE              0x12
@@ -98,34 +95,35 @@ u8  custom_pulse_idx            __attribute__((section(".dtcm"))) = 0;
 u16 loop_counter                __attribute__((section(".dtcm"))) = 0;
 u16 loop_block                  __attribute__((section(".dtcm"))) = 0;
 u32 bit_overage                 __attribute__((section(".dtcm"))) = 0;
-
+u8 give_up_counter = 0;
 char *loader_type = "STANDARD";
+extern patchFunc *PatchLookup;
+u8 tape_sample_standard(void);
 
 // -----------------------------------------------
 // This traps out the tape loader main routine...
 // -----------------------------------------------
 void tape_patch(void)
 {
-    if (myConfig.tapeSpeed)
-    {    
-        SpectrumBios[0x05EF] = 0xED;    // Map to ED extended
-        SpectrumBios[0x05F0] = 0xFF;    // This opcode doesn't really exist - will be trapped
+    // Reset the patch table to all zeros
+    memset(PatchLookup, 0x00, 256*1024);
 
-        SpectrumBios128[0x45EF] = 0xED; // Map to ED extended
-        SpectrumBios128[0x45F0] = 0xFF; // This opcode doesn't really exist - will be trapped
-        
+    if (myConfig.tapeSpeed)
+    {   
+        PatchLookup[0x05F3] = tape_sample_standard; 
         loader_type = "STANDARD";
     }
     else
     {
-        SpectrumBios[0x05EF] = 0x3E;    // Map back to original Opcodes here...
-        SpectrumBios[0x05F0] = 0x7F;    // Restores normal speed loading.
-
-        SpectrumBios128[0x45EF] = 0x3E; // The 128K Spectrum has the loader in the
-        SpectrumBios128[0x45F0] = 0x7F; // upper bank of BIOS ROM...
+        PatchLookup[0x05F3] = 0; 
     }
 }
 
+// -----------------------------------------------------------------------------------
+// Based on .TAP or .TZX we parse out the loader blocks into our internal structure
+// so we can "play back" the tape into the emulation who is mainly looking for edges
+// to sort out the ones/zeroes bits. The .TZX also has some metadata we save off.
+// -----------------------------------------------------------------------------------
 void tape_parse_blocks(int tapeSize)
 {
     u32 block_len   = 0;
@@ -383,6 +381,7 @@ void tape_reset(void)
     current_block = 0;
     tape_bytes_processed = 0;
     custom_pulse_idx = 0;
+    give_up_counter = 0;
 }
 
 void tape_stop(void)
@@ -578,6 +577,14 @@ ITCM_CODE u8 tape_pulse(void)
                 current_bit = current_bit>>1;
                 if (current_bit == handle_last_bits) // Are we done sending this byte?
                 {
+                    if (CPU.TStates > 250000)
+                    {
+                        if (++give_up_counter > 5) 
+                        {
+                            tape_state = TAPE_STOP;
+                            return 0x00;
+                        }                        
+                    }
                     tape_bytes_processed++;
                     current_block_data_idx++;
                     if (++current_bytes_this_block >= TapeBlocks[current_block].block_data_len)
@@ -697,35 +704,33 @@ u8 inline __attribute__((always_inline)) tape_pulse_fast(void)
 // ---------------------------------------------------------------------------------------------------------------
 
 // STANDARD Loader:
-// 05ED LD-SAMPLE  INC  B        [+4]    Count each pass
-// 05EE            RET  Z        [+11/5] Return carry reset & zero set if 'time-up'.
-// 05EF            LD   A,+7F    [+7]    Read from port +7FFE   <== This is where the PC Trap is
-// 05F1            IN   A,(+FE)  [+11]   i.e. BREAK and EAR
-// 05F3            RRA           [+4]    Shift the byte
-// 05F4            RET  NC       [+11/5] Return carry reset & zero reset if BREAK was pressed
-// 05F5            XOR  C        [+4]    Now test the byte against the 'last edge-type'
-// 05F6            AND  +20      [+7]    Mask off just the bit we care about (normally 0x40 but it's been shifted down)
-// 05F8            JR   Z,05ED   [+12/5] Jump back to LD-SAMPLE unless it has changed
+// 05ED {1} LD-SAMPLE INC  B        [+4]    Count each pass
+// 05EE {1}           RET  Z        [+11/5] Return carry reset & zero set if 'time-up'.
+// 05EF {2}           LD   A,+7F    [+7]    Read from port +7FFE
+// 05F1 {2}           IN   A,(+FE)  [+11]   i.e. BREAK and EAR    <== This is where the PC Trap is
+// 05F3 {1}           RRA           [+4]    Shift the byte
+// 05F4 {1}           RET  NC       [+11/5] Return carry reset & zero reset if BREAK was pressed
+// 05F5 {1}           XOR  C        [+4]    Now test the byte against the 'last edge-type'
+// 05F6 {2}           AND  +20      [+7]    Mask off just the bit we care about (normally 0x40 but it's been shifted down)
+// 05F8 {3}           JR   Z,05ED   [+12/5] Jump back to LD-SAMPLE unless it has changed
 
 //PC will be 0x05F3 when we get here from the standard BIOS but were are being location agnostic
 //so that we can use this same routine when the standard loader is used in other memory locations.
-ITCM_CODE void tape_sample_standard(void)
+ITCM_CODE u8 tape_sample_standard(void)
 {
-    if (!tape_state) tape_state = TAPE_START;
+    if (!tape_state) tape_state = TAPE_START; // If we aren't playing the tape, may as well do so as we're trying to find an edge
     
-    // The CyclesED[] table will consume the 18 cycles that the LDA, INA would have taken here...
-    int B = 255-CPU.BC.B.h;
-    const u8 C = CPU.BC.B.l;
+    int B = 255-CPU.BC.B.h;     // Very slight speedups to take these into local stack vars
+    const u8 C = CPU.BC.B.l;    // Very slight speedups to take these into local stack vars
 ld_sample:
     u8 A;
-    if (tape_state & 0x80) // One or Zero... do it FAST!
+    if (tape_state & 0x80)      // One or Zero... do it FAST!
     {
-        // This version is already shifted down and inverted...
-        A = (tape_pulse_fast()) ^ C;
+        A = (tape_pulse_fast()) ^ C;    // This version is already shifted down and inverted...
     }
     else
     {
-        A = (~tape_pulse() >> 1) ^ C;
+        A = (~tape_pulse() >> 1) ^ C;   // Normal version must be inverted and shifted down...
     }
     
     if (A & 0x20)                       // Edge detected. We can exit the loop.
@@ -744,9 +749,9 @@ ld_sample:
         // -----------------------------------------------------------------------
         if (B & 0xFC)
         {
-            CPU.TStates += 3*59;        // It takes 59 total cycles when we take another pass around the loop
-            B-=3;
-            goto ld_sample;             // If no time-out... take another sample.
+            CPU.TStates += 3*59;        // Three times the normal loop time - faster edge detection
+            B-=3;                       // Reduce counter by 3
+            goto ld_sample;             // Take another sample.
         }
         CPU.TStates += 59;              // It takes 59 total cycles when we take another pass around the loop
         if (--B) goto ld_sample;        // If no time-out... take another sample.
@@ -754,13 +759,14 @@ ld_sample:
         // -----------------------------------------------------------------
         // We have timed out when B wraps back to zero... handle this here.
         // -----------------------------------------------------------------
-        CPU.TStates -= 16;              // Give back the time we accounted for with the INCB/RETZ as we are going to run those real instructions.
+        CPU.TStates -= 27;              // Give back the time we accounted for with the INCB/RETZ/LDA/INA instructions
         CPU.BC.B.h = 0xFF;              // Set this up so that we WILL timeout when returning
         CPU.AF.W = 0x0000;              // Clear flags (mainly Carry Reset) and A register will be clear
         CPU.PC.W -= 6;                  // And return to the INC B counter and allow the timeout
     }
     
     CPU.ICount -= (25 + 59); // Make a rough change to ICount based on number of loops. We don't really care here.
+    return CPU.AF.B.h;
 }
 
 // SPEEDLOCK Loader:
@@ -774,7 +780,7 @@ ld_sample:
 //            AND  +20      [+7]    Mask off just the bit we care about (normally 0x40 but it's been shifted down)
 //            JR   Z,05ED   [+12/5] Jump back to LD-SAMPLE unless it has changed
 
-ITCM_CODE void tape_sample_speedlock(void)
+ITCM_CODE u8 tape_sample_speedlock(void)
 {
     if (!tape_state) tape_state = TAPE_START;
     
@@ -809,13 +815,14 @@ ld_sample:
         // -----------------------------------------------------------------
         // We have timed out when B wraps back to zero... handle this here.
         // -----------------------------------------------------------------
-        CPU.TStates -= 16;              // Give back the time we accounted for with the INCB/RETZ as we are going to run those real instructions.
+        CPU.TStates -= 27;              // Give back the time we accounted for with the INCB/RETZ/LDA/INA instructions
         CPU.BC.B.h = 0xFF;              // Set this up so that we WILL timeout when returning
         CPU.AF.W = 0x0000;              // Clear flags (mainly Carry Reset) and A register will be clear
         CPU.PC.W -= 6;                  // And return to the INC B counter and allow the timeout
     }
     
     CPU.ICount -= (25 + 55); // Make a rough change to ICount based on number of loops. We don't really care here.
+    return CPU.AF.B.h;
 }
 
 // ALKATRAZ Loader:
@@ -865,7 +872,7 @@ ld_sample:
         // -----------------------------------------------------------------
         // We have timed out when B wraps back to zero... handle this here.
         // -----------------------------------------------------------------
-        CPU.TStates -= 27;              // Give back the time up to INCB as we are going to run those real instructions.
+        CPU.TStates -= 27;              // Give back the time we accounted for with the INCB/RETZ/LDA/INA instructions
         CPU.BC.B.h = 0xFF;              // Set this up so that we WILL timeout when returning
         CPU.AF.W = 0x0000;              // Clear flags (mainly Carry Reset) and A register will be clear
         CPU.PC.W -= 8;                  // And return to the INC B counter and allow the timeout
@@ -886,8 +893,21 @@ ld_sample:
 //        {1} AND  A        [+4]    Essentially same as a NOP in this context
 //        {1} XOR  C        [+4]    Now test the byte against the 'last edge-type'
 //        {2} AND  +20      [+7]    Mask off just the bit we care about (normally 0x40 but it's been shifted down)
-//            JR   Z,05ED   [+12/5] Jump back to LD-SAMPLE unless it has changed
-ITCM_CODE u8 tape_sample_microsphere(void)
+//        {2} JR   Z,05ED   [+12/5] Jump back to LD-SAMPLE unless it has changed
+//
+// BLEEPLOAD Loader:
+//
+// LD-SAMPLE  INC  B        [+4]    Count each pass
+//        {1} RET  Z        [+11/5] Return carry reset & zero set if 'time-up'.
+//        {2} LD   A,+7F    [+7]    Read from port +7FFE   <== This is where the PC Trap is
+//        {2} IN   A,(+FE)  [+11]   i.e. BREAK and EAR
+//        {1} RRA           [+4]    Shift the byte
+//        {1} NOP           [+4]    NOP in place of the usual 'RET NC' check for keys pressed
+//        {1} XOR  C        [+4]    Now test the byte against the 'last edge-type'
+//        {2} AND  +20      [+7]    Mask off just the bit we care about (normally 0x40 but it's been shifted down)
+//        {2} JR   Z,05ED   [+12/5] Jump back to LD-SAMPLE unless it has changed
+
+ITCM_CODE u8 tape_sample_microsphere_bleepload(void)
 {
     if (!tape_state) tape_state = TAPE_START;
     
@@ -923,7 +943,7 @@ ld_sample:
         // -----------------------------------------------------------------
         // We have timed out when B wraps back to zero... handle this here.
         // -----------------------------------------------------------------
-        CPU.TStates -= 27;              // Give back the time up to INCB/JRNZ as we are going to run those real instructions.
+        CPU.TStates -= 27;              // Give back the time we accounted for with the INCB/RETZ/LDA/INA instructions
         CPU.BC.B.h = 0xFF;              // Set this up so that we WILL timeout when returning
         CPU.AF.W = 0x0000;              // Clear flags (mainly Carry Reset) and A register will be clear
         CPU.PC.W -= 6;                  // And return to the INC B counter and allow the timeout
@@ -934,65 +954,6 @@ ld_sample:
 }
 
 
-// BLEEPLOAD Loader:
-//
-// LD-SAMPLE  INC  B        [+4]    Count each pass
-//            RET  Z        [+11/5] Return carry reset & zero set if 'time-up'.
-//        {2} LD   A,+7F    [+7]    Read from port +7FFE   <== This is where the PC Trap is
-//        {2} IN   A,(+FE)  [+11]   i.e. BREAK and EAR
-//        {1} RRA           [+4]    Shift the byte
-//        {1} NOP           [+4]    NOP in place of the usual 'RET NC' check for keys pressed
-//        {1} XOR  C        [+4]    Now test the byte against the 'last edge-type'
-//        {2} AND  +20      [+7]    Mask off just the bit we care about (normally 0x40 but it's been shifted down)
-//            JR   Z,05ED   [+12/5] Jump back to LD-SAMPLE unless it has changed
-ITCM_CODE u8 tape_sample_bleepload(void)
-{
-    if (!tape_state) tape_state = TAPE_START;
-    
-     // The CyclesED[] table will consume the 18 cycles that the LDA, INA would have taken here...
-    int B = 255-CPU.BC.B.h;
-    const u8 C = CPU.BC.B.l;
-ld_sample:
-    u8 A;
-    if (tape_state & 0x80) // One or Zero... do it FAST!
-    {
-        // This version is already shifted down and inverted...
-        A = (tape_pulse_fast()) ^ C;
-    }
-    else
-    {
-        A = (~tape_pulse() >> 1) ^ C;
-    }
-    
-    if (A & 0x20)                       // Edge detected. We can exit the loop.
-    {
-        CPU.TStates += 24;              // 24 cycles from the IN to past the JR Z,LD-SAMP
-        CPU.ICount -= 24;               // Make the corresponding change to ICount
-        CPU.AF.B.h = A & 0x20;          // This is what the result would have been...
-        CPU.AF.B.l = H_FLAG;            // Set the appropriate flags for the AND +20
-        CPU.BC.B.h = (255-B);           // Let the caller know how close we got to the timeout
-        CPU.PC.W += 7;                  // Jump past the JR Z,LD-SAMP check
-    }
-    else                                // Edge not detected - we will do another pass or timeout
-    {
-        CPU.TStates += 24+34;           // It takes 58 total cycles when we take another pass around the loop
-        if (--B) goto ld_sample;        // If no time-out... take another sample.
-        
-        // -----------------------------------------------------------------
-        // We have timed out when B wraps back to zero... handle this here.
-        // -----------------------------------------------------------------
-        CPU.TStates -= (24+34-27);      // Give back the time up to the INCB/RETZ as we are going to run those real instructions.
-        CPU.BC.B.h = 0xFF;              // Set this up so that we WILL timeout when returning
-        CPU.AF.W = 0x0000;              // Clear flags (mainly Carry Reset) and A register will be clear
-        CPU.PC.W -= 6;                  // And return to the INC B counter and allow the timeout
-    }
-
-    CPU.ICount -= (25 + 58); // Make a rough change to ICount based on number of loops. We don't really care here.
-    return CPU.AF.B.h;
-}
-
-typedef u8 (*patchFunc)(void);
-extern patchFunc *PatchLookup;
 
 // ---------------------------------------------------------------------------------
 // After every new block is settled into memory, we look to see if we can find one
@@ -1005,7 +966,7 @@ void tape_search_for_loader(void)
     for (int addr = 0x4000; addr < 0xFFFE; addr++)
     {
         // -----------------------------------------------------------------------
-        // All of our loaders have the ubiquitous IN A,+FE to read the microphone
+        // All of our loaders have the ubiquitous IN A,+FE to read the ear input
         // -----------------------------------------------------------------------
         if ((OpZ80(addr+0) == 0xDB) && (OpZ80(addr+1) == 0xFE))
         {
@@ -1022,8 +983,7 @@ void tape_search_for_loader(void)
                               if (OpZ80(addr+7) == 0x28)
                               {
                                   loader_type = "STANDARD";
-                                  *(MemoryMap[(addr+0)>>13] + ((addr+0)&0x1FFF)) = 0xED;
-                                  *(MemoryMap[(addr+1)>>13] + ((addr+1)&0x1FFF)) = 0xFF;
+                                  PatchLookup[addr+2] = tape_sample_standard;
                               }
 
             // Speedlock Loader
@@ -1038,8 +998,7 @@ void tape_search_for_loader(void)
                             if (OpZ80(addr+6) == 0x28)
                             {
                                 loader_type = "SPEEDLOCK";
-                                *(MemoryMap[(addr+0)>>13] + ((addr+0)&0x1FFF)) = 0xED;
-                                *(MemoryMap[(addr+1)>>13] + ((addr+1)&0x1FFF)) = 0xFE;
+                                PatchLookup[addr+2] = tape_sample_speedlock;
                             }
 
             // Owens Loader
@@ -1055,9 +1014,7 @@ void tape_search_for_loader(void)
                               if (OpZ80(addr+7) == 0x28)
                               {
                                   loader_type = "OWENS";
-                                  // Since this has the same cycle count - we can use the standard loader
-                                  *(MemoryMap[(addr+0)>>13] + ((addr+0)&0x1FFF)) = 0xED;
-                                  *(MemoryMap[(addr+1)>>13] + ((addr+1)&0x1FFF)) = 0xFF;
+                                  PatchLookup[addr+2] = tape_sample_standard; // Since this has the same cycle count - we can use the standard loader
                               }
 
             // Dinaload Loader
@@ -1073,9 +1030,7 @@ void tape_search_for_loader(void)
                               if (OpZ80(addr+7) == 0x28)
                               {
                                   loader_type = "DINALOAD";
-                                  // Since this has the same cycle count - we can use the standard loader
-                                  *(MemoryMap[(addr+0)>>13] + ((addr+0)&0x1FFF)) = 0xED;
-                                  *(MemoryMap[(addr+1)>>13] + ((addr+1)&0x1FFF)) = 0xFF;
+                                  PatchLookup[addr+2] = tape_sample_standard; // Since this has the same cycle count - we can use the standard loader
                               }
 
             // Alkatraz
@@ -1089,7 +1044,7 @@ void tape_search_for_loader(void)
                           if (OpZ80(addr+7) == 0x28) // JRZ
                           {
                               loader_type = "ALKATRAZ";
-                              PatchLookup[addr+2] = tape_sample_alkatraz; // Can't use patch bytes as the program will detect the modification... use PC trap instead
+                              PatchLookup[addr+2] = tape_sample_alkatraz;
                           }
             
             // Microsphere Loader
@@ -1105,7 +1060,7 @@ void tape_search_for_loader(void)
                               if (OpZ80(addr+7) == 0x28)
                               {
                                   loader_type = "MICROSPHERE";
-                                  PatchLookup[addr+2] = tape_sample_microsphere; // Can't use patch bytes as the program will detect the modification... use PC trap instead
+                                  PatchLookup[addr+2] = tape_sample_microsphere_bleepload;
                                   
                               }
 
@@ -1122,7 +1077,7 @@ void tape_search_for_loader(void)
                               if (OpZ80(addr+7) == 0x28)
                               {
                                   loader_type = "BLEEPLOAD";
-                                  PatchLookup[addr+2] = tape_sample_bleepload; // Can't use patch bytes as the program will detect the modification... use PC trap instead
+                                  PatchLookup[addr+2] = tape_sample_microsphere_bleepload;
                               }
         }
     }

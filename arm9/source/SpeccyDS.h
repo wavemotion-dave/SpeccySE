@@ -30,7 +30,7 @@ extern u32 debug[0x10];
 // ------------------------------------------------------------------------------
 // Joystick UP, RIGHT, LEFT, DOWN and the FIRE button for the Kempston Joystick.
 // Designed specifically so each has its own bit so we can press more than one
-// DIRECTORYion/fire at the same time.  Keys are grafted onto this below.
+// direction/fire at the same time.  Keyboard keys are grafted onto this below.
 // ------------------------------------------------------------------------------
 #define JST_UP              0x0001
 #define JST_RIGHT           0x0002
@@ -95,15 +95,17 @@ extern u32 debug[0x10];
 #define KBD_KEY_RET         13
 
 // What format is the input file?
-#define MODE_TAP        1
-#define MODE_TZX        2
-#define MODE_RES1       3
-#define MODE_RES2       4
-#define MODE_SNA        5
-#define MODE_Z80        6
-#define MODE_BIOS       7
+#define MODE_TAP            1
+#define MODE_TZX            2
+#define MODE_RES1           3
+#define MODE_RES2           4
+#define MODE_SNA            5
+#define MODE_Z80            6
+#define MODE_BIOS           7
 
 #define WAITVBL swiWaitForVBlank(); swiWaitForVBlank(); swiWaitForVBlank(); swiWaitForVBlank(); swiWaitForVBlank();
+
+typedef u8 (*patchFunc)(void);
 
 extern u8 speccy_mode;
 extern u8 kbd_keys_pressed;

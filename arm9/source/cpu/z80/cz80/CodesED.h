@@ -291,14 +291,3 @@ case CPDR:
     N_FLAG|(CPU.AF.B.l&C_FLAG)|ZSTable[J.B.l]|
     ((CPU.AF.B.h^I^J.B.l)&H_FLAG)|(CPU.BC.W? P_FLAG:0);
   break;
-
-
-case 0xFF: // TRAP instruction!
-  extern void tape_sample_standard();
-  tape_sample_standard();
-  break;
-
-case 0xFE: // TRAP instruction!
-  extern void tape_sample_speedlock();
-  tape_sample_speedlock();
-  break;
