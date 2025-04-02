@@ -505,6 +505,7 @@ void CassetteInsert(char *filename)
 #define MENU_ACTION_STOP            2   // Stop Cassette
 #define MENU_ACTION_SWAP            3   // Swap Cassette
 #define MENU_ACTION_REWIND          4   // Rewind Cassette
+#define MENU_ACTION_POSITION        5   // Position Cassette
 
 #define MENU_ACTION_RESET           98  // Reset the machine
 #define MENU_ACTION_SKIP            99  // Skip this MENU choice
@@ -531,6 +532,7 @@ CassetteDiskMenu_t generic_cassette_menu =
         {" STOP CASSETTE    ",      MENU_ACTION_STOP},        
         {" SWAP CASSETTE    ",      MENU_ACTION_SWAP},
         {" REWIND CASSETTE  ",      MENU_ACTION_REWIND},
+        {" POSITION CASSETTE",      MENU_ACTION_POSITION},
         {" EXIT MENU        ",      MENU_ACTION_EXIT},
         {" NULL             ",      MENU_ACTION_END},
     },
@@ -649,6 +651,19 @@ void CassetteMenu(void)
                 case MENU_ACTION_REWIND:
                     tape_reset();
                     bExitMenu = true;
+                    break;
+
+                case MENU_ACTION_POSITION:
+                    u8 newPos = speccyTapePosition();
+                    if (newPos != 255)
+                    {
+                        tape_position(newPos);
+                        bExitMenu = true;
+                    }
+                    else
+                    {
+                        CassetteMenuShow(true, menuSelection);
+                    }
                     break;
             }
         }
@@ -910,6 +925,60 @@ u8 __attribute__((noinline)) handle_meta_key(u8 meta_key)
     }
 
     return 0;
+}
+
+// Show tape blocks with filenames/descriptions... 
+u8 speccyTapePosition(void)
+{
+    u8 sel = 0;
+
+    while ((keysCurrent() & (KEY_UP | KEY_DOWN | KEY_A ))!=0);
+
+    BottomScreenOptions();
+    
+    u8 max = tape_find_positions();
+    DSPrint(1,3,0,"         TAPE POSITIONS         ");
+    
+    for (u8 i=0; i < (max < 18 ? max:18); i++)
+    {
+        sprintf(tmp, "%03d %-26s", TapePositionTable[i].block_id, TapePositionTable[i].description);
+        DSPrint(1,4+i,(i==sel) ? 2:0,tmp);
+    }
+    
+    while (1)
+    {
+        u16 keys = keysCurrent();
+        if (keys & KEY_A) break;
+        if (keys & KEY_DOWN)
+        {
+            if (sel < (max-1))
+            {
+                sprintf(tmp, "%03d %-26s", TapePositionTable[sel].block_id, TapePositionTable[sel].description);
+                DSPrint(1,4+sel,0,tmp);
+                sel++;
+                sprintf(tmp, "%03d %-26s", TapePositionTable[sel].block_id, TapePositionTable[sel].description);
+                DSPrint(1,4+sel,2,tmp);
+                WAITVBL;WAITVBL;
+            }
+        }
+        if (keys & KEY_UP)
+        {
+            if (sel > 0)
+            {
+                sprintf(tmp, "%03d %-26s", TapePositionTable[sel].block_id, TapePositionTable[sel].description);
+                DSPrint(1,4+sel,0,tmp);
+                sel--;
+                sprintf(tmp, "%03d %-26s", TapePositionTable[sel].block_id, TapePositionTable[sel].description);
+                DSPrint(1,4+sel,2,tmp);
+                WAITVBL;WAITVBL;
+            }
+        }
+    }
+    
+    while ((keysCurrent() & (KEY_UP | KEY_DOWN | KEY_A ))!=0);
+    WAITVBL;WAITVBL;
+    
+    return sel;
 }
 
 // ------------------------------------------------------------------------

@@ -784,7 +784,7 @@ void SetDefaultGameConfig(void)
     
     MapPlayer1();                // Default to Player 1 mapping
     
-    myConfig.frameSkip   = (isDSiMode() ? 0:1);         // For DSi we don't need FrameSkip, but for older DS-LITE we turn on light frameskip
+    myConfig.autoStop    = 1;                           // Normally detect STOP tape
     myConfig.tapeSpeed   = 1;                           // Normally accelerated
     myConfig.autoFire    = 0;                           // Default to no auto-fire on either button
     myConfig.dpad        = DPAD_NORMAL;                 // Normal DPAD use - mapped to joystick
@@ -873,9 +873,9 @@ const struct options_t Option_Table[2][20] =
 {
     // Game Specific Configuration
     {
-        {"FRAME SKIP",     {"OFF", "SHOW 3/4", "SHOW 1/2"},                            &myConfig.frameSkip,         3},
-        {"AUTO FIRE",      {"OFF", "ON"},                                              &myConfig.autoFire,          2},
         {"AUTO LOAD",      {"NO", "YES"},                                              &myConfig.autoLoad,          2},
+        {"AUTO STOP",      {"NO", "YES"},                                              &myConfig.autoStop,          2},
+        {"AUTO FIRE",      {"OFF", "ON"},                                              &myConfig.autoFire,          2},
         {"JOYSTICK",       {"NORMAL", "DIAGONALS"},                                    &myConfig.dpad,              2},
         {"TAPE SPEED",     {"NORMAL", "ACCELERATED"},                                  &myConfig.tapeSpeed,         2},                                                                         
         {NULL,             {"",      ""},                                              NULL,                        1},

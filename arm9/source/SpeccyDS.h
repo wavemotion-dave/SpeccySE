@@ -152,6 +152,7 @@ extern void processDirectAudio(void);
 extern void processDirectBeeper(void);
 extern void processDirectBeeperAY3(void);
 extern void processDirectBeeperPlusAY(void);
+extern u8   speccyTapePosition(void);
 extern void tape_frame(void);
 extern void debug_init();
 extern void debug_save();

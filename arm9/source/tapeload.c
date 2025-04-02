@@ -15,6 +15,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <fat.h>
+#include <ctype.h>
 #include <dirent.h>
 
 #include "SpeccyDS.h"
@@ -31,9 +32,13 @@
 #define BLOCK_ID_PULSE_SEQ              0x13
 #define BLOCK_ID_PURE_DATA              0x14
 #define BLOCK_ID_PAUSE_STOP             0x20
+#define BLOCK_ID_GROUP_START            0x21
+#define BLOCK_ID_GROUP_END              0x22
 #define BLOCK_ID_LOOP_START             0x24
 #define BLOCK_ID_LOOP_END               0x25
 #define BLOCK_ID_STOP_IF_48K            0x2A
+#define BLOCK_ID_TEXT                   0x30
+
 
 #define TAPE_STOP                       0x00
 #define TAPE_START                      0x01
@@ -69,15 +74,17 @@ typedef struct
   u16  pilot_pulses;            // Number of pilot pulses {8063 with header flag, 3223 with data flag}
   u16  sync1_width;             // Length of SYNC first pulse {667}
   u16  sync2_width;             // Length of SYNC second pulse {735}
-  u16  data_zero_width;         // How wide the one '1' bit pulse is {855}
-  u16  data_zero_widthX2;       // How wide the one '1' bit pulse is {855*2}
-  u16  data_one_width;          // How wide the zero '0' bit pulse is {1710}
-  u16  data_one_widthX2;        // How wide the zero '0' bit pulse is {1710*2}
+  u16  data_zero_width;         // How wide the zero '0' bit pulse is {855}
+  u16  data_zero_widthX2;       // How wide the zero '0' bit pulse is {855*2}
+  u16  data_one_width;          // How wide the one '1' bit pulse is {1710}
+  u16  data_one_widthX2;        // How wide the one '1' bit pulse is {1710*2}
   u8   last_bits_used;          // The number of bits used in the last byte
   u16  gap_delay_after;         // How many milliseconds delay after this block {1000}
   u16  loop_counter;            // For Loops... how many times to iterate
   u32  block_data_idx;          // Where does the block data start (after header stuff is parsed)
   u32  block_data_len;          // How many bytes are in the data stream for this block?
+  char description[31];         // For text / meta / description / group blocks (they can be larger, but this is all we will show)
+  char block_filename[11];      // For the filename in a header block
   u16  custom_pulse_len[255];   // For the BLOCK_ID_PULSE_SEQ type of block
 } TapeBlock_t;
 
@@ -99,6 +106,45 @@ u8 give_up_counter = 0;
 char *loader_type = "STANDARD";
 extern patchFunc *PatchLookup;
 u8 tape_sample_standard(void);
+
+TapePositionTable_t TapePositionTable[255];
+
+u8 tape_find_positions(void)
+{
+    memset(TapePositionTable, 0x00, sizeof(TapePositionTable));
+    
+    u8 pos_idx = 0;
+    
+    // Always have a Start of Tape (Rewind)
+    strcpy(TapePositionTable[pos_idx].description, "START OF TAPE");
+    TapePositionTable[pos_idx].block_id = 0;
+    pos_idx++;
+    
+    for (u16 i=0; i < num_blocks_available; i++)
+    {
+        if (strlen(TapeBlocks[i].description) > 2)
+        {
+            strcpy(TapePositionTable[pos_idx].description, TapeBlocks[i].description);
+            TapePositionTable[pos_idx].block_id = i;
+            pos_idx++;
+        }
+        else if (strlen(TapeBlocks[i].block_filename) > 2)
+        {
+            u8 bad=0;
+            for (u8 j=0; j<10; j++)
+            {
+                if (!isprint((int)TapeBlocks[i].block_filename[j])) bad=1;
+            }
+            if (!bad)
+            {
+                strcpy(TapePositionTable[pos_idx].description, TapeBlocks[i].block_filename);
+                TapePositionTable[pos_idx].block_id = i;
+                pos_idx++;
+            }
+        }
+    }
+    return pos_idx;
+}
 
 // -----------------------------------------------
 // This traps out the tape loader main routine...
@@ -171,6 +217,11 @@ void tape_parse_blocks(int tapeSize)
             TapeBlocks[num_blocks_available].block_data_idx  = idx+2;
             TapeBlocks[num_blocks_available].block_data_len  = block_len;
             TapeBlocks[num_blocks_available].block_flag      = block_flag;
+            
+            if ((block_flag == 0x00) || (block_len == 19)) // Header
+            {
+                memcpy(TapeBlocks[num_blocks_available].block_filename, &ROM_Memory[idx+4], 10);
+            }
             num_blocks_available++;
 
             idx += (block_len + 2); // The two bytes of meta-data length plus the data
@@ -213,6 +264,12 @@ void tape_parse_blocks(int tapeSize)
                     // Precompute the X2 values of the one/zero pulse width to speed up edge detection
                     TapeBlocks[num_blocks_available].data_one_widthX2  = TapeBlocks[num_blocks_available].data_one_width << 1;
                     TapeBlocks[num_blocks_available].data_zero_widthX2 = TapeBlocks[num_blocks_available].data_zero_width << 1;
+
+                    if ((block_flag == 0x00) || (block_len == 19)) // Header
+                    {
+                        memcpy(TapeBlocks[num_blocks_available].block_filename, &ROM_Memory[idx+4+2], 10);
+                    }
+                    
                     num_blocks_available++;
                     idx += (block_len + 4);
                     break;
@@ -243,6 +300,12 @@ void tape_parse_blocks(int tapeSize)
                     // Precompute the X2 values of the one/zero pulse width to speed up edge detection
                     TapeBlocks[num_blocks_available].data_one_widthX2  = TapeBlocks[num_blocks_available].data_one_width << 1;
                     TapeBlocks[num_blocks_available].data_zero_widthX2 = TapeBlocks[num_blocks_available].data_zero_width << 1;
+                    
+                    if ((block_flag == 0x00) || (block_len == 19)) // Header
+                    {
+                        memcpy(TapeBlocks[num_blocks_available].block_filename, &ROM_Memory[idx+18+2], 10);
+                    }
+                    
                     num_blocks_available++;
                     idx += (block_len + 18);
                     break;
@@ -305,12 +368,14 @@ void tape_parse_blocks(int tapeSize)
                     idx += 4;
                     break;
 
-                case 0x21: // Group Start - skip this for now
+                case BLOCK_ID_GROUP_START: // Group Start
                     block_len = ROM_Memory[idx + 0];
+                    memcpy(TapeBlocks[num_blocks_available].description, &ROM_Memory[idx+1], (block_len < 26 ? block_len:26));
+                    num_blocks_available++;
                     idx += (block_len + 1);
                     break;
 
-                case 0x22: // Group End - skip this for now
+                case BLOCK_ID_GROUP_END: // Group End - skip this for now. Group start is more useful.
                     idx += 0;
                     break;
 
@@ -325,13 +390,20 @@ void tape_parse_blocks(int tapeSize)
                     idx += 0;
                     break;
                     
+                case BLOCK_ID_TEXT: // Text Description
+                    block_len = ROM_Memory[idx + 0];
+                    memcpy(TapeBlocks[num_blocks_available].description, &ROM_Memory[idx+1], (block_len < 26 ? block_len:26));
+                    num_blocks_available++;
+                    idx += (block_len + 1);
+                    break;
+
                 case 0x2B: // Set signal level
                     idx += 5;
                     break;
-
-                case 0x30: // Text Description
-                    block_len = ROM_Memory[idx + 0];
-                    idx += (block_len + 1);
+                    
+                case 0x31: // Message Block
+                    block_len = ROM_Memory[idx + 1];
+                    idx += (block_len + 2);
                     break;
 
                 case 0x32: // Archive Info
@@ -392,6 +464,11 @@ void tape_stop(void)
 void tape_play(void)
 {
     tape_state = TAPE_START;
+}
+
+void tape_position(u8 newPos)
+{
+    current_block = TapePositionTable[newPos].block_id;
 }
 
 // Called every frame
@@ -456,6 +533,7 @@ ITCM_CODE u8 tape_pulse(void)
                 // And we set the block data index back to the start of the block.
                 // ----------------------------------------------------------------
                 CPU.TStates = 0;
+                give_up_counter = 0;
                 current_block_data_idx = TapeBlocks[current_block].block_data_idx;
 
                 // ------------------------------------------------
@@ -512,12 +590,16 @@ ITCM_CODE u8 tape_pulse(void)
                         }
                         tape_state = TAPE_NEXT_BLOCK;                        
                         break;
+                    
+                    case BLOCK_ID_GROUP_START:
+                    case BLOCK_ID_TEXT:
+                        current_block++;
+                        break;
                         
                     default: //TODO: add more block IDs for TZX and trap ones we don't handle...
                         tape_state = TAPE_STOP;
                         break;
                 }
-
                 break;
 
             case BLOCK_PILOT_TONE:
@@ -577,13 +659,16 @@ ITCM_CODE u8 tape_pulse(void)
                 current_bit = current_bit>>1;
                 if (current_bit == handle_last_bits) // Are we done sending this byte?
                 {
-                    if (CPU.TStates > 250000)
+                    if (myConfig.autoStop)
                     {
-                        if (++give_up_counter > 5) 
+                        if (CPU.TStates > 500000)
                         {
-                            tape_state = TAPE_STOP;
-                            return 0x00;
-                        }                        
+                            if (++give_up_counter > 5) 
+                            {
+                                tape_state = TAPE_STOP;
+                                return 0x00;
+                            }                        
+                        }
                     }
                     tape_bytes_processed++;
                     current_block_data_idx++;

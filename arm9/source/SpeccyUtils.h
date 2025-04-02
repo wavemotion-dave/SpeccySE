@@ -19,8 +19,8 @@
 #define MAX_ROM_NAME                160
 #define MAX_CART_SIZE               (512*1024) // 512K is big enough for any .TAP/.TZX or Snapshot 
             
-#define MAX_CONFIGS                 1024
-#define CONFIG_VER                  0x0001
+#define MAX_CONFIGS                 1000
+#define CONFIG_VER                  0x0002
             
 #define SPECCY_FILE                 0x01
 #define DIRECTORY                   0x02
@@ -41,6 +41,14 @@ typedef struct {
 
 
 extern u32 file_size;
+
+typedef struct
+{
+    char description[33];
+    u16  block_id;
+} TapePositionTable_t;
+
+extern TapePositionTable_t TapePositionTable[];
 
 struct __attribute__((__packed__)) GlobalConfig_t
 {
@@ -73,7 +81,7 @@ struct __attribute__((__packed__)) Config_t
     u32 game_crc;
     u8  keymap[12];
     u8  frameSkip;
-    u8  frameBlend;
+    u8  autoStop;
     u8  autoFire;
     u8  tapeSpeed;
     u8  dpad;
@@ -87,6 +95,7 @@ struct __attribute__((__packed__)) Config_t
     u8  reserved7;
     u8  reserved8;
     u8  reserved9;
+    u8  reserved10;
 };
 
 extern struct Config_t       myConfig;
@@ -155,6 +164,8 @@ extern void tape_reset(void);
 extern void tape_patch(void);
 extern void tape_stop(void);
 extern void tape_play(void);
+extern void tape_position(u8 newPos);
+extern u8   tape_find_positions(void);
 extern u8   tape_is_playing(void);
 extern void tape_parse_blocks(int tapeSize);
 extern u32  tape_bytes_processed;
