@@ -15,12 +15,11 @@ As long as there is no commercial use (i.e. no profit is made),
 copying and distribution of this emulator, it's source code
 and associated readme files, with or without modification, 
 are permitted in any medium without royalty provided this 
-copyright notice is used and wavemotion-dave (Phoenix-Edition),
-Alekmaul (original port) and Marat Fayzullin (Z80 core) are 
-thanked profusely.
+copyright notice is used and wavemotion-dave (SpeccyDS),
+and Marat Fayzullin (Z80 core) are thanked profusely.
 
-The sound drivers (sn76496, ay38910 and Konami SCC) are libraries
-from FluBBa (Fredrik Ahlström) and those copyrights remain his.
+The sound driver (ay38910) are libraries from FluBBa (Fredrik Ahlström) 
+and those copyrights remain his.
 
 Royalty Free Music for the opening jingle provided by Anvish Parker
 
