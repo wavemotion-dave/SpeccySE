@@ -156,11 +156,19 @@ void tape_patch(void)
 
     if (myConfig.tapeSpeed)
     {   
+        SpectrumBios[0x05E7] = 0xED;
+        SpectrumBios[0x05E8] = 0xFE;
+        SpectrumBios128[0x45E7] = 0xED;
+        SpectrumBios128[0x45E8] = 0xFE;
         PatchLookup[0x05F3] = tape_sample_standard; 
         loader_type = "STANDARD";
     }
     else
     {
+        SpectrumBios[0x05E7] = 0x3E;
+        SpectrumBios[0x05E8] = 0x16;
+        SpectrumBios128[0x45E7] = 0x3E;
+        SpectrumBios128[0x45E8] = 0x16;
         PatchLookup[0x05F3] = 0; 
     }
 }
@@ -659,16 +667,21 @@ ITCM_CODE u8 tape_pulse(void)
                 current_bit = current_bit>>1;
                 if (current_bit == handle_last_bits) // Are we done sending this byte?
                 {
-                    if (myConfig.autoStop)
+                    // ---------------------------------------------------------------------------------
+                    // See if it's been a "long" time between bytes.. if so, we probably aren't in
+                    // byte load / edge detection handling anymore... we can consider STOPing the tape.
+                    // ---------------------------------------------------------------------------------
+                    if (CPU.TStates > 300000)
                     {
-                        if (CPU.TStates > 500000)
+                        if (myConfig.autoStop)
                         {
                             if (++give_up_counter > 5) 
                             {
                                 tape_state = TAPE_STOP;
                                 return 0x00;
-                            }                        
+                            }               
                         }
+                        bit_overage = 0;       
                     }
                     tape_bytes_processed++;
                     current_block_data_idx++;
@@ -1037,7 +1050,6 @@ ld_sample:
     CPU.ICount -= (25 + 58); // Make a rough change to ICount based on number of loops. We don't really care here.
     return CPU.AF.B.h;
 }
-
 
 
 // ---------------------------------------------------------------------------------

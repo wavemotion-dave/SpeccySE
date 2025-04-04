@@ -291,3 +291,10 @@ case CPDR:
     N_FLAG|(CPU.AF.B.l&C_FLAG)|ZSTable[J.B.l]|
     ((CPU.AF.B.h^I^J.B.l)&H_FLAG)|(CPU.BC.W? P_FLAG:0);
   break;
+
+case 0xFE: // Loader Trap Speedup - remove the pre-edge detect 'delay'
+  CPU.ICount -= 358;
+  CPU.TStates += 358;   // Account for the cycles it would have taken
+  CPU.AF.B.h = 0x00;    // Skip the loop entirely
+  CPU.PC.W = 0x05EC;    // Jump to the AND A in the standard ROM loader
+  break;

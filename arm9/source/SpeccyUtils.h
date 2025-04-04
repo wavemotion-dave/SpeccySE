@@ -154,6 +154,7 @@ extern u8   spectrumInit(char *szGame);
 extern void spectrumSetPalette(void);
 extern void spectrumRun(void);
 extern void tape_search_for_loader(void);
+extern void tape_detect_loading(void);
 extern u8   cpu_readport_speccy(register unsigned short Port);
 extern void cpu_writeport_speccy(register unsigned short Port,register unsigned char Value);
 extern void speccy_decompress_z80(int romSize);
