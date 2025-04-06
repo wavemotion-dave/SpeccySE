@@ -55,6 +55,7 @@ char initial_path[MAX_ROM_NAME] = "";
 
 u8 last_speccy_mode  = 99;
 u8 bFirstTime        = 3;
+u8 bottom_screen     = 0;
 
 // ---------------------------------------------------------------------------
 // Some timing and frame rate comutations to keep the emulation on pace...
@@ -370,7 +371,7 @@ void ResetSpectrum(void)
   emuFps=0;
   
   bFirstTime = 2;
-
+  bottom_screen = 0;
   last_speccy_mode = 99;
 }
 
@@ -771,7 +772,10 @@ u8 MiniMenu(void)
   while ((keysCurrent() & (KEY_UP | KEY_DOWN | KEY_A ))!=0);
   WAITVBL;WAITVBL;
 
-  BottomScreenKeyboard();  // Could be generic or overlay...
+  if (retVal == MENU_CHOICE_NONE)
+  {
+    BottomScreenKeyboard();  // Could be generic or overlay...
+  }
 
   SoundUnPause();
 
@@ -1431,43 +1435,32 @@ void speccyDSInit(void)
   speccyDSFindFiles(0);
 }
 
-
 void BottomScreenOptions(void)
 {
     swiWaitForVBlank();
     
-    // ---------------------------------------------------
-    // Put up the options select screen background...
-    // ---------------------------------------------------
-    bg0b = bgInitSub(0, BgType_Text8bpp, BgSize_T_256x256, 31,0);
-    bg1b = bgInitSub(1, BgType_Text8bpp, BgSize_T_256x256, 29,0);
-    bgSetPriority(bg0b,1);bgSetPriority(bg1b,0);
+    if (bottom_screen != 1)
+    {
+        // ---------------------------------------------------
+        // Put up the options select screen background...
+        // ---------------------------------------------------
+        bg0b = bgInitSub(0, BgType_Text8bpp, BgSize_T_256x256, 31,0);
+        bg1b = bgInitSub(1, BgType_Text8bpp, BgSize_T_256x256, 29,0);
+        bgSetPriority(bg0b,1);bgSetPriority(bg1b,0);
+        
+        decompress(mainmenuTiles, bgGetGfxPtr(bg0b), LZ77Vram);
+        decompress(mainmenuMap, (void*) bgGetMapPtr(bg0b), LZ77Vram);
+        dmaCopy((void*) mainmenuPal,(void*) BG_PALETTE_SUB,256*2);
+        
+        unsigned short dmaVal = *(bgGetMapPtr(bg1b)+24*32);
+        dmaFillWords(dmaVal | (dmaVal<<16),(void*) bgGetMapPtr(bg1b),32*24*2);
+    }
+    else // Just clear the screen
+    {
+        for (u8 i=0; i<23; i++)  DSPrint(0,i,0,"                                ");
+    }
     
-    decompress(mainmenuTiles, bgGetGfxPtr(bg0b), LZ77Vram);
-    decompress(mainmenuMap, (void*) bgGetMapPtr(bg0b), LZ77Vram);
-    dmaCopy((void*) mainmenuPal,(void*) BG_PALETTE_SUB,256*2);
-    
-    unsigned short dmaVal = *(bgGetMapPtr(bg1b)+24*32);
-    dmaFillWords(dmaVal | (dmaVal<<16),(void*) bgGetMapPtr(bg1b),32*24*2);
-}
-
-void BottomScreenCassette(void)
-{
-    swiWaitForVBlank();
-    
-    // ---------------------------------------------------
-    // Put up the cassette screen background...
-    // ---------------------------------------------------
-    bg0b = bgInitSub(0, BgType_Text8bpp, BgSize_T_256x256, 31,0);
-    bg1b = bgInitSub(1, BgType_Text8bpp, BgSize_T_256x256, 29,0);
-    bgSetPriority(bg0b,1);bgSetPriority(bg1b,0);
-    
-    decompress(cassetteTiles, bgGetGfxPtr(bg0b), LZ77Vram);
-    decompress(cassetteMap, (void*) bgGetMapPtr(bg0b), LZ77Vram);
-    dmaCopy((void*) cassettePal,(void*) BG_PALETTE_SUB,256*2);
-    
-    unsigned short dmaVal = *(bgGetMapPtr(bg1b)+24*32);
-    dmaFillWords(dmaVal | (dmaVal<<16),(void*) bgGetMapPtr(bg1b),32*24*2);
+    bottom_screen = 1;
 }
 
 // ---------------------------------------------------------------------------
@@ -1496,9 +1489,35 @@ void BottomScreenKeyboard(void)
     
     unsigned  short dmaVal = *(bgGetMapPtr(bg1b)+24*32);
     dmaFillWords(dmaVal | (dmaVal<<16),(void*)  bgGetMapPtr(bg1b),32*24*2);
+    
+    bottom_screen = 2;
 
     DisplayStatusLine(true);
 }
+
+
+
+void BottomScreenCassette(void)
+{
+    swiWaitForVBlank();
+    
+    // ---------------------------------------------------
+    // Put up the cassette screen background...
+    // ---------------------------------------------------
+    bg0b = bgInitSub(0, BgType_Text8bpp, BgSize_T_256x256, 31,0);
+    bg1b = bgInitSub(1, BgType_Text8bpp, BgSize_T_256x256, 29,0);
+    bgSetPriority(bg0b,1);bgSetPriority(bg1b,0);
+    
+    decompress(cassetteTiles, bgGetGfxPtr(bg0b), LZ77Vram);
+    decompress(cassetteMap, (void*) bgGetMapPtr(bg0b), LZ77Vram);
+    dmaCopy((void*) cassettePal,(void*) BG_PALETTE_SUB,256*2);
+    
+    unsigned short dmaVal = *(bgGetMapPtr(bg1b)+24*32);
+    dmaFillWords(dmaVal | (dmaVal<<16),(void*) bgGetMapPtr(bg1b),32*24*2);
+    
+    bottom_screen = 3;
+}
+
 
 /*********************************************************************************
  * Init CPU for the current game

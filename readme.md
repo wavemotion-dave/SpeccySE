@@ -95,4 +95,12 @@ position manually. Most games just figure it out - and the auto-play
 and auto-stop of tapes should be working _reasonably_ well. You can 
 override this as needed.
 
+ROM Support :
+-----------------------
+The emulator allows you to load a .ROM file directly into the same memory
+location as the BIOS (+0000 to +4000). Only up to 16K can be loaded in this
+way. This is mainly used to load diagnostic test programs such as the
+amazing RETROLEUM DIAGROM.
+
+
 More to come...

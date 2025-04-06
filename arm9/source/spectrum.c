@@ -85,7 +85,7 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
         // -----------------------------
         // Otherwise normal handling... 
         // -----------------------------
-        u8 key = 0x00;
+        u8 key = (portFE & 0x18) ? 0x00 : 0x40;
         
         for (u8 i=0; i< (kbd_keys_pressed ? kbd_keys_pressed:1); i++) // Always one pass at least for joysticks...
         {

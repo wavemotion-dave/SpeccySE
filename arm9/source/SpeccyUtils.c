@@ -122,7 +122,8 @@ const char szKeyName[MAX_KEY_OPTIONS][16] = {
 /*********************************************************************************
  * Show A message with YES / NO
  ********************************************************************************/
-u8 showMessage(char *szCh1, char *szCh2) {
+u8 showMessage(char *szCh1, char *szCh2) 
+{
   u16 iTx, iTy;
   u8 uRet=ID_SHM_CANCEL;
   u8 ucGau=0x00, ucDro=0x00,ucGauS=0x00, ucDroS=0x00, ucCho = ID_SHM_YES;
