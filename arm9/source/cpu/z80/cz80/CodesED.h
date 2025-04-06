@@ -152,7 +152,7 @@ case INIR:
   I = InZ80(CPU.BC.W);
   WrZ80(CPU.HL.W++,I);
   if(--CPU.BC.B.h) { CPU.AF.B.l=N_FLAG; CPU.PC.W-=2; }   // N_FLAG is not correct here but will be corrected when loop exits below. Nothing relies on the intermediate value.
-  else            { CPU.AF.B.l=Z_FLAG|(I&0x80 ? N_FLAG:0); CPU.ICount+=5; CPU.TStates-=5;}
+  else            { CPU.AF.B.l=Z_FLAG|(I&0x80 ? N_FLAG:0); CPU.TStates-=5;}
   break;
 
 case IND:
@@ -166,7 +166,7 @@ case INDR:
   I = InZ80(CPU.BC.W);
   WrZ80(CPU.HL.W--,I);
   if(!--CPU.BC.B.h) { CPU.AF.B.l=N_FLAG; CPU.PC.W-=2; }  // N_FLAG is not correct here but will be corrected when loop exits below. Nothing relies on the intermediate value.
-  else             { CPU.AF.B.l=Z_FLAG|(I&0x80 ? N_FLAG:0); CPU.ICount+=5; CPU.TStates-=5;}
+  else             { CPU.AF.B.l=Z_FLAG|(I&0x80 ? N_FLAG:0); CPU.TStates-=5;}
   break;
 
 case OUTI:
@@ -188,7 +188,7 @@ case OTIR:
   else
   {
     CPU.AF.B.l=(CPU.AF.B.l & S_FLAG) | Z_FLAG | (I&0x80 ? N_FLAG:0) | (CPU.HL.B.l+I>255? (C_FLAG|H_FLAG):0);
-    CPU.ICount+=5; CPU.TStates-=5;
+    CPU.TStates-=5;
   }
   break;
 
@@ -211,7 +211,7 @@ case OTDR:
   else
   {
     CPU.AF.B.l=(CPU.AF.B.l & S_FLAG) | Z_FLAG | (I&0x80 ? N_FLAG:0) | (CPU.HL.B.l+I>255? (C_FLAG|H_FLAG):0);
-    CPU.ICount+=5; CPU.TStates-=5;
+    CPU.TStates-=5;
   }
   break;
 
@@ -231,7 +231,7 @@ case LDIR:
   else
   {
     CPU.AF.B.l&=~(N_FLAG|H_FLAG|P_FLAG);
-    CPU.ICount+=5; CPU.TStates-=5;
+    CPU.TStates-=5;
   }
   break;
 
@@ -252,7 +252,7 @@ case LDDR:
   else
   {
     CPU.AF.B.l&=~(N_FLAG|H_FLAG|P_FLAG);
-    CPU.ICount+=5; CPU.TStates-=5;
+    CPU.TStates-=5;
   }
   break;
 
@@ -268,7 +268,7 @@ case CPI:
 case CPIR:
   I=RdZ80(CPU.HL.W++);
   J.B.l=CPU.AF.B.h-I;
-  if(--CPU.BC.W&&J.B.l) { CPU.PC.W-=2; } else {CPU.ICount+=5;CPU.TStates-=5;}
+  if(--CPU.BC.W&&J.B.l) { CPU.PC.W-=2; } else {CPU.TStates-=5;}
   CPU.AF.B.l =
     N_FLAG|(CPU.AF.B.l&C_FLAG)|ZSTable[J.B.l]|
     ((CPU.AF.B.h^I^J.B.l)&H_FLAG)|(CPU.BC.W? P_FLAG:0);
@@ -286,15 +286,8 @@ case CPD:
 case CPDR:
   I=RdZ80(CPU.HL.W--);
   J.B.l=CPU.AF.B.h-I;
-  if(--CPU.BC.W&&J.B.l) { CPU.PC.W-=2; } else {CPU.ICount+=5;CPU.TStates-=5;}
+  if(--CPU.BC.W&&J.B.l) { CPU.PC.W-=2; } else {CPU.TStates-=5;}
   CPU.AF.B.l =
     N_FLAG|(CPU.AF.B.l&C_FLAG)|ZSTable[J.B.l]|
     ((CPU.AF.B.h^I^J.B.l)&H_FLAG)|(CPU.BC.W? P_FLAG:0);
-  break;
-
-case 0xFE: // Loader Trap Speedup - remove the pre-edge detect 'delay'
-  CPU.ICount -= 358;
-  CPU.TStates += 358;   // Account for the cycles it would have taken
-  CPU.AF.B.h = 0x00;    // Skip the loop entirely
-  CPU.PC.W = 0x05EC;    // Jump to the AND A in the standard ROM loader
   break;

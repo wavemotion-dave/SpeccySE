@@ -41,6 +41,9 @@ extern u32 debug[];
 /*************************************************************/
 extern u8 *MemoryMap[8];
 
+typedef u8 (*patchFunc)(void);
+extern patchFunc *PatchLookup;
+
 // ------------------------------------------------------
 // These defines and inline functions are to map maximum
 // speed/efficiency onto the memory system we have.
@@ -343,16 +346,14 @@ void ResetZ80(Z80 *R)
   CPU.R        = 0x00;
   CPU.R_HighBit= 0x00;
   CPU.IFF      = 0x00;
-  CPU.IBackup  = 0;
-  CPU.ICount   = CPU.IPeriod = 0;
   CPU.IRequest = INT_NONE;
   CPU.User     = 0;
   CPU.Trace    = 0;
   CPU.TrapBadOps = 1;
   CPU.IAutoReset = 1;
-  CPU.CycleDeficit  = 0;
+  CPU.CycleDeficit = 0;
   CPU.TStates = 0;
-  
+    
   JumpZ80(CPU.PC.W);
 }
 
@@ -360,13 +361,12 @@ void ResetZ80(Z80 *R)
 /** IntZ80() *************************************************/
 /** This function will generate interrupt of given vector.  **/
 /*************************************************************/
-void IntZ80(Z80 *R,word Vector)
+ITCM_CODE void IntZ80(Z80 *R,word Vector)
 {
     /* If HALTed, take CPU off HALT instruction */
     if(CPU.IFF&IFF_HALT) { CPU.PC.W++;CPU.IFF&=~IFF_HALT; }
     
-    CPU.ICount -= 19;
-    CPU.TStates += 19;
+    CPU.TStates += 19; // Z80 takes 19 cycles to acknowledge interrupt, setup stack and read vector
     
     if((CPU.IFF&IFF_1)||(Vector==INT_NMI))
     {
@@ -432,7 +432,6 @@ static void CodesCB_Speccy(void)
 
   /* Read opcode and count cycles */
   I=OpZ80(CPU.PC.W++);
-  CPU.ICount  -= CyclesCB[I];
   CPU.TStates += CyclesCB[I];
 
   /* R register incremented on each M1 cycle */
@@ -455,7 +454,6 @@ static void CodesDDCB_Speccy(void)
   /* Get offset, read opcode and count cycles */
   J.W=CPU.XX.W+(offset)OpZ80(CPU.PC.W++);
   I=OpZ80(CPU.PC.W++);
-  CPU.ICount  -= CyclesXXCB[I];
   CPU.TStates += CyclesXXCB[I];
 
   switch(I)
@@ -476,7 +474,6 @@ static void CodesFDCB_Speccy(void)
   /* Get offset, read opcode and count cycles */
   J.W=CPU.XX.W+(offset)OpZ80(CPU.PC.W++);
   I=OpZ80(CPU.PC.W++);
-  CPU.ICount  -= CyclesXXCB[I];
   CPU.TStates += CyclesXXCB[I];
 
   switch(I)
@@ -495,7 +492,6 @@ ITCM_CODE static void CodesED_Speccy(void)
 
   /* Read opcode and count cycles */
   I=OpZ80(CPU.PC.W++);
-  CPU.ICount  -= CyclesED[I];
   CPU.TStates += CyclesED[I];
   
   /* R register incremented on each M1 cycle */
@@ -519,7 +515,6 @@ static void CodesDD_Speccy(void)
 #define XX IX
   /* Read opcode and count cycles */
   I=OpZ80(CPU.PC.W++);
-  CPU.ICount  -= CyclesXX[I];
   CPU.TStates += CyclesXX[I];
 
   /* R register incremented on each M1 cycle */
@@ -547,7 +542,6 @@ static void CodesFD_Speccy(void)
 #define XX IY
   /* Read opcode and count cycles */
   I=OpZ80(CPU.PC.W++);
-  CPU.ICount  -= CyclesXX[I];
   CPU.TStates += CyclesXX[I];
 
   /* R register incremented on each M1 cycle */
@@ -567,29 +561,26 @@ static void CodesFD_Speccy(void)
 #undef XX
 }
 extern u8 zx_ScreenRendering;
-ITCM_CODE int ExecZ80_Speccy(register int RunCycles)
+ITCM_CODE void ExecZ80_Speccy(u32 RunToCycles)
 {
   register byte I;
   register pair J;
   const u8 render = zx_ScreenRendering;
 
-  for(CPU.ICount=RunCycles;;)
+  while (CPU.TStates < RunToCycles)
   {
-    while(CPU.ICount>0)
-    {
       I=OpZ80(CPU.PC.W++);
-      CPU.ICount  -= Cycles_NoM1Wait[I];
       CPU.TStates += Cycles_NoM1Wait[I];
       
       // ----------------------------------------------------------------------------------------
       // If we are in contended memory - add penalty. This is not cycle accurate but we want to
       // at least make an attempt to get closer on the cycle timing. So we simply use an 'average'
       // penalty of 4 cycles if we are in contended memory while the screen is rendering. It's 
-      // rough but gets us close enough to play games.
+      // rough but gets us close enough to play games. We can improve this later...
       // ----------------------------------------------------------------------------------------      
       if (render)
       {
-         if ((CPU.PC.W & 0xC000) == 0x4000) {CPU.ICount  -= 4; CPU.TStates += 4;}
+         if ((CPU.PC.W & 0xC000) == 0x4000) {CPU.TStates += 4;}
       }
             
       /* R register incremented on each M1 cycle */
@@ -604,17 +595,5 @@ ITCM_CODE int ExecZ80_Speccy(register int RunCycles)
         case PFX_FD: CodesFD_Speccy();break;
         case PFX_DD: CodesDD_Speccy();break;
       }
-    }
-
-    /* Unless we have come here after EI, exit */
-    if(!(CPU.IFF&IFF_EI)) return(CPU.ICount);
-    else
-    {
-      /* Done with AfterEI state */
-      CPU.IFF=(CPU.IFF&~IFF_EI)|IFF_1;
-      /* Restore the ICount */
-      CPU.ICount  += CPU.IBackup-1;
-      CPU.TStates += CPU.IBackup-1;
-    }
   }
 }

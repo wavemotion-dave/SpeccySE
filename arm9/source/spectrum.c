@@ -23,16 +23,16 @@
 #include "SpeccyUtils.h"
 #include "printf.h"
 
-u8 portFE               __attribute__((section(".dtcm"))) = 0x00;
-u8 portFD               __attribute__((section(".dtcm"))) = 0x00;
-u8 zx_AY_enabled        __attribute__((section(".dtcm"))) = 0;
-u8 zx_AY_index_written  __attribute__((section(".dtcm"))) = 0;
-u32 flash_timer         __attribute__((section(".dtcm"))) = 0;
-u8  bFlash              __attribute__((section(".dtcm"))) = 0;
-u8  zx_128k_mode        __attribute__((section(".dtcm"))) = 0;
-u8  zx_ScreenRendering  __attribute__((section(".dtcm"))) = 0;
-u8  zx_force_128k_mode  __attribute__((section(".dtcm"))) = 0;
-int zx_current_line     __attribute__((section(".dtcm"))) = 0;
+u8  portFE               __attribute__((section(".dtcm"))) = 0x00;
+u8  portFD               __attribute__((section(".dtcm"))) = 0x00;
+u8  zx_AY_enabled        __attribute__((section(".dtcm"))) = 0;
+u8  zx_AY_index_written  __attribute__((section(".dtcm"))) = 0;
+u32 flash_timer          __attribute__((section(".dtcm"))) = 0;
+u8  bFlash               __attribute__((section(".dtcm"))) = 0;
+u8  zx_128k_mode         __attribute__((section(".dtcm"))) = 0;
+u8  zx_ScreenRendering   __attribute__((section(".dtcm"))) = 0;
+u8  zx_force_128k_mode   __attribute__((section(".dtcm"))) = 0;
+int zx_current_line      __attribute__((section(".dtcm"))) = 0;
 
 u8  zx_special_key      = 0;
 int last_file_size      = 0;
@@ -53,8 +53,23 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
 
     if ((Port & 1) == 0) // Any Even Address will cause the ULA to respond
     {
-         // If we are playing the tape, get the result back as fast as possible without keys/joystick press
-        if (tape_state) 
+        // --------------------------------------------------------
+        // If we are not playing the tape but we got a hit on the 
+        // loader we can start the tape in motion - auto play...
+        // --------------------------------------------------------
+        if (!tape_state)
+        {
+            if (myConfig.autoLoad)
+            {
+                if (PatchLookup[CPU.PC.W]) tape_play();
+            }
+        }
+        
+        // --------------------------------------------------------
+        // If we are playing the tape, get the result back as fast 
+        // as possible without keys/joystick press.
+        // --------------------------------------------------------
+        if (tape_state)
         {
             // ----------------------------------------------------------------
             // See if this read is patched... for faster tape edge detection.
@@ -66,7 +81,10 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
             return ~tape_pulse();
         }
         
-        u8 key = tape_pulse();
+        // -----------------------------
+        // Otherwise normal handling... 
+        // -----------------------------
+        u8 key = 0x00;
         
         for (u8 i=0; i< (kbd_keys_pressed ? kbd_keys_pressed:1); i++) // Always one pass at least for joysticks...
         {
@@ -622,9 +640,11 @@ void speccy_reset(void)
         // Move the BIOS/Diagnostic ROM into memory...
         memcpy(RAM_Memory, ROM_Memory, last_file_size);   // Load diagnostics ROM into place
 
-        if (zx_force_128k_mode)
+        if (zx_force_128k_mode || myConfig.loadAs)
         {
-            zx_128k_mode = 1;            
+            zx_128k_mode = 1;
+            myConfig.loadAs = 1;
+            
             // Now set the memory map to point to the right banks...
             MemoryMap[2] = RAM_Memory128 + (5 * 0x4000) + 0x0000; // Bank 5
             MemoryMap[3] = RAM_Memory128 + (5 * 0x4000) + 0x2000; // Bank 5
@@ -639,9 +659,10 @@ void speccy_reset(void)
     else if (speccy_mode < MODE_SNA) // TAP or TZX file - 48K or 128K
     {
         // BIOS will be loaded further below...
-        if (zx_force_128k_mode)
+        if (zx_force_128k_mode || myConfig.loadAs)
         {
-            zx_128k_mode = 1;            
+            zx_128k_mode = 1;
+            myConfig.loadAs = 1;
             
             // Now set the memory map to point to the right banks...
             MemoryMap[2] = RAM_Memory128 + (5 * 0x4000) + 0x0000; // Bank 5
@@ -765,23 +786,36 @@ ITCM_CODE u32 speccy_run(void)
     // -----------------------------------------------
     if (tape_state)
     {
+        // If we are playing back the tape - just run the emulation as fast as possible
         zx_ScreenRendering = 0;
-        ExecZ80_Speccy(zx_128k_mode ? 228:224);
+        ExecZ80_Speccy(CPU.TStates + (zx_128k_mode ? 228:224));
     }
     else
     {
-        processDirectBeeperAY3();
+        // Grab 3 samples worth of AY sound to mix with the beeper
+        processDirectAY3();
 
-        CPU.CycleDeficit = ExecZ80_Speccy(zx_128k_mode ? 66:64);
+        ExecZ80_Speccy(CPU.TStates + (zx_128k_mode ? 66:64));
         processDirectBeeper();
 
-        CPU.CycleDeficit = ExecZ80_Speccy((zx_128k_mode ? 66:64)+CPU.CycleDeficit);
+        ExecZ80_Speccy(CPU.TStates + (zx_128k_mode ? 66:64));
         processDirectBeeper();
 
         zx_ScreenRendering = 0; // On this final chunk we are drawing border and doing a horizontal sync... no contention
 
-        ExecZ80_Speccy(96+CPU.CycleDeficit);
+        ExecZ80_Speccy((zx_128k_mode ? 228:224) * zx_current_line); // This puts us exactly where we should be for the scanline
         processDirectBeeper();
+        
+        // -----------------------------------------------------------------------
+        // If we are not playing the tape, we want to reset the TStates counter
+        // on every new frame to help us with the somewhat complex handling of
+        // the memory contention which is heavily dependent on CPU Cycle counts.
+        // -----------------------------------------------------------------------
+        if (zx_current_line == (zx_128k_mode ? 311:312))
+        {
+            CPU.TStates = 0;
+            last_edge = 0;
+        }
     }
 
     // -----------------------------------------------------------

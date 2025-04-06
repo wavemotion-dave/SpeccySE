@@ -223,7 +223,7 @@ u8 showMessage(char *szCh1, char *szCh2) {
   }
   while ((keysCurrent() & (KEY_TOUCH | KEY_LEFT | KEY_RIGHT | KEY_A ))!=0);
   
-  BottomScreenKeypad();
+  BottomScreenKeyboard();
   
   return uRet;
 }
@@ -559,7 +559,14 @@ u8 speccyDSLoadFile(u8 bTapeOnly)
     {
       if (gpFic[ucGameAct].uType != DIRECTORY)
       {
-        if (keysCurrent() & KEY_Y) zx_force_128k_mode = 1; else zx_force_128k_mode = 0;
+        if (keysCurrent() & KEY_Y)
+        {
+            zx_force_128k_mode = 1; 
+        }
+        else
+        {
+            zx_force_128k_mode = 0;
+        }
         bDone=true;
         ucGameChoice = ucGameAct;
         WAITVBL;
@@ -629,7 +636,7 @@ void SaveConfig(bool bShow)
     FILE *fp;
     int slot = 0;
     
-    if (bShow) DSPrint(6,0,0, (char*)"SAVING CONFIGURATION");
+    if (bShow) DSPrint(6,23,0, (char*)"SAVING CONFIGURATION");
 
     // Set the global configuration version number...
     myGlobalConfig.config_ver = CONFIG_VER;
@@ -676,12 +683,12 @@ void SaveConfig(bool bShow)
         fwrite(&myGlobalConfig, sizeof(myGlobalConfig), 1, fp); // Write the global config
         fwrite(&AllConfigs, sizeof(AllConfigs), 1, fp);         // Write the array of all configurations
         fclose(fp);
-    } else DSPrint(4,0,0, (char*)"ERROR SAVING CONFIG FILE");
+    } else DSPrint(4,23,0, (char*)"ERROR SAVING CONFIG FILE");
 
     if (bShow) 
     {
         WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;
-        DSPrint(4,0,0, (char*)"                        ");
+        DSPrint(4,23,0, (char*)"                        ");
     }
 }
 
@@ -752,13 +759,15 @@ void MapZXSpace(void)
 }
 
 
+// 6 (left), 7 (right), 8 (down), 9 (up) and 0 (fire) for Sinclair 1
+// 1 (left), 2 (right), 3 (down), 4 (up) and 5 (fire) for Sinclair 2
 void Sinclair1(void)
 {
-    myConfig.keymap[0]   = 31;   // 1
-    myConfig.keymap[1]   = 32;   // 2
-    myConfig.keymap[2]   = 33;   // 3
-    myConfig.keymap[3]   = 34;   // 4
-    myConfig.keymap[4]   = 35;   // 5
+    myConfig.keymap[0]   = 39;   // UP
+    myConfig.keymap[1]   = 38;   // DOWN
+    myConfig.keymap[2]   = 36;   // LEFT
+    myConfig.keymap[3]   = 37;   // RIGHT
+    myConfig.keymap[4]   = 40;   // FIRE
     myConfig.keymap[5]   = 43;   // Space
     myConfig.keymap[6]   = 43;   // Space
     myConfig.keymap[7]   = 43;   // Space
@@ -789,7 +798,7 @@ void SetDefaultGameConfig(void)
     myConfig.autoFire    = 0;                           // Default to no auto-fire on either button
     myConfig.dpad        = DPAD_NORMAL;                 // Normal DPAD use - mapped to joystick
     myConfig.autoLoad    = 1;                           // Default is to to auto-load TAP and TZX games
-    myConfig.reserved1   = 0;    
+    myConfig.loadAs      = 0;                           // Default load is 48K
     myConfig.reserved2   = 0;    
     myConfig.reserved3   = 0;    
     myConfig.reserved4   = 0;
@@ -873,11 +882,12 @@ const struct options_t Option_Table[2][20] =
 {
     // Game Specific Configuration
     {
-        {"AUTO LOAD",      {"NO", "YES"},                                              &myConfig.autoLoad,          2},
+        {"AUTO PLAY",      {"NO", "YES"},                                              &myConfig.autoLoad,          2},
         {"AUTO STOP",      {"NO", "YES"},                                              &myConfig.autoStop,          2},
         {"AUTO FIRE",      {"OFF", "ON"},                                              &myConfig.autoFire,          2},
-        {"JOYSTICK",       {"NORMAL", "DIAGONALS"},                                    &myConfig.dpad,              2},
-        {"TAPE SPEED",     {"NORMAL", "ACCELERATED"},                                  &myConfig.tapeSpeed,         2},                                                                         
+        {"NDS D-PAD",      {"NORMAL", "DIAGONALS", "CHUCKIE"},                         &myConfig.dpad,              3},
+        {"TAPE SPEED",     {"NORMAL", "ACCELERATED"},                                  &myConfig.tapeSpeed,         2},
+        {"LOAD AS",        {"48K SPECTRUM", "128K SPECTRUM"},                          &myConfig.loadAs,            2},
         {NULL,             {"",      ""},                                              NULL,                        1},
     },
     // Global Options
@@ -1215,6 +1225,28 @@ void DisplayFileName(void)
     }
 }
 
+void DisplayFileNameCassette(void)
+{
+    sprintf(szName,"%s",gpFic[ucGameChoice].szName);
+    for (u8 i=strlen(szName)-1; i>0; i--) if (szName[i] == '.') {szName[i]=0;break;}
+    if (strlen(szName)>28) szName[28]='\0';
+    DSPrint((16 - (strlen(szName)/2)),16,0,szName);
+    if (strlen(gpFic[ucGameChoice].szName) >= 33)   // If there is more than a few characters left, show it on the 2nd line
+    {
+        if (strlen(gpFic[ucGameChoice].szName) <= 58)
+        {
+            sprintf(szName,"%s",gpFic[ucGameChoice].szName+28);
+        }
+        else
+        {
+            sprintf(szName,"%s",gpFic[ucGameChoice].szName+strlen(gpFic[ucGameChoice].szName)-30);
+        }
+        
+        if (strlen(szName)>28) szName[28]='\0';
+        DSPrint((16 - (strlen(szName)/2)),17,0,szName);
+    }
+}
+
 //*****************************************************************************
 // Display info screen and change options "main menu"
 //*****************************************************************************
@@ -1388,7 +1420,7 @@ void speccyDSChangeOptions(void)
             if (ucGameChoice != -1) 
             { 
                 ReadFileCRCAndConfig(); // Get CRC32 of the file and read the config/keys
-                DisplayFileName();      // And put up the filename on the bottom screen
+                DisplayFileName();    // And put up the filename on the bottom screen
             }
             ucY = 7;
             dispInfoOptions(ucY);
@@ -1611,7 +1643,7 @@ void spectrumRun(void)
 {
   ResetZ80(&CPU);                       // Reset the CZ80 core CPU
   speccy_reset();                       // Ensure the Spectrum Emulation is ready
-  BottomScreenKeypad();                 // Show the game-related screen with keypad / keyboard
+  BottomScreenKeyboard();                 // Show the game-related screen with keypad / keyboard
 }
 
 u8 ZX_Spectrum_palette[16*3]   = {

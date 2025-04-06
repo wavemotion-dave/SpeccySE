@@ -25,6 +25,7 @@
 #include "SpeccyUtils.h"
 #include "speccy_kbd.h"
 #include "debug_ovl.h"
+#include "cassette.h"
 #include "topscreen.h"
 #include "mainmenu.h"
 #include "soundbank.h"
@@ -46,7 +47,7 @@ u8 RAM_Memory128[0x20000] ALIGN(32) = {0};  // The Z80 Memory is 64K but we expa
 u8 SpectrumBios[0x4000]             = {0};  // We keep the 16k ZX Spectrum 48K BIOS around
 u8 SpectrumBios128[0x8000]          = {0};  // We keep the 32k ZX Spectrum 128K BIOS around
 
-u8 ROM_Memory[MAX_CART_SIZE];            // ROM Carts up to 1MB
+u8 ROM_Memory[MAX_CART_SIZE];               // This is where we keep the raw untouched file as read from the SD card (.TAP, .TZX, .Z80, etc)
 
 static char cmd_line_file[256];
 char initial_file[MAX_ROM_NAME] = "";
@@ -73,7 +74,7 @@ u8 soundEmuPause     __attribute__((section(".dtcm"))) = 1;       // Set to 1 to
 // -----------------------------------------------------------------------------------------------
 // This set of critical vars is what determines the machine type - 
 // -----------------------------------------------------------------------------------------------
-u8 speccy_mode       __attribute__((section(".dtcm"))) = 0;       // Set to 1 when a .Z80 ROM is loaded (ZX Spectrum 48K)
+u8 speccy_mode       __attribute__((section(".dtcm"))) = 0;       // See defines for the various modes... 
 u8 kbd_key           __attribute__((section(".dtcm"))) = 0;       // 0 if no key pressed, othewise the ASCII key (e.g. 'A', 'B', '3', etc)
 u16 nds_key          __attribute__((section(".dtcm"))) = 0;       // 0 if no key pressed, othewise the NDS keys from keysCurrent() or similar
 u8 last_mapped_key   __attribute__((section(".dtcm"))) = 0;       // The last mapped key which has been pressed - used for key click feedback
@@ -220,7 +221,7 @@ ITCM_CODE mm_word OurSoundMixer(mm_word len, mm_addr dest, mm_stream_formats for
 // --------------------------------------------------------------------------------------------
 s16 mixbufAY[4]  __attribute__((section(".dtcm")));
 u8  mixbufAY_idx __attribute__((section(".dtcm"))) = 0;
-ITCM_CODE void processDirectBeeperAY3(void)
+ITCM_CODE void processDirectAY3(void)
 {
     if (zx_AY_enabled) 
     {
@@ -230,12 +231,23 @@ ITCM_CODE void processDirectBeeperAY3(void)
     mixbufAY_idx = 0;
 }
 
-
+const u16 beeper_vol[8] ={ 0x000, 0x200, 0x400, 0x600, 0x700, 0x800, 0x900, 0xA00 };
+u8 vol = 0;
 ITCM_CODE void processDirectBeeper(void)
 {
     if (breather) {return;}
-    s16 sample = mixbufAY[mixbufAY_idx++];
-    if (portFE & 0x10) sample += 0xA00;
+
+    // Smooth edges of beeper...
+    if (portFE & 0x10) 
+    {
+        if (vol < 7) vol++;
+    }
+    else 
+    {
+        if (vol) vol--;
+    }
+    
+    s16 sample = mixbufAY[mixbufAY_idx++] + beeper_vol[vol];
     mixer[mixer_write] = sample;
     mixer_write++; mixer_write &= WAVE_DIRECT_BUF_SIZE;
     if (((mixer_write+1)&WAVE_DIRECT_BUF_SIZE) == mixer_read) {breather = 2048;}
@@ -403,7 +415,7 @@ void ShowDebugZ80(void)
         DSPrint(0,idx++,7, tmp);
         sprintf(tmp, "IX %04X  IY %04X", CPU.IX.W, CPU.IY.W);
         DSPrint(0,idx++,7, tmp);
-        sprintf(tmp, "Ts %-9d", CPU.TStates);
+        sprintf(tmp, "Ts %-12u", CPU.TStates);
         DSPrint(0,idx++,7, tmp);
         sprintf(tmp, "I  %02X  R %02X", CPU.I, (CPU.R & 0x7F) | CPU.R_HighBit);
         DSPrint(0,idx++,7, tmp);
@@ -526,7 +538,7 @@ typedef struct
 CassetteDiskMenu_t generic_cassette_menu =
 {
     "CASSETTE MENU",
-    5,
+    3,
     {
         {" PLAY CASSETTE    ",      MENU_ACTION_PLAY},
         {" STOP CASSETTE    ",      MENU_ACTION_STOP},        
@@ -554,7 +566,7 @@ void CassetteMenuShow(bool bClearScreen, u8 sel)
       // ---------------------------------------------------
       // Put up a generic background for this mini-menu...
       // ---------------------------------------------------
-      BottomScreenOptions();
+      BottomScreenCassette();
     }
     
     // ---------------------------------------------------
@@ -575,7 +587,7 @@ void CassetteMenuShow(bool bClearScreen, u8 sel)
     // ----------------------------------------------------------------------------------------------
     // And near the bottom, display the file/rom/disk/cassette that is currently loaded into memory.
     // ----------------------------------------------------------------------------------------------
-    DisplayFileName();
+    DisplayFileNameCassette();
 }
 
 // ------------------------------------------------------------------------
@@ -640,12 +652,8 @@ void CassetteMenu(void)
                     if (ucGameChoice >= 0)
                     {
                         CassetteInsert(gpFic[ucGameChoice].szName);
-                        bExitMenu = true;
                     }
-                    else
-                    {
-                        CassetteMenuShow(true, menuSelection);
-                    }
+                    CassetteMenuShow(true, menuSelection);
                     break;
 
                 case MENU_ACTION_REWIND:
@@ -681,7 +689,7 @@ void CassetteMenu(void)
   while ((keysCurrent() & (KEY_UP | KEY_DOWN | KEY_A ))!=0);
   WAITVBL;WAITVBL;
 
-  BottomScreenKeypad();  // Could be generic or overlay...
+  BottomScreenKeyboard();  // Could be generic or overlay...
 
   SoundUnPause();
 }
@@ -765,7 +773,7 @@ u8 MiniMenu(void)
   while ((keysCurrent() & (KEY_UP | KEY_DOWN | KEY_A ))!=0);
   WAITVBL;WAITVBL;
 
-  BottomScreenKeypad();  // Could be generic or overlay...
+  BottomScreenKeyboard();  // Could be generic or overlay...
 
   SoundUnPause();
 
@@ -875,7 +883,7 @@ u8 __attribute__((noinline)) handle_meta_key(u8 meta_key)
             {
                 ResetSpectrum();                            
             }
-            BottomScreenKeypad();
+            BottomScreenKeyboard();
             SoundUnPause();
             break;
 
@@ -887,7 +895,7 @@ u8 __attribute__((noinline)) handle_meta_key(u8 meta_key)
                   memset((u8*)0x06000000, 0x00, 0x20000);    // Reset VRAM to 0x00 to clear any potential display garbage on way out
                   return 1;
               }
-              BottomScreenKeypad();
+              BottomScreenKeyboard();
               DisplayStatusLine(true);
               SoundUnPause();
             break;
@@ -905,7 +913,7 @@ u8 __attribute__((noinline)) handle_meta_key(u8 meta_key)
             {
               spectrumSaveState();
             }
-            BottomScreenKeypad();
+            BottomScreenKeyboard();
             SoundUnPause();
             break;
 
@@ -915,7 +923,7 @@ u8 __attribute__((noinline)) handle_meta_key(u8 meta_key)
             {
               spectrumLoadState();
             }
-            BottomScreenKeypad();
+            BottomScreenKeyboard();
             SoundUnPause();
             break;
 
@@ -934,43 +942,91 @@ u8 speccyTapePosition(void)
 
     while ((keysCurrent() & (KEY_UP | KEY_DOWN | KEY_A ))!=0);
 
-    BottomScreenOptions();
+    BottomScreenCassette();
+    DisplayFileNameCassette();
+
+    DSPrint(1,1,0,"         TAPE POSITIONS         ");
     
     u8 max = tape_find_positions();
-    DSPrint(1,3,0,"         TAPE POSITIONS         ");
-    
-    for (u8 i=0; i < (max < 18 ? max:18); i++)
+    u8 screen_max = (max < 10 ? max:10);
+    u8 offset = 0;
+    for (u8 i=0; i < screen_max; i++)
     {
-        sprintf(tmp, "%03d %-26s", TapePositionTable[i].block_id, TapePositionTable[i].description);
-        DSPrint(1,4+i,(i==sel) ? 2:0,tmp);
+        sprintf(tmp, "%03d %-26s", TapePositionTable[offset+i].block_id, TapePositionTable[offset+i].description);
+        DSPrint(1,3+i,(i==sel) ? 2:0,tmp);
     }
     
     while (1)
     {
         u16 keys = keysCurrent();
         if (keys & KEY_A) break;
+        if (keys & KEY_B) {sel = 0xFF; break;}
         if (keys & KEY_DOWN)
         {
-            if (sel < (max-1))
+            if (sel < (screen_max-1))
             {
-                sprintf(tmp, "%03d %-26s", TapePositionTable[sel].block_id, TapePositionTable[sel].description);
-                DSPrint(1,4+sel,0,tmp);
+                sprintf(tmp, "%03d %-26s", TapePositionTable[offset+sel].block_id, TapePositionTable[offset+sel].description);
+                DSPrint(1,3+sel,0,tmp);
                 sel++;
-                sprintf(tmp, "%03d %-26s", TapePositionTable[sel].block_id, TapePositionTable[sel].description);
-                DSPrint(1,4+sel,2,tmp);
+                sprintf(tmp, "%03d %-26s", TapePositionTable[offset+sel].block_id, TapePositionTable[offset+sel].description);
+                DSPrint(1,3+sel,2,tmp);
                 WAITVBL;WAITVBL;
+            }
+            else
+            {
+                if ((offset + screen_max) < max) 
+                {
+                    offset += 10;
+                    screen_max = ((max-offset) < 10 ? (max-offset):10);
+                    sel = 0;
+                    for (u8 i=0; i < 10; i++)
+                    {
+                        if (i < screen_max)
+                        {
+                            sprintf(tmp, "%03d %-26s", TapePositionTable[offset+i].block_id, TapePositionTable[offset+i].description);
+                            DSPrint(1,3+i,(i==sel) ? 2:0,tmp);
+                        }
+                        else
+                        {
+                            DSPrint(1,3+i,0,"                                ");
+                        }
+                    }
+                    WAITVBL;WAITVBL;WAITVBL;WAITVBL;
+                }
             }
         }
         if (keys & KEY_UP)
         {
             if (sel > 0)
             {
-                sprintf(tmp, "%03d %-26s", TapePositionTable[sel].block_id, TapePositionTable[sel].description);
-                DSPrint(1,4+sel,0,tmp);
+                sprintf(tmp, "%03d %-26s", TapePositionTable[offset+sel].block_id, TapePositionTable[offset+sel].description);
+                DSPrint(1,3+sel,0,tmp);
                 sel--;
-                sprintf(tmp, "%03d %-26s", TapePositionTable[sel].block_id, TapePositionTable[sel].description);
-                DSPrint(1,4+sel,2,tmp);
+                sprintf(tmp, "%03d %-26s", TapePositionTable[offset+sel].block_id, TapePositionTable[offset+sel].description);
+                DSPrint(1,3+sel,2,tmp);
                 WAITVBL;WAITVBL;
+            }
+            else
+            {
+                if (offset > 0)
+                {
+                    offset -= 10;
+                    screen_max = ((max-offset) < 10 ? (max-offset):10);
+                    sel = 0;
+                    for (u8 i=0; i < 10; i++)
+                    {
+                        if (i < screen_max)
+                        {
+                            sprintf(tmp, "%03d %-26s", TapePositionTable[offset+i].block_id, TapePositionTable[offset+i].description);
+                            DSPrint(1,3+i,(i==sel) ? 2:0,tmp);
+                        }
+                        else
+                        {
+                            DSPrint(1,3+i,0,"                                ");
+                        }
+                    }
+                    WAITVBL;WAITVBL;WAITVBL;WAITVBL;
+                }
             }
         }
     }
@@ -978,8 +1034,13 @@ u8 speccyTapePosition(void)
     while ((keysCurrent() & (KEY_UP | KEY_DOWN | KEY_A ))!=0);
     WAITVBL;WAITVBL;
     
-    return sel;
+    return sel+offset;
 }
+
+u8 chuckie_key_up = 0;
+u8 chuckie_key_down = 0;
+u8 chuckie_key_left = 0;
+u8 chuckie_key_right = 0;
 
 // ------------------------------------------------------------------------
 // The main emulation loop is here... call into the Z80, VDP and PSG
@@ -995,9 +1056,6 @@ void SpeccyDS_main(void)
   // Setup the debug buffer for DSi use
   debug_init();
   
-  // Returns when  user has asked for a game to run...
-  BottomScreenOptions();
-
   // Get the ZX Spectrum Emulator ready
   spectrumInit(gpFic[ucGameAct].szName);
 
@@ -1203,61 +1261,114 @@ void SpeccyDS_main(void)
           }
       }
 
-
       // ------------------------------------------------------------------------
       //  Test DS keypresses (ABXY, L/R) and map to corresponding Spectrum keys
       // ------------------------------------------------------------------------
       ucDEUX  = 0;
       nds_key  = keysCurrent();     // Get any current keys pressed on the NDS
-         
+        
+      // -----------------------------------------
+      // Check various key combinations first... 
+      // -----------------------------------------
+      if ((nds_key & KEY_L) && (nds_key & KEY_R) && (nds_key & KEY_X))
       {
-          if ((nds_key & KEY_L) && (nds_key & KEY_R) && (nds_key & KEY_X))
+            lcdSwap();
+            WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;
+      }
+      else if ((nds_key & KEY_L) && (nds_key & KEY_R) && (nds_key & KEY_Y))
+      {
+            DSPrint(5,0,0,"SNAPSHOT");
+            screenshot();
+            debug_save();
+            WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;
+            DSPrint(5,0,0,"        ");
+      }
+      else if  (nds_key & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT | KEY_A | KEY_B | KEY_START | KEY_SELECT | KEY_R | KEY_L | KEY_X | KEY_Y))
+      {
+          if (myConfig.dpad == DPAD_DIAGONALS) // Diagonals... map standard Left/Right/Up/Down to combinations
           {
-                lcdSwap();
-                WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;
+              // TODO: add diagonal dpad support... not sure how often this is needed
           }
-          else if ((nds_key & KEY_L) && (nds_key & KEY_R))
-          {
-                DSPrint(5,0,0,"SNAPSHOT");
-                screenshot();
-                debug_save();
-                WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;
-                DSPrint(5,0,0,"        ");
-          }
-          else if  (nds_key & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT | KEY_A | KEY_B | KEY_START | KEY_SELECT | KEY_R | KEY_L | KEY_X | KEY_Y))
-          {
-              // --------------------------------------------------------------------------------------------------
-              // There are 12 NDS buttons (D-Pad, XYAB, L/R and Start+Select) - we allow mapping of any of these.
-              // --------------------------------------------------------------------------------------------------
-              for (u8 i=0; i<12; i++)
-              {
-                  if (nds_key & NDS_keyMap[i])
-                  {
-                      if (keyCoresp[myConfig.keymap[i]] < 0xF000)   // Normal key map
-                      {
-                          ucDEUX  |= keyCoresp[myConfig.keymap[i]];
-                      }
-                      else // This is a keyboard maping... handle that here... just set the appopriate kbd_key
-                      {
-                          if      ((keyCoresp[myConfig.keymap[i]] >= META_KBD_A) && (keyCoresp[myConfig.keymap[i]] <= META_KBD_Z))  kbd_key = ('A' + (keyCoresp[myConfig.keymap[i]] - META_KBD_A));
-                          else if ((keyCoresp[myConfig.keymap[i]] >= META_KBD_0) && (keyCoresp[myConfig.keymap[i]] <= META_KBD_9))  kbd_key = ('0' + (keyCoresp[myConfig.keymap[i]] - META_KBD_0));
-                          else if (keyCoresp[myConfig.keymap[i]] == META_KBD_SPACE)     kbd_key     = ' ';
-                          else if (keyCoresp[myConfig.keymap[i]] == META_KBD_RETURN)    kbd_key     = KBD_KEY_RET;
-                          else if (keyCoresp[myConfig.keymap[i]] == META_KBD_SHIFT)     {kbd_key     = KBD_KEY_SHIFT;DisplayStatusLine(false);}
-                          else if (keyCoresp[myConfig.keymap[i]] == META_KBD_SYMBOL)    {kbd_key     = KBD_KEY_SYMBOL;DisplayStatusLine(false);}
 
-                          if (kbd_key != 0)
-                          {
-                              kbd_keys[kbd_keys_pressed++] = kbd_key;
-                          }
+          if (myConfig.dpad == DPAD_CHUCKIE) // CHUCKIE-EGG Style... hold left/right or up/down for a few frames
+          {
+                if (nds_key & KEY_UP)
+                {
+                    chuckie_key_up    = 12;
+                    chuckie_key_down  = 0;
+                }                
+                if (nds_key & KEY_DOWN)
+                {
+                    chuckie_key_down  = 12;
+                    chuckie_key_up    = 0;
+                }                
+                if (nds_key & KEY_LEFT)
+                {
+                    chuckie_key_left  = 12;
+                    chuckie_key_right = 0;
+                }                
+                if (nds_key & KEY_RIGHT)
+                {
+                    chuckie_key_right = 12;
+                    chuckie_key_left  = 0;
+                }
+                
+                if (chuckie_key_up)
+                {
+                    chuckie_key_up--;
+                    nds_key |= KEY_UP;
+                }
+                
+                if (chuckie_key_down)
+                {
+                    chuckie_key_down--;
+                    nds_key |= KEY_DOWN;
+                }
+
+                if (chuckie_key_left)
+                {
+                    chuckie_key_left--;
+                    nds_key |= KEY_LEFT;
+                }
+
+                if (chuckie_key_right)
+                {
+                    chuckie_key_right--;
+                    nds_key |= KEY_RIGHT;
+                }
+          }
+          
+          // --------------------------------------------------------------------------------------------------
+          // There are 12 NDS buttons (D-Pad, XYAB, L/R and Start+Select) - we allow mapping of any of these.
+          // --------------------------------------------------------------------------------------------------
+          for (u8 i=0; i<12; i++)
+          {
+              if (nds_key & NDS_keyMap[i])
+              {
+                  if (keyCoresp[myConfig.keymap[i]] < 0xF000)   // Normal key map
+                  {
+                      ucDEUX  |= keyCoresp[myConfig.keymap[i]];
+                  }
+                  else // This is a keyboard maping... handle that here... just set the appopriate kbd_key
+                  {
+                      if      ((keyCoresp[myConfig.keymap[i]] >= META_KBD_A) && (keyCoresp[myConfig.keymap[i]] <= META_KBD_Z))  kbd_key = ('A' + (keyCoresp[myConfig.keymap[i]] - META_KBD_A));
+                      else if ((keyCoresp[myConfig.keymap[i]] >= META_KBD_0) && (keyCoresp[myConfig.keymap[i]] <= META_KBD_9))  kbd_key = ('0' + (keyCoresp[myConfig.keymap[i]] - META_KBD_0));
+                      else if (keyCoresp[myConfig.keymap[i]] == META_KBD_SPACE)     kbd_key  = ' ';
+                      else if (keyCoresp[myConfig.keymap[i]] == META_KBD_RETURN)    kbd_key  = KBD_KEY_RET;
+                      else if (keyCoresp[myConfig.keymap[i]] == META_KBD_SHIFT)    {kbd_key  = KBD_KEY_SHIFT;  DisplayStatusLine(false);}
+                      else if (keyCoresp[myConfig.keymap[i]] == META_KBD_SYMBOL)   {kbd_key  = KBD_KEY_SYMBOL; DisplayStatusLine(false);}
+
+                      if (kbd_key != 0)
+                      {
+                          kbd_keys[kbd_keys_pressed++] = kbd_key;
                       }
                   }
               }
           }
-          else
-          {
-              last_mapped_key = 0;
-          }
+      }
+      else
+      {
+          last_mapped_key = 0;
       }
       
       // ------------------------------------------------------------------------------------------
@@ -1288,12 +1399,12 @@ void SpeccyDS_main(void)
 // ----------------------------------------------------------------------------------------
 void useVRAM(void)
 {
-  vramSetBankD(VRAM_D_LCD );        // Not using this for video but 128K of faster RAM always useful!  Mapped at 0x06860000 -   Used for tape patch look-up
+  vramSetBankD(VRAM_D_LCD );        // Not using this for video but 128K of faster RAM always useful!  Mapped at 0x06860000 -   256K Used for tape patch look-up
   vramSetBankE(VRAM_E_LCD );        // Not using this for video but 64K of faster RAM always useful!   Mapped at 0x06880000 -   ..
   vramSetBankF(VRAM_F_LCD );        // Not using this for video but 16K of faster RAM always useful!   Mapped at 0x06890000 -   ..
   vramSetBankG(VRAM_G_LCD );        // Not using this for video but 16K of faster RAM always useful!   Mapped at 0x06894000 -   ..
   vramSetBankH(VRAM_H_LCD );        // Not using this for video but 32K of faster RAM always useful!   Mapped at 0x06898000 -   ..
-  vramSetBankI(VRAM_I_LCD );        // Not using this for video but 16K of faster RAM always useful!   Mapped at 0x068A0000 -   ..
+  vramSetBankI(VRAM_I_LCD );        // Not using this for video but 16K of faster RAM always useful!   Mapped at 0x068A0000 -   Unused - reserved for future use
 }
 
 /*********************************************************************************
@@ -1348,10 +1459,29 @@ void BottomScreenOptions(void)
     dmaFillWords(dmaVal | (dmaVal<<16),(void*) bgGetMapPtr(bg1b),32*24*2);
 }
 
+void BottomScreenCassette(void)
+{
+    swiWaitForVBlank();
+    
+    // ---------------------------------------------------
+    // Put up the cassette screen background...
+    // ---------------------------------------------------
+    bg0b = bgInitSub(0, BgType_Text8bpp, BgSize_T_256x256, 31,0);
+    bg1b = bgInitSub(1, BgType_Text8bpp, BgSize_T_256x256, 29,0);
+    bgSetPriority(bg0b,1);bgSetPriority(bg1b,0);
+    
+    decompress(cassetteTiles, bgGetGfxPtr(bg0b), LZ77Vram);
+    decompress(cassetteMap, (void*) bgGetMapPtr(bg0b), LZ77Vram);
+    dmaCopy((void*) cassettePal,(void*) BG_PALETTE_SUB,256*2);
+    
+    unsigned short dmaVal = *(bgGetMapPtr(bg1b)+24*32);
+    dmaFillWords(dmaVal | (dmaVal<<16),(void*) bgGetMapPtr(bg1b),32*24*2);
+}
+
 // ---------------------------------------------------------------------------
 // Setup the bottom screen - mostly for menu, high scores, options, etc.
 // ---------------------------------------------------------------------------
-void BottomScreenKeypad(void)
+void BottomScreenKeyboard(void)
 {
     swiWaitForVBlank();
     
@@ -1392,7 +1522,7 @@ void speccyDSInitCPU(void)
   // -----------------------------------------------
   // Init bottom screen do display the ZX Keyboard
   // -----------------------------------------------
-  BottomScreenKeypad();
+  BottomScreenKeyboard();
 }
 
 // -------------------------------------------------------------
@@ -1481,7 +1611,7 @@ int main(int argc, char **argv)
   //  Show the fade-away intro logo...
   intro_logo();
 
-  SetYtrigger(190); //trigger 2 lines before vsync
+  SetYtrigger(190); //trigger 2 lines before vblank
 
   irqSet(IRQ_VBLANK,  irqVBlank);
   irqEnable(IRQ_VBLANK);
@@ -1545,8 +1675,8 @@ int main(int argc, char **argv)
     if (!bSpeccyBiosFound)
     {
         DSPrint(2,10,0,"ERROR: ZX SPECTRUM 48.rom");
-        DSPrint(2,12,0,"       WAS NOT FOUND");
-        DSPrint(2,14,0,"Put 48.rom in same dir");
+        DSPrint(2,12,0,"      WAS NOT FOUND      ");
+        DSPrint(2,14,0," Put 48.rom in same dir  ");
         DSPrint(2,15,0,"as EMULATOR or /ROMS/BIOS");
         while(1) ;  // We're done... Need a Spectrum bios to run this emulator
     }
