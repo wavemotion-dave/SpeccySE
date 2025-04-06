@@ -47,8 +47,52 @@ except that the touch screen is not multi-touch (like your phone). So you
 can only press on one area of the screen at a time. To make the SYMBOL and
 SHIFT keys work, when you press those buttons, you will see a little white
 or yellow indicator at the top of the screen indicating that this button 
-a symbol/shift button and it will wait for the _next_ button to be pressed
+is a symbol/shift button and it will wait for the _next_ button to be pressed
 and use it in combination with the symbol/shift. So if you want to type the 
 quote mark ("), you would press and release Symbol, then press the letter P.
 
 ![image](./png/speccy_kbd.png)
+
+Joystick Support :
+-----------------------
+The emulator has support for the Kempston and Sinclair 1 joysticks but
+really any keyboard key can be mapped to any one of the 12 NDS buttons
+so you should be able to configure things exactly as desired. When using
+the 'REDEFINE KEYS' menu, you can press the NDS 'X' button to toggle between
+a number of commonly used preset keys for various ZX games (QAOP, ZXM, etc).
+By default, the configuration for any game is set to use the Kempston joystick.
+
+Also be aware that there is a D-PAD option that can be set to 'CHUCKIE' for
+games that are often unforgiving using a joystick. If you've ever played 
+Chuckie Egg on a keybaord you know that it's pinpoint percise... but with 
+a joystick, it can be a bit frustrating trying to find the exact spot to 
+transition from Left/Right to Up/Down to climb a ladder. The 'CHUCKIE' mode
+will hold the L/R or U/D for a fraction of a frame while the transition 
+is made. This allows for buttery smooth (relatively speaking) transitions
+on the ladders. It's likely other games will benefit from this mode - but
+Chuckie Egg is the reason I put it into the emulator and so that's the
+name it gets.
+
+
+Tape Support :
+-----------------------
+The emulator supports .Z80 snapshots but of more use is the .TAP and
+.TZX tape support. The .TAP format is fully supported and the .TZX is 
+reasonably supported minus some of the more complicated blocks - most
+software never uses those specialized blocks. As with any old tape-based
+software, sometimes the .TAP or .TZX files are a bit dodgy - so if one
+version of a tape doesn't work, go find another and it will probably
+load up and play properly.
+
+Speaking of loading - I decided not to optimize away the loading screens
+but they are greatly accelerated. Most games load at 10-15x the original
+speeds... meaning a 48K game should load in under 15 seconds and a full
+128K game might take a half-minute or so... Enjoy the loading screens - they
+were part of the charm of the original system.
+
+You can press the Cassette Icon to swap in another tape or set the tape
+position manually. Most games just figure it out - and the auto-play
+and auto-stop of tapes should be working _reasonably_ well. You can 
+override this as needed.
+
+More to come...

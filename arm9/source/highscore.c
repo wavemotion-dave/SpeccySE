@@ -662,7 +662,7 @@ void highscore_display(u32 crc)
         if (keysCurrent() & KEY_Y) highscore_options(foundIdx, crc);
     }
     
-    BottomScreenKeypad();
+    BottomScreenKeyboard();
 }
 
 // End of file

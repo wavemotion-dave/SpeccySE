@@ -23,7 +23,7 @@
 #include "SpeccyUtils.h"
 #include "printf.h"
 
-#define SPECCYDS_SAVE_VER   0x0001        // Change this if the basic format of the .SAV file changes. Invalidates older .sav files.
+#define SPECCYDS_SAVE_VER   0x0002        // Change this if the basic format of the .SAV file changes. Invalidates older .sav files.
 
 
 // -----------------------------------------------------------------------------------------------------
@@ -54,13 +54,13 @@ u8  spare[512] = {0x00};            // We keep some spare bytes so we can use th
 static char szLoadFile[256];        // We build the filename out of the base filename and tack on .sav, .ee, etc.
 static char tmpStr[32];
 
-void spectrumSaveState() 
+void spectrumSaveState()
 {
   size_t retVal;
 
   // Return to the original path
-  chdir(initial_path);    
-  
+  chdir(initial_path);
+
   // Init filename = romname and SAV in place of ROM
   DIR* dir = opendir("sav");
   if (dir) closedir(dir);    // Directory exists... close it out and move on.
@@ -74,20 +74,20 @@ void spectrumSaveState()
 
   strcpy(tmpStr,"SAVING...");
   DSPrint(4,0,0,tmpStr);
-  
-  FILE *handle = fopen(szLoadFile, "wb+");  
-  if (handle != NULL) 
+
+  FILE *handle = fopen(szLoadFile, "wb+");
+  if (handle != NULL)
   {
     // Write Version
     u16 save_ver = SPECCYDS_SAVE_VER;
     retVal = fwrite(&save_ver, sizeof(u16), 1, handle);
-      
+
     // Write CZ80 CPU
     retVal = fwrite(&CPU, sizeof(CPU), 1, handle);
 
     // Write AY Chip info
     retVal = fwrite(&myAY, sizeof(myAY), 1, handle);
-      
+
     // And the Memory Map - we must only save offsets so that this is generic when we change code and memory shifts...
     for (u8 i=0; i<8; i++)
     {
@@ -118,9 +118,9 @@ void spectrumSaveState()
         }
     }
     if (retVal) retVal = fwrite(Offsets, sizeof(Offsets),1, handle);
-    
+
     // And now a bunch of ZX Spectrum related vars...
-    if (retVal) retVal = fwrite(&portFE,                    sizeof(portFE),                     1,handle);
+    if (retVal) retVal = fwrite(&portFE,                    sizeof(portFE),                     1, handle);
     if (retVal) retVal = fwrite(&portFD,                    sizeof(portFD),                     1, handle);
     if (retVal) retVal = fwrite(&zx_AY_enabled,             sizeof(zx_AY_enabled),              1, handle);
     if (retVal) retVal = fwrite(&flash_timer,               sizeof(flash_timer),                1, handle);
@@ -128,7 +128,7 @@ void spectrumSaveState()
     if (retVal) retVal = fwrite(&zx_128k_mode,              sizeof(zx_128k_mode),               1, handle);
     if (retVal) retVal = fwrite(&zx_ScreenRendering,        sizeof(zx_ScreenRendering),         1, handle);
     if (retVal) retVal = fwrite(&zx_current_line,           sizeof(zx_current_line),            1, handle);
-    
+
     if (retVal) retVal = fwrite(&num_blocks_available,      sizeof(num_blocks_available),       1, handle);
     if (retVal) retVal = fwrite(&current_block,             sizeof(current_block),              1, handle);
     if (retVal) retVal = fwrite(&tape_state,                sizeof(tape_state),                 1, handle);
@@ -140,11 +140,15 @@ void spectrumSaveState()
     if (retVal) retVal = fwrite(&handle_last_bits,          sizeof(handle_last_bits),           1, handle);
     if (retVal) retVal = fwrite(&custom_pulse_idx,          sizeof(custom_pulse_idx),           1, handle);
     if (retVal) retVal = fwrite(&bFirstTime,                sizeof(bFirstTime),                 1, handle);
-    if (retVal) retVal = fwrite(&bStartTapeIn,              sizeof(bStartTapeIn),               1, handle);
     if (retVal) retVal = fwrite(&loop_counter,              sizeof(loop_counter),               1, handle);
-    if (retVal) retVal = fwrite(&loop_block,                sizeof(loop_block),                 1, handle);        
-    
-    // Save Z80 Memory Map... either 48K for 128K 
+    if (retVal) retVal = fwrite(&loop_block,                sizeof(loop_block),                 1, handle);
+    if (retVal) retVal = fwrite(&last_edge,                 sizeof(last_edge),                  1, handle);
+    if (retVal) retVal = fwrite(&give_up_counter,           sizeof(give_up_counter),            1, handle);
+    if (retVal) retVal = fwrite(&next_edge1,                sizeof(next_edge1),                 1, handle);
+    if (retVal) retVal = fwrite(&next_edge2,                sizeof(next_edge2),                 1, handle);
+
+
+    // Save Z80 Memory Map... either 48K for 128K
     u8 *ptr = RAM_Memory+0x4000;
     u32 mem_size = 0xC000;
     if (zx_128k_mode)
@@ -152,7 +156,7 @@ void spectrumSaveState()
         ptr = RAM_Memory128;
         mem_size = 0x20000;
     }
-    
+
     // Simple Run-Length-Encoding saves us on lots of zeroed memory...
     for (u32 i=0; i<mem_size; i++)
     {
@@ -171,14 +175,14 @@ void spectrumSaveState()
         }
         else
         {
-            if (retVal) retVal = fwrite(&ptr[i], 1, 1, handle); 
+            if (retVal) retVal = fwrite(&ptr[i], 1, 1, handle);
         }
     }
-    
-    strcpy(tmpStr, (retVal ? "OK ":"ERR"));  
+
+    strcpy(tmpStr, (retVal ? "OK ":"ERR"));
     DSPrint(13,0,0,tmpStr);
     WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;
-    DSPrint(4,0,0,"             "); 
+    DSPrint(4,0,0,"             ");
     DisplayStatusLine(true);
   }
   else {
@@ -191,31 +195,31 @@ void spectrumSaveState()
 /*********************************************************************************
  * Load the current state - read everything back from the .sav file.
  ********************************************************************************/
-void spectrumLoadState() 
+void spectrumLoadState()
 {
     size_t retVal;
 
     // Return to the original path
-    chdir(initial_path);    
+    chdir(initial_path);
 
     // Init filename = romname and .SAV in place of ROM
     sprintf(szLoadFile,"sav/%s", initial_file);
     int len = strlen(szLoadFile);
-    
+
     szLoadFile[len-3] = 's';
     szLoadFile[len-2] = 'a';
     szLoadFile[len-1] = 'v';
-    
-    FILE* handle = fopen(szLoadFile, "rb"); 
-    if (handle != NULL) 
-    {    
+
+    FILE* handle = fopen(szLoadFile, "rb");
+    if (handle != NULL)
+    {
          strcpy(tmpStr,"LOADING...");
          DSPrint(4,0,0,tmpStr);
-       
+
         // Read Version
         u16 save_ver = 0xBEEF;
         retVal = fread(&save_ver, sizeof(u16), 1, handle);
-        
+
         if (save_ver == SPECCYDS_SAVE_VER)
         {
             // Load CZ80 CPU
@@ -223,9 +227,9 @@ void spectrumLoadState()
 
             // Load AY Chip info
             if (retVal) retVal = fread(&myAY, sizeof(myAY), 1, handle);
-              
+
             // Load back the Memory Map - these were saved as offsets so we must reconstruct actual pointers
-            if (retVal) retVal = fread(Offsets, sizeof(Offsets),1, handle);     
+            if (retVal) retVal = fread(Offsets, sizeof(Offsets),1, handle);
             for (u8 i=0; i<8; i++)
             {
                 if (Offsets[i].type == TYPE_BIOS)
@@ -248,12 +252,12 @@ void spectrumLoadState()
                 {
                     MemoryMap[i] = (u8 *) (Offsets[i].offset);
                 }
-            }            
+            }
         }
         else retVal = 0;
-        
+
         // And now a bunch of ZX Spectrum related vars...
-        if (retVal) retVal = fread(&portFE,                    sizeof(portFE),                     1,handle);
+        if (retVal) retVal = fread(&portFE,                    sizeof(portFE),                     1, handle);
         if (retVal) retVal = fread(&portFD,                    sizeof(portFD),                     1, handle);
         if (retVal) retVal = fread(&zx_AY_enabled,             sizeof(zx_AY_enabled),              1, handle);
         if (retVal) retVal = fread(&flash_timer,               sizeof(flash_timer),                1, handle);
@@ -271,13 +275,17 @@ void spectrumLoadState()
         if (retVal) retVal = fread(&current_bit,               sizeof(current_bit),                1, handle);
         if (retVal) retVal = fread(&current_bytes_this_block,  sizeof(current_bytes_this_block),   1, handle);
         if (retVal) retVal = fread(&handle_last_bits,          sizeof(handle_last_bits),           1, handle);
-        if (retVal) retVal = fread(&custom_pulse_idx,          sizeof(custom_pulse_idx),           1, handle);            
+        if (retVal) retVal = fread(&custom_pulse_idx,          sizeof(custom_pulse_idx),           1, handle);
         if (retVal) retVal = fread(&bFirstTime,                sizeof(bFirstTime),                 1, handle);
-        if (retVal) retVal = fread(&bStartTapeIn,              sizeof(bStartTapeIn),               1, handle);        
         if (retVal) retVal = fread(&loop_counter,              sizeof(loop_counter),               1, handle);
-        if (retVal) retVal = fread(&loop_block,                sizeof(loop_block),                 1, handle);        
-        
-        // Load Z80 Memory Map... either 48K for 128K 
+        if (retVal) retVal = fread(&loop_block,                sizeof(loop_block),                 1, handle);
+        if (retVal) retVal = fread(&last_edge,                 sizeof(last_edge),                  1, handle);
+        if (retVal) retVal = fread(&give_up_counter,           sizeof(give_up_counter),            1, handle);
+        if (retVal) retVal = fread(&next_edge1,                sizeof(next_edge1),                 1, handle);
+        if (retVal) retVal = fread(&next_edge2,                sizeof(next_edge2),                 1, handle);
+
+
+        // Load Z80 Memory Map... either 48K for 128K
         u8 *ptr = RAM_Memory+0x4000;
         u32 mem_size = 0xC000;
         if (zx_128k_mode)
@@ -285,12 +293,12 @@ void spectrumLoadState()
             ptr = RAM_Memory128;
             mem_size = 0x20000;
         }
-        
+
         // Simple Run-Length-Encoding saves us on lots of zeroed memory...
         for (u32 i=0; i<mem_size; i++)
         {
             u8 count;
-            if (retVal) 
+            if (retVal)
             {
                 retVal = fread(&ptr[i], 1, 1, handle);
                 if (ptr[i] == 0x00) // RLE
@@ -303,19 +311,19 @@ void spectrumLoadState()
                 }
             }
         }
-    
+
         strcpy(tmpStr, (retVal ? "OK ":"ERR"));
         DSPrint(13,0,0,tmpStr);
-        
+
         WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;
-        DSPrint(4,0,0,"             ");  
+        DSPrint(4,0,0,"             ");
         DisplayStatusLine(true);
       }
       else
       {
         DSPrint(4,0,0,"NO SAVED GAME");
         WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;
-        DSPrint(4,0,0,"             ");  
+        DSPrint(4,0,0,"             ");
       }
 
     fclose(handle);

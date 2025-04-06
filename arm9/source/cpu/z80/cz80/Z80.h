@@ -91,10 +91,7 @@ typedef struct
   pair AF,BC,DE,HL,IX,IY,SP;        /* Main registers                       */
   pair AF1,BC1,DE1,HL1;             /* Shadow registers                     */
   byte IFF,I;                       /* Interrupt registers                  */
-  int  IPeriod,ICount;              /* Set IPeriod to number of CPU cycles  */
-                                    /* between calls to LoopZ80()           */
   int  CycleDeficit;                /* Cycle deficit from last scanline     */
-  int  IBackup;                     /* Private, don't touch                 */
   word IRequest;                    /* Set to address of pending IRQ        */
   byte IAutoReset;                  /* Set to 1 to autom. reset IRequest    */
   byte TrapBadOps;                  /* Set to 1 to warn of illegal opcodes  */
@@ -119,9 +116,7 @@ void ResetZ80(register Z80 *R);
 /** negative, and current register values in R.             **/
 /*************************************************************/
 #ifdef EXECZ80
-int ExecZ80(register int RunCycles);
-int ExecZ80_Simplified(register int RunCycles);
-int ExecZ80_Speccy(register int RunCycles);
+void ExecZ80_Speccy(u32 RunToCycles);
 #endif
 
 /** IntZ80() *************************************************/

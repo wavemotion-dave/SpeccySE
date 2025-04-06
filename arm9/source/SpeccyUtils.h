@@ -31,6 +31,7 @@
             
 #define DPAD_NORMAL                 0
 #define DPAD_DIAGONALS              1
+#define DPAD_CHUCKIE                2
 
 
 typedef struct {
@@ -80,13 +81,13 @@ struct __attribute__((__packed__)) Config_t
 {
     u32 game_crc;
     u8  keymap[12];
-    u8  frameSkip;
+    u8  contention;
     u8  autoStop;
     u8  autoFire;
     u8  tapeSpeed;
     u8  dpad;
     u8  autoLoad;
-    u8  reserved1;
+    u8  loadAs;
     u8  reserved2;
     u8  reserved3;
     u8  reserved4;
@@ -108,7 +109,6 @@ extern u16 JoyState;                    // Joystick / Paddle management
 
 extern u32 file_crc;
 extern u8 bFirstTime;
-extern u8 bStartTapeIn;
 
 extern u8 BufferedKeys[32];
 extern u8 BufferedKeysWriteIdx;
@@ -148,6 +148,7 @@ extern u32  crc32 (unsigned int crc, const unsigned char *buf, unsigned int len)
 extern void FadeToColor(unsigned char ucSens, unsigned short ucBG, unsigned char ucScr, unsigned char valEnd, unsigned char uWait);
 extern u8   speccyDSLoadFile(u8 bTapeOnly);
 extern void DisplayFileName(void);
+extern void DisplayFileNameCassette(void);
 extern u32  ReadFileCarefully(char *filename, u8 *buf, u32 buf_size, u32 buf_offset);
 extern u8  loadrom(const char *path);
 extern u8   spectrumInit(char *szGame);
@@ -169,7 +170,6 @@ extern void tape_position(u8 newPos);
 extern u8   tape_find_positions(void);
 extern u8   tape_is_playing(void);
 extern void tape_parse_blocks(int tapeSize);
-extern u32  tape_bytes_processed;
 extern void getfile_crc(const char *path);
 extern void spectrumLoadState();
 extern void spectrumSaveState();

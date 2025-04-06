@@ -49,12 +49,11 @@
 #define TAPE_DELAY_AFTER                0x06
 #define CUSTOM_PULSE_SEQ                0x07
 
-// Yes, these are special. They happen frequently enough we trap on the high bit here...
-#define SEND_DATA_ZERO                  0x80
-#define SEND_DATA_ONE                   0x81
+// Yes, this is special. It happens frequently enough we trap on the high bit here...
+#define SEND_DATA_BITS                  0x80
 
 
-// Some defaults mostly for the .TAP files as the .TZX 
+// Some defaults mostly for the .TAP files as the .TZX
 // will override some/many of these...
 #define DEFAULT_PILOT_LENGTH            2168
 #define DEFAULT_DATA_ZERO_PULSE_WIDTH    855
@@ -101,28 +100,35 @@ u8  handle_last_bits            __attribute__((section(".dtcm"))) = 0;
 u8  custom_pulse_idx            __attribute__((section(".dtcm"))) = 0;
 u16 loop_counter                __attribute__((section(".dtcm"))) = 0;
 u16 loop_block                  __attribute__((section(".dtcm"))) = 0;
-u32 bit_overage                 __attribute__((section(".dtcm"))) = 0;
+u32 last_edge                   __attribute__((section(".dtcm"))) = 0;
+
+u32 next_edge1                  __attribute__((section(".dtcm"))) = 0;
+u32 next_edge2                  __attribute__((section(".dtcm"))) = 0;
+
 u8 give_up_counter = 0;
 char *loader_type = "STANDARD";
 extern patchFunc *PatchLookup;
 u8 tape_sample_standard(void);
 
+inline byte OpZ80(word A)  {return *(MemoryMap[(A)>>13] + ((A)&0x1FFF));}
+
 TapePositionTable_t TapePositionTable[255];
+extern char strcasestr (const char *big, const char *little);
 
 u8 tape_find_positions(void)
 {
     memset(TapePositionTable, 0x00, sizeof(TapePositionTable));
-    
+
     u8 pos_idx = 0;
-    
+
     // Always have a Start of Tape (Rewind)
     strcpy(TapePositionTable[pos_idx].description, "START OF TAPE");
     TapePositionTable[pos_idx].block_id = 0;
     pos_idx++;
-    
+
     for (u16 i=0; i < num_blocks_available; i++)
     {
-        if (strlen(TapeBlocks[i].description) > 2)
+        if ((strlen(TapeBlocks[i].description) > 2) && (strcasestr(TapeBlocks[i].description, "CREATED WITH") == 0))
         {
             strcpy(TapePositionTable[pos_idx].description, TapeBlocks[i].description);
             TapePositionTable[pos_idx].block_id = i;
@@ -146,6 +152,29 @@ u8 tape_find_positions(void)
     return pos_idx;
 }
 
+
+// -----------------------------------------------------------------------------
+// Many of the loaders have a pre-edge detect delay that chews up a lot of
+// emulation time. So we trap on this and eliminate the entire delay by
+// "fast-forwarding" the CPU.TStates as if the entire delay went by in a flash.
+// -----------------------------------------------------------------------------
+// 05E7  LDA BYTE {+7}
+// 05E8  +16
+// 05E9  DEC A {+4}
+// 05EA  JR,NZ {+12/7}
+// 05EB  +/-XX
+// 05EC  AND A {+4}
+ITCM_CODE u8 tape_predelay_accel(void)
+{
+    // We trapped on the LD,A BYTE and we've read the byte already... so now we're on the DEC A
+    u32 loop_TStates = (CPU.AF.B.h * 16) - 5;   // Each pass around the loop is 16 cycles... except the last pass is only 11 cycles (5 less)
+    CPU.TStates += loop_TStates;                // Account for the cycles it would have taken
+    CPU.AF.B.h = 0x00;                          // Skip the loop entirely
+    CPU.PC.W += 3;                              // Jump to the AND A in the standard ROM loader
+
+    return CPU.AF.B.h;
+}
+
 // -----------------------------------------------
 // This traps out the tape loader main routine...
 // -----------------------------------------------
@@ -155,21 +184,10 @@ void tape_patch(void)
     memset(PatchLookup, 0x00, 256*1024);
 
     if (myConfig.tapeSpeed)
-    {   
-        SpectrumBios[0x05E7] = 0xED;
-        SpectrumBios[0x05E8] = 0xFE;
-        SpectrumBios128[0x45E7] = 0xED;
-        SpectrumBios128[0x45E8] = 0xFE;
-        PatchLookup[0x05F3] = tape_sample_standard; 
-        loader_type = "STANDARD";
-    }
-    else
     {
-        SpectrumBios[0x05E7] = 0x3E;
-        SpectrumBios[0x05E8] = 0x16;
-        SpectrumBios128[0x45E7] = 0x3E;
-        SpectrumBios128[0x45E8] = 0x16;
-        PatchLookup[0x05F3] = 0; 
+        PatchLookup[0x05F3] = tape_sample_standard;
+        PatchLookup[0x05E9] = tape_predelay_accel;  // LD A, BYTE (actually DEC A as the PC will have advanced)
+        loader_type = "STANDARD";
     }
 }
 
@@ -217,7 +235,7 @@ void tape_parse_blocks(int tapeSize)
             TapeBlocks[num_blocks_available].data_one_width  = DEFAULT_DATA_ONE_PULSE_WIDTH;
             TapeBlocks[num_blocks_available].data_zero_width = DEFAULT_DATA_ZERO_PULSE_WIDTH;
             TapeBlocks[num_blocks_available].last_bits_used  = DEFAULT_LAST_USED_BITS;
-            
+
             // Precompute the X2 values of the one/zero pulse width to speed up edge detection
             TapeBlocks[num_blocks_available].data_one_widthX2  = TapeBlocks[num_blocks_available].data_one_width << 1;
             TapeBlocks[num_blocks_available].data_zero_widthX2 = TapeBlocks[num_blocks_available].data_zero_width << 1;
@@ -225,7 +243,7 @@ void tape_parse_blocks(int tapeSize)
             TapeBlocks[num_blocks_available].block_data_idx  = idx+2;
             TapeBlocks[num_blocks_available].block_data_len  = block_len;
             TapeBlocks[num_blocks_available].block_flag      = block_flag;
-            
+
             if ((block_flag == 0x00) || (block_len == 19)) // Header
             {
                 memcpy(TapeBlocks[num_blocks_available].block_filename, &ROM_Memory[idx+4], 10);
@@ -277,7 +295,7 @@ void tape_parse_blocks(int tapeSize)
                     {
                         memcpy(TapeBlocks[num_blocks_available].block_filename, &ROM_Memory[idx+4+2], 10);
                     }
-                    
+
                     num_blocks_available++;
                     idx += (block_len + 4);
                     break;
@@ -308,12 +326,12 @@ void tape_parse_blocks(int tapeSize)
                     // Precompute the X2 values of the one/zero pulse width to speed up edge detection
                     TapeBlocks[num_blocks_available].data_one_widthX2  = TapeBlocks[num_blocks_available].data_one_width << 1;
                     TapeBlocks[num_blocks_available].data_zero_widthX2 = TapeBlocks[num_blocks_available].data_zero_width << 1;
-                    
+
                     if ((block_flag == 0x00) || (block_len == 19)) // Header
                     {
                         memcpy(TapeBlocks[num_blocks_available].block_filename, &ROM_Memory[idx+18+2], 10);
                     }
-                    
+
                     num_blocks_available++;
                     idx += (block_len + 18);
                     break;
@@ -397,7 +415,7 @@ void tape_parse_blocks(int tapeSize)
                     num_blocks_available++;
                     idx += 0;
                     break;
-                    
+
                 case BLOCK_ID_TEXT: // Text Description
                     block_len = ROM_Memory[idx + 0];
                     memcpy(TapeBlocks[num_blocks_available].description, &ROM_Memory[idx+1], (block_len < 26 ? block_len:26));
@@ -408,7 +426,7 @@ void tape_parse_blocks(int tapeSize)
                 case 0x2B: // Set signal level
                     idx += 5;
                     break;
-                    
+
                 case 0x31: // Message Block
                     block_len = ROM_Memory[idx + 1];
                     idx += (block_len + 2);
@@ -428,7 +446,7 @@ void tape_parse_blocks(int tapeSize)
                     block_len  = (ROM_Memory[idx + 0x10] << 0) | (ROM_Memory[idx + 0x11] << 8) | (ROM_Memory[idx + 0x12] << 16) | (ROM_Memory[idx + 0x13] << 24);
                     idx += (block_len + 20);
                     break;
-                    
+
                 case 0x5A: // Glue Block
                     idx += 9;
                     break;
@@ -462,6 +480,8 @@ void tape_reset(void)
     tape_bytes_processed = 0;
     custom_pulse_idx = 0;
     give_up_counter = 0;
+    last_edge = 0;
+    next_edge1 = next_edge2 = 0;
 }
 
 void tape_stop(void)
@@ -491,7 +511,6 @@ void tape_frame(void)
 // the appropriate bit to the caller who will put it into the port
 // read return byte.
 // ----------------------------------------------------------------
-inline byte OpZ80(word A)  {return *(MemoryMap[(A)>>13] + ((A)&0x1FFF));}
 ITCM_CODE u8 tape_pulse(void)
 {
     u32 pilot_pulse = 0;
@@ -511,6 +530,7 @@ ITCM_CODE u8 tape_pulse(void)
     debug[12] = OpZ80(CPU.PC.W+5);
     debug[13] = OpZ80(CPU.PC.W+6);
 #endif
+
     // Don't return from the state machine until we have a bit value to return
     while (1)
     {
@@ -521,6 +541,8 @@ ITCM_CODE u8 tape_pulse(void)
                 break;
 
             case TAPE_START:
+                last_edge = 0;
+                next_edge1 = next_edge2 = 0;
                 tape_state = TAPE_NEXT_BLOCK;
                 break;
 
@@ -540,7 +562,7 @@ ITCM_CODE u8 tape_pulse(void)
                 // When we start a new block, we start the CPU timer at the top
                 // And we set the block data index back to the start of the block.
                 // ----------------------------------------------------------------
-                CPU.TStates = 0;
+                last_edge = CPU.TStates;
                 give_up_counter = 0;
                 current_block_data_idx = TapeBlocks[current_block].block_data_idx;
 
@@ -554,7 +576,7 @@ ITCM_CODE u8 tape_pulse(void)
                     case BLOCK_ID_PURE_TONE: // Pilot Tone Only Block
                         tape_state = BLOCK_PILOT_TONE;
                         break;
-                        
+
                     case BLOCK_ID_PULSE_SEQ:    // Custom pulse sequence
                         custom_pulse_idx = 0;
                         tape_state = CUSTOM_PULSE_SEQ;
@@ -579,12 +601,12 @@ ITCM_CODE u8 tape_pulse(void)
                             tape_state = TAPE_NEXT_BLOCK;
                         }
                         break;
-                        
+
                     case BLOCK_ID_LOOP_START:
                         loop_counter = TapeBlocks[current_block].loop_counter;
                         current_block++;
                         loop_block = current_block;
-                        tape_state = TAPE_NEXT_BLOCK;                        
+                        tape_state = TAPE_NEXT_BLOCK;
                         break;
 
                     case BLOCK_ID_LOOP_END:
@@ -596,14 +618,14 @@ ITCM_CODE u8 tape_pulse(void)
                         {
                             current_block++;
                         }
-                        tape_state = TAPE_NEXT_BLOCK;                        
+                        tape_state = TAPE_NEXT_BLOCK;
                         break;
-                    
+
                     case BLOCK_ID_GROUP_START:
                     case BLOCK_ID_TEXT:
                         current_block++;
                         break;
-                        
+
                     default: //TODO: add more block IDs for TZX and trap ones we don't handle...
                         tape_state = TAPE_STOP;
                         break;
@@ -611,16 +633,16 @@ ITCM_CODE u8 tape_pulse(void)
                 break;
 
             case BLOCK_PILOT_TONE:
-                pilot_pulse = (CPU.TStates / TapeBlocks[current_block].pilot_length); // How many pulses are we into this thing...
+                pilot_pulse = ((CPU.TStates-last_edge) / TapeBlocks[current_block].pilot_length); // How many pulses are we into this thing...
 
                 // Always end the pilot tone on a high bit sent to simplify the logic on the SYNC pulse below
                 if ((pilot_pulse < TapeBlocks[current_block].pilot_pulses) || (pilot_pulse & 1)) // Are we still in the pilot tone send?
                 {
-                    if (pilot_pulse & 1) return 0x40; else return 0x00;  // Send the pulse bit                    
+                    if (pilot_pulse & 1) return 0x40; else return 0x00;  // Send the pulse bit
                 }
                 else  // We're done with the pilot tone... get ready to send the SYNC PULSE
                 {
-                    CPU.TStates = 0;
+                    last_edge = CPU.TStates;
                     if (TapeBlocks[current_block].id == BLOCK_ID_PURE_TONE) // If pure tone... we're done.
                     {
                         current_block++;
@@ -632,15 +654,15 @@ ITCM_CODE u8 tape_pulse(void)
                     }
                 }
                 break;
-                
+
             case CUSTOM_PULSE_SEQ:
-                if (CPU.TStates < TapeBlocks[current_block].custom_pulse_len[custom_pulse_idx])
+                if ((CPU.TStates-last_edge) < TapeBlocks[current_block].custom_pulse_len[custom_pulse_idx])
                 {
-                    if (custom_pulse_idx & 1) return 0x40; else return 0x00;  // Send the pulse bit                    
+                    if (custom_pulse_idx & 1) return 0x40; else return 0x00;  // Send the pulse bit
                 }
                 else  // Check if we're done with the custom pulse sequence...
                 {
-                    CPU.TStates = 0;
+                    last_edge = CPU.TStates;
                     if (++custom_pulse_idx >= TapeBlocks[current_block].pilot_pulses)
                     {
                         current_block++;
@@ -650,44 +672,49 @@ ITCM_CODE u8 tape_pulse(void)
                 break;
 
             case SYNC_PULSE:
-                if (CPU.TStates < TapeBlocks[current_block].sync1_width) return 0x00;
-                else if (CPU.TStates < (TapeBlocks[current_block].sync1_width + TapeBlocks[current_block].sync2_width)) return 0x40;
+                if ((CPU.TStates-last_edge) < TapeBlocks[current_block].sync1_width) return 0x00;
+                else if ((CPU.TStates-last_edge) < (TapeBlocks[current_block].sync1_width + TapeBlocks[current_block].sync2_width)) return 0x40;
                 else
                 {
-                    CPU.TStates = 0;
+                    last_edge = CPU.TStates;
                     current_bit = 0x100;    // So when we shift it down we'll be looking at the high (7th) bit of data
                     current_bytes_this_block = 0;
                     tape_state = SEND_DATA_BYTES;
-                    bit_overage = 0; 
                     handle_last_bits = 0x00;
                 }
                 break;
 
             case SEND_DATA_BYTES:
                 current_bit = current_bit>>1;
+
+                // --------------------------------------------------------------------------
+                // If slow bit reads are happening (arbitrarily above 10000 CPU ticks), we
+                // increment a "give up" counter... if this reaches critical mass, we simply
+                // stop the tape as it no longer looks like we are trying to load anything.
+                // --------------------------------------------------------------------------
+                if ((CPU.TStates-last_edge) > 10000) // Slow bit reads happening?
+                {
+                    if (myConfig.autoStop)
+                    {
+                        if (++give_up_counter > 4)
+                        {
+                            tape_state = TAPE_STOP;
+                            return 0x00;
+                        }
+                    }
+                }
+
                 if (current_bit == handle_last_bits) // Are we done sending this byte?
                 {
                     // ---------------------------------------------------------------------------------
                     // See if it's been a "long" time between bytes.. if so, we probably aren't in
                     // byte load / edge detection handling anymore... we can consider STOPing the tape.
                     // ---------------------------------------------------------------------------------
-                    if (CPU.TStates > 300000)
-                    {
-                        if (myConfig.autoStop)
-                        {
-                            if (++give_up_counter > 5) 
-                            {
-                                tape_state = TAPE_STOP;
-                                return 0x00;
-                            }               
-                        }
-                        bit_overage = 0;       
-                    }
                     tape_bytes_processed++;
                     current_block_data_idx++;
                     if (++current_bytes_this_block >= TapeBlocks[current_block].block_data_len)
                     {
-                        CPU.TStates = 0;
+                        last_edge = CPU.TStates;
                         tape_state = TAPE_DELAY_AFTER; // We're done with this block... delay after
                         return 0x00; // But make at least one transition back to 'low'
                     }
@@ -710,34 +737,32 @@ ITCM_CODE u8 tape_pulse(void)
                 else
                 {
                     // We need to send one bit of data...
-                    CPU.TStates = bit_overage;
-                    if (ROM_Memory[current_block_data_idx] & current_bit) tape_state = SEND_DATA_ONE;
-                    else tape_state = SEND_DATA_ZERO;
+                    last_edge = CPU.TStates;
+                    tape_state = SEND_DATA_BITS;
+                    if (ROM_Memory[current_block_data_idx] & current_bit)
+                    {
+                        next_edge1 = last_edge + TapeBlocks[current_block].data_one_width;
+                        next_edge2 = last_edge + TapeBlocks[current_block].data_one_widthX2;
+                    }
+                    else
+                    {
+                        next_edge1 = last_edge + TapeBlocks[current_block].data_zero_width;
+                        next_edge2 = last_edge + TapeBlocks[current_block].data_zero_widthX2;
+                    }
                 }
                 break;
 
-            case SEND_DATA_ZERO:
-                if      (CPU.TStates <= TapeBlocks[current_block].data_zero_width)   return 0x00;
-                else if (CPU.TStates <= TapeBlocks[current_block].data_zero_widthX2) return 0x40;
+            case SEND_DATA_BITS:
+                if      (CPU.TStates <= next_edge1) return 0x00;
+                else if (CPU.TStates <= next_edge2) return 0x40;
                 else
                 {
-                    bit_overage = CPU.TStates - TapeBlocks[current_block].data_zero_widthX2;
-                    tape_state = SEND_DATA_BYTES;
-                }
-                break;
-
-            case SEND_DATA_ONE:
-                if      (CPU.TStates <= TapeBlocks[current_block].data_one_width)   return 0x00;
-                else if (CPU.TStates <= TapeBlocks[current_block].data_one_widthX2) return 0x40;
-                else
-                {
-                    bit_overage = CPU.TStates - TapeBlocks[current_block].data_one_widthX2;
                     tape_state = SEND_DATA_BYTES;
                 }
                 break;
 
             case TAPE_DELAY_AFTER: // Normally ~1 second but can be different for custom tapes
-                if (CPU.TStates <= (TapeBlocks[current_block].gap_delay_after * 3500)) return 0x00;
+                if ((CPU.TStates-last_edge) <= (TapeBlocks[current_block].gap_delay_after * 3500)) return 0x00;
                 else
                 {
                     // A delay of zero is not special unless we are the BLOCK_ID_PAUSE_STOP block type...
@@ -750,7 +775,7 @@ ITCM_CODE u8 tape_pulse(void)
                     {
                         current_block++;
                         tape_state = TAPE_NEXT_BLOCK;    // And back to play if we have more tape
-                        
+
                         tape_search_for_loader();
                     }
                 }
@@ -762,34 +787,18 @@ ITCM_CODE u8 tape_pulse(void)
 
 // ----------------------------------------------------------------------------------------
 // Used in our edge-detection accelerated loaders below. This routine will invert and shift
-// down the bits so as to provide a very fast interface to edge detection when clocking in 
+// down the bits so as to provide a very fast interface to edge detection when clocking in
 // data Zeros or Ones which is quite common when loading tapes.
 // ----------------------------------------------------------------------------------------
 u8 inline __attribute__((always_inline)) tape_pulse_fast(void)
 {
-    if (tape_state & 1) // SEND_DATA_ONE
+    if      (CPU.TStates <= next_edge1) return ~0x00; // Inverted and shifted down
+    else if (CPU.TStates <= next_edge2) return ~0x20; // So loader does less work
+    else
     {
-        if      (CPU.TStates <= TapeBlocks[current_block].data_one_width)   return ~0x00; // Inverted and shifted down
-        else if (CPU.TStates <= TapeBlocks[current_block].data_one_widthX2) return ~0x20; // So loader does less work
-        else
-        {
-             // Experimentally, this happens about 20x less frequently than the bit returns above
-             tape_state = SEND_DATA_BYTES;
-             bit_overage = CPU.TStates - TapeBlocks[current_block].data_one_widthX2;
-             return ~tape_pulse() >> 1; // Invert and shift down
-        }
-    }
-    else // SEND_DATA_ZERO
-    {
-        if      (CPU.TStates <= TapeBlocks[current_block].data_zero_width)   return ~0x00; // Inverted and shifted down
-        else if (CPU.TStates <= TapeBlocks[current_block].data_zero_widthX2) return ~0x20; // So loader does less work
-        else
-        {
-             // Experimentally, this happens about 20x less frequently than the bit returns above
-             tape_state = SEND_DATA_BYTES;
-             bit_overage = CPU.TStates - TapeBlocks[current_block].data_zero_widthX2;
-             return ~tape_pulse() >> 1; // Invert and shift down
-        }
+         // Experimentally, this happens about 16x less frequently than the bit returns above (makes sense as there are 2x edges per bit in the byte)
+         tape_state = SEND_DATA_BYTES;
+         return ~tape_pulse() >> 1; // Invert and shift down
     }
 }
 
@@ -817,7 +826,7 @@ u8 inline __attribute__((always_inline)) tape_pulse_fast(void)
 ITCM_CODE u8 tape_sample_standard(void)
 {
     if (!tape_state) tape_state = TAPE_START; // If we aren't playing the tape, may as well do so as we're trying to find an edge
-    
+
     int B = 255-CPU.BC.B.h;     // Very slight speedups to take these into local stack vars
     const u8 C = CPU.BC.B.l;    // Very slight speedups to take these into local stack vars
 ld_sample:
@@ -830,7 +839,7 @@ ld_sample:
     {
         A = (~tape_pulse() >> 1) ^ C;   // Normal version must be inverted and shifted down...
     }
-    
+
     if (A & 0x20)                       // Edge detected. We can exit the loop.
     {
         CPU.TStates += 25;              // 25 cycles from the IN to past the JR Z,05ED
@@ -853,7 +862,7 @@ ld_sample:
         }
         CPU.TStates += 59;              // It takes 59 total cycles when we take another pass around the loop
         if (--B) goto ld_sample;        // If no time-out... take another sample.
-        
+
         // -----------------------------------------------------------------
         // We have timed out when B wraps back to zero... handle this here.
         // -----------------------------------------------------------------
@@ -862,8 +871,7 @@ ld_sample:
         CPU.AF.W = 0x0000;              // Clear flags (mainly Carry Reset) and A register will be clear
         CPU.PC.W -= 6;                  // And return to the INC B counter and allow the timeout
     }
-    
-    CPU.ICount -= (25 + 59); // Make a rough change to ICount based on number of loops. We don't really care here.
+
     return CPU.AF.B.h;
 }
 
@@ -881,7 +889,7 @@ ld_sample:
 ITCM_CODE u8 tape_sample_speedlock(void)
 {
     if (!tape_state) tape_state = TAPE_START;
-    
+
     // The CyclesED[] table will consume the 18 cycles that the LDA, INA would have taken here...
     int B = 255-CPU.BC.B.h;
     const u8 C = CPU.BC.B.l;
@@ -896,7 +904,7 @@ ld_sample:
     {
         A = (~tape_pulse() >> 1) ^ C;
     }
-    
+
     if (A & 0x20)                       // Edge detected. We can exit the loop.
     {
         CPU.TStates += 20;              // 20 cycles from the IN to past the JR Z,05ED
@@ -909,7 +917,7 @@ ld_sample:
     {
         CPU.TStates += 54;              // It takes 54 total cycles when we take another pass around the loop
         if (--B) goto ld_sample;        // If no time-out... take another sample.
-        
+
         // -----------------------------------------------------------------
         // We have timed out when B wraps back to zero... handle this here.
         // -----------------------------------------------------------------
@@ -918,8 +926,7 @@ ld_sample:
         CPU.AF.W = 0x0000;              // Clear flags (mainly Carry Reset) and A register will be clear
         CPU.PC.W -= 6;                  // And return to the INC B counter and allow the timeout
     }
-    
-    CPU.ICount -= (25 + 55); // Make a rough change to ICount based on number of loops. We don't really care here.
+
     return CPU.AF.B.h;
 }
 
@@ -928,17 +935,17 @@ ld_sample:
 // LD-SAMP{1} INC B               [+4]    Count each pass
 //        {2} JR NZ,LD-SAMPLE2    [+12/7] Jump to LD-SAMPLE2
 //        {3} JP <somewhere else> [+10]   Trap the timeout - jump out
-// LD-SAMP2: 
+// LD-SAMP2:
 //        {2} IN A,(FE)           [+11]   Read from port +xxFE   <== This is where the PC Trap is
 //        {1} RRA                 [+4]    Shift the byte
 //        {1} RET Z               [+11/5] Return carry reset & zero set if 'time-up'.
 //        {1} XOR C               [+4]    Now test the byte against the 'last edge-type'
 //        {2} AND 20              [+7]    Mask off just the bit we care about (normally 0x40 but it's been shifted down)
-//        {2} JR Z,LD-SAMP        [+12/5] Jump back to LD-SAMP unless it has changed 
+//        {2} JR Z,LD-SAMP        [+12/5] Jump back to LD-SAMP unless it has changed
 ITCM_CODE u8 tape_sample_alkatraz(void)
 {
     if (!tape_state) tape_state = TAPE_START;
-    
+
     // The CyclesED[] table will consume the 11 cycles that the IN A, (+FE) would have taken here...
     int B = 255-CPU.BC.B.h;
     const u8 C = CPU.BC.B.l;
@@ -953,7 +960,7 @@ ld_sample:
     {
         A = (~tape_pulse() >> 1) ^ C;
     }
-    
+
     if (A & 0x20)                       // Edge detected. We can exit the loop.
     {
         CPU.TStates += 25;              // 25 cycles from the IN to past the JR Z,LD-SAMP
@@ -966,7 +973,7 @@ ld_sample:
     {
         CPU.TStates += 59;              // It takes 59 total cycles when we take another pass around the loop to the IN A,(FE)
         if (--B) goto ld_sample;        // If no time-out... take another sample.
-        
+
         // -----------------------------------------------------------------
         // We have timed out when B wraps back to zero... handle this here.
         // -----------------------------------------------------------------
@@ -975,8 +982,7 @@ ld_sample:
         CPU.AF.W = 0x0000;              // Clear flags (mainly Carry Reset) and A register will be clear
         CPU.PC.W -= 8;                  // And return to the INC B counter and allow the timeout
     }
-    
-    CPU.ICount -= (25 + 59); // Make a rough change to ICount based on number of loops. We don't really care here.
+
     return CPU.AF.B.h;
 }
 
@@ -1008,7 +1014,7 @@ ld_sample:
 ITCM_CODE u8 tape_sample_microsphere_bleepload(void)
 {
     if (!tape_state) tape_state = TAPE_START;
-    
+
     // The CyclesED[] table will consume the 18 cycles that the LDA, INA would have taken here...
     int B = 255-CPU.BC.B.h;
     const u8 C = CPU.BC.B.l;
@@ -1023,11 +1029,10 @@ ld_sample:
     {
         A = (~tape_pulse() >> 1) ^ C;
     }
-    
+
     if (A & 0x20)                       // Edge detected. We can exit the loop.
     {
         CPU.TStates += 24;              // 24 cycles from the IN to past the JR Z,LD-SAMP
-        CPU.ICount -= 24;               // Make the corresponding change to ICount
         CPU.AF.B.h = A & 0x20;          // This is what the result would have been...
         CPU.AF.B.l = H_FLAG;            // Set the appropriate flags for the AND +20
         CPU.BC.B.h = (255-B);           // Let the caller know how close we got to the timeout
@@ -1037,7 +1042,7 @@ ld_sample:
     {
         CPU.TStates += 58;              // It takes 58 total cycles when we take another pass around the loop
         if (--B) goto ld_sample;        // If no time-out... take another sample.
-        
+
         // -----------------------------------------------------------------
         // We have timed out when B wraps back to zero... handle this here.
         // -----------------------------------------------------------------
@@ -1047,7 +1052,6 @@ ld_sample:
         CPU.PC.W -= 6;                  // And return to the INC B counter and allow the timeout
     }
 
-    CPU.ICount -= (25 + 58); // Make a rough change to ICount based on number of loops. We don't really care here.
     return CPU.AF.B.h;
 }
 
@@ -1056,126 +1060,114 @@ ld_sample:
 // After every new block is settled into memory, we look to see if we can find one
 // of the popular loaders. We might be able to patch the loader for faster access.
 // ---------------------------------------------------------------------------------
-void tape_search_for_loader(void)
+ITCM_CODE void tape_search_for_loader(void)
 {
     if (myConfig.tapeSpeed == 0) return;
-    
+
     for (int addr = 0x4000; addr < 0xFFFE; addr++)
     {
         // -----------------------------------------------------------------------
-        // All of our loaders have the ubiquitous IN A,+FE to read the ear input
+        // All of our loaders have the ubiquitous IN A,+FE to read the tape input
         // -----------------------------------------------------------------------
         if ((OpZ80(addr+0) == 0xDB) && (OpZ80(addr+1) == 0xFE))
         {
-            // Standard Loader just moved in memory
-            if (OpZ80(addr-2) == 0x3E)
-              if (OpZ80(addr-1) == 0x7F)
-                if (OpZ80(addr+0) == 0xDB)
-                  if (OpZ80(addr+1) == 0xFE)
-                    if (OpZ80(addr+2) == 0x1F)
-                      if (OpZ80(addr+3) == 0xD0)
-                        if (OpZ80(addr+4) == 0xA9)
-                          if (OpZ80(addr+5) == 0xE6)
-                            if (OpZ80(addr+6) == 0x20)
-                              if (OpZ80(addr+7) == 0x28)
-                              {
-                                  loader_type = "STANDARD";
-                                  PatchLookup[addr+2] = tape_sample_standard;
-                              }
-
-            // Speedlock Loader
-            if (OpZ80(addr-2) == 0x3E)
-              if (OpZ80(addr-1) == 0x7F)
-                if (OpZ80(addr+0) == 0xDB)
-                  if (OpZ80(addr+1) == 0xFE)
-                    if (OpZ80(addr+2) == 0x1F)
-                      if (OpZ80(addr+3) == 0xA9)
-                        if (OpZ80(addr+4) == 0xE6)
-                          if (OpZ80(addr+5) == 0x20)
-                            if (OpZ80(addr+6) == 0x28)
-                            {
-                                loader_type = "SPEEDLOCK";
-                                PatchLookup[addr+2] = tape_sample_speedlock;
-                            }
-
-            // Owens Loader
-            if (OpZ80(addr-2) == 0x3E)
-              if (OpZ80(addr-1) == 0x7F)
-                if (OpZ80(addr+0) == 0xDB)
-                  if (OpZ80(addr+1) == 0xFE)
-                    if (OpZ80(addr+2) == 0x1F)
-                      if (OpZ80(addr+3) == 0xC8) // RET Z
-                        if (OpZ80(addr+4) == 0xA9)
-                          if (OpZ80(addr+5) == 0xE6)
-                            if (OpZ80(addr+6) == 0x20)
-                              if (OpZ80(addr+7) == 0x28)
-                              {
-                                  loader_type = "OWENS";
-                                  PatchLookup[addr+2] = tape_sample_standard; // Since this has the same cycle count - we can use the standard loader
-                              }
-
-            // Dinaload Loader
-            if (OpZ80(addr-2) == 0x3E)
-              if (OpZ80(addr-1) == 0x7F)
-                if (OpZ80(addr+0) == 0xDB)
-                  if (OpZ80(addr+1) == 0xFE)
-                    if (OpZ80(addr+2) == 0x1F)
-                      if (OpZ80(addr+3) == 0xD0) // RET NC
-                        if (OpZ80(addr+4) == 0xA9)
-                          if (OpZ80(addr+5) == 0xE6)
-                            if (OpZ80(addr+6) == 0x20)
-                              if (OpZ80(addr+7) == 0x28)
-                              {
-                                  loader_type = "DINALOAD";
-                                  PatchLookup[addr+2] = tape_sample_standard; // Since this has the same cycle count - we can use the standard loader
-                              }
-
-            // Alkatraz
-            if (OpZ80(addr+0) == 0xDB) // INA
-              if (OpZ80(addr+1) == 0xFE) // +FE
-                if (OpZ80(addr+2) == 0x1F) // RRA
-                  if (OpZ80(addr+3) == 0xC8) // RETZ
-                    if (OpZ80(addr+4) == 0xA9) // XORC
-                      if (OpZ80(addr+5) == 0xE6) // AND
-                        if (OpZ80(addr+6) == 0x20) // +20
-                          if (OpZ80(addr+7) == 0x28) // JRZ
+            // A crap-ton of loaders are 3E, 7F, DB, FE
+            if ((OpZ80(addr-2) == 0x3E) && (OpZ80(addr-1) == 0x7F))
+            {
+                // Standard Loader just moved in memory
+                if (OpZ80(addr+2) == 0x1F)
+                  if (OpZ80(addr+3) == 0xD0)
+                    if (OpZ80(addr+4) == 0xA9)
+                      if (OpZ80(addr+5) == 0xE6)
+                        if (OpZ80(addr+6) == 0x20)
+                          if (OpZ80(addr+7) == 0x28)
                           {
-                              loader_type = "ALKATRAZ";
-                              PatchLookup[addr+2] = tape_sample_alkatraz;
+                              loader_type = "STANDARD";
+                              PatchLookup[addr+2]  = tape_sample_standard;
+                              if (OpZ80(addr-10) == 0x3E) PatchLookup[addr-8] = tape_predelay_accel;
                           }
-            
-            // Microsphere Loader
-            if (OpZ80(addr-2) == 0x3E)
-              if (OpZ80(addr-1) == 0x7F)
-                if (OpZ80(addr+0) == 0xDB)
-                  if (OpZ80(addr+1) == 0xFE)
-                    if (OpZ80(addr+2) == 0x1F)
-                      if (OpZ80(addr+3) == 0xA7) // AND A (NOP Equivilent)
-                        if (OpZ80(addr+4) == 0xA9)
-                          if (OpZ80(addr+5) == 0xE6)
-                            if (OpZ80(addr+6) == 0x20)
-                              if (OpZ80(addr+7) == 0x28)
-                              {
-                                  loader_type = "MICROSPHERE";
-                                  PatchLookup[addr+2] = tape_sample_microsphere_bleepload;
-                                  
-                              }
 
-            // Bleepload Loader
-            if (OpZ80(addr-2) == 0x3E)
-              if (OpZ80(addr-1) == 0x7F)
-                if (OpZ80(addr+0) == 0xDB)
-                  if (OpZ80(addr+1) == 0xFE)
-                    if (OpZ80(addr+2) == 0x1F)
-                      if (OpZ80(addr+3) == 0x00)  // NOP
-                        if (OpZ80(addr+4) == 0xA9)
-                          if (OpZ80(addr+5) == 0xE6)
-                            if (OpZ80(addr+6) == 0x20)
-                              if (OpZ80(addr+7) == 0x28)
+                // Speedlock Loader (omits the check for SPACE=break)
+                if (OpZ80(addr+2) == 0x1F)
+                  if (OpZ80(addr+3) == 0xA9)
+                    if (OpZ80(addr+4) == 0xE6)
+                      if (OpZ80(addr+5) == 0x20)
+                        if (OpZ80(addr+6) == 0x28)
+                        {
+                            loader_type = "SPEEDLOCK";
+                            PatchLookup[addr+2] = tape_sample_speedlock;
+                            if (OpZ80(addr-10) == 0x3E) PatchLookup[addr-8] = tape_predelay_accel;
+                        }
+
+                // Owens Loader
+                if (OpZ80(addr+2) == 0x1F)
+                  if (OpZ80(addr+3) == 0xC8) // RET Z
+                    if (OpZ80(addr+4) == 0xA9)
+                      if (OpZ80(addr+5) == 0xE6)
+                        if (OpZ80(addr+6) == 0x20)
+                          if (OpZ80(addr+7) == 0x28)
+                          {
+                              loader_type = "OWENS";
+                              PatchLookup[addr+2] = tape_sample_standard; // Since this has the same cycle count - we can use the standard loader
+                              if (OpZ80(addr-10) == 0x3E) PatchLookup[addr-8] = tape_predelay_accel;
+                          }
+
+                // Dinaload Loader
+                if (OpZ80(addr+2) == 0x1F)
+                  if (OpZ80(addr+3) == 0xD0) // RET NC
+                    if (OpZ80(addr+4) == 0xA9)
+                      if (OpZ80(addr+5) == 0xE6)
+                        if (OpZ80(addr+6) == 0x20)
+                          if (OpZ80(addr+7) == 0x28)
+                          {
+                              loader_type = "DINALOAD";
+                              PatchLookup[addr+2] = tape_sample_standard; // Since this has the same cycle count - we can use the standard loader
+                              if (OpZ80(addr-10) == 0x3E) PatchLookup[addr-8] = tape_predelay_accel;
+                          }
+
+                // Microsphere Loader
+                if (OpZ80(addr+2) == 0x1F)
+                  if (OpZ80(addr+3) == 0xA7) // AND A (NOP Equivilent)
+                    if (OpZ80(addr+4) == 0xA9)
+                      if (OpZ80(addr+5) == 0xE6)
+                        if (OpZ80(addr+6) == 0x20)
+                          if (OpZ80(addr+7) == 0x28)
+                          {
+                              loader_type = "MICROSPHERE";
+                              PatchLookup[addr+2] = tape_sample_microsphere_bleepload;
+                              if (OpZ80(addr-10) == 0x3E) PatchLookup[addr-8] = tape_predelay_accel;
+                          }
+
+                // Bleepload Loader
+                if (OpZ80(addr+2) == 0x1F)
+                  if (OpZ80(addr+3) == 0x00)  // NOP
+                    if (OpZ80(addr+4) == 0xA9)
+                      if (OpZ80(addr+5) == 0xE6)
+                        if (OpZ80(addr+6) == 0x20)
+                          if (OpZ80(addr+7) == 0x28)
+                          {
+                              loader_type = "BLEEPLOAD";
+                              PatchLookup[addr+2] = tape_sample_microsphere_bleepload;
+                              if (OpZ80(addr-10) == 0x3E) PatchLookup[addr-8] = tape_predelay_accel;
+                          }
+             }
+             else // Now the odd-balls
+             {
+                // Alkatraz
+                if (OpZ80(addr+0) == 0xDB) // INA
+                  if (OpZ80(addr+1) == 0xFE) // +FE
+                    if (OpZ80(addr+2) == 0x1F) // RRA
+                      if (OpZ80(addr+3) == 0xC8) // RETZ
+                        if (OpZ80(addr+4) == 0xA9) // XORC
+                          if (OpZ80(addr+5) == 0xE6) // AND
+                            if (OpZ80(addr+6) == 0x20) // +20
+                              if (OpZ80(addr+7) == 0x28) // JRZ
                               {
-                                  loader_type = "BLEEPLOAD";
-                                  PatchLookup[addr+2] = tape_sample_microsphere_bleepload;
+                                  loader_type = "ALKATRAZ";
+                                  PatchLookup[addr+2] = tape_sample_alkatraz;
+                                  if (OpZ80(addr-12) == 0x3E) PatchLookup[addr-10] = tape_predelay_accel;
                               }
+             }
         }
     }
 }

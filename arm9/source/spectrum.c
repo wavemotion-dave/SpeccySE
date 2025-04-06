@@ -23,20 +23,21 @@
 #include "SpeccyUtils.h"
 #include "printf.h"
 
-u8 portFE               __attribute__((section(".dtcm"))) = 0x00;
-u8 portFD               __attribute__((section(".dtcm"))) = 0x00;
-u8 zx_AY_enabled        __attribute__((section(".dtcm"))) = 0;
-u8 zx_AY_index_written  __attribute__((section(".dtcm"))) = 0;
-u32 flash_timer         __attribute__((section(".dtcm"))) = 0;
-u8  bFlash              __attribute__((section(".dtcm"))) = 0;
-u8  zx_128k_mode        __attribute__((section(".dtcm"))) = 0;
-u8  zx_ScreenRendering  __attribute__((section(".dtcm"))) = 0;
-u8  zx_force_128k_mode  __attribute__((section(".dtcm"))) = 0;
-int zx_current_line     __attribute__((section(".dtcm"))) = 0;
-
-u8  zx_special_key      = 0;
-int last_file_size      = 0;
-u8  isCompressed        = 1;
+u8  portFE               __attribute__((section(".dtcm"))) = 0x00;
+u8  portFD               __attribute__((section(".dtcm"))) = 0x00;
+u8  zx_AY_enabled        __attribute__((section(".dtcm"))) = 0;
+u8  zx_AY_index_written  __attribute__((section(".dtcm"))) = 0;
+u32 flash_timer          __attribute__((section(".dtcm"))) = 0;
+u8  bFlash               __attribute__((section(".dtcm"))) = 0;
+u8  zx_128k_mode         __attribute__((section(".dtcm"))) = 0;
+u8  zx_ScreenRendering   __attribute__((section(".dtcm"))) = 0;
+u8  zx_force_128k_mode   __attribute__((section(".dtcm"))) = 0;
+u32 zx_current_line      __attribute__((section(".dtcm"))) = 0;
+u8  zx_contend_delay     __attribute__((section(".dtcm"))) = 0;
+u8  zx_special_key       __attribute__((section(".dtcm"))) = 0;
+u32 last_file_size       __attribute__((section(".dtcm"))) = 0;
+u8  isCompressed         __attribute__((section(".dtcm"))) = 1;
+u8  tape_play_skip_frame __attribute__((section(".dtcm"))) = 0;
 
 // -------------------------------------------------------------------------
 // This massive patch table consumes 256K (64 x 4 byte function pointers) 
@@ -53,8 +54,23 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
 
     if ((Port & 1) == 0) // Any Even Address will cause the ULA to respond
     {
-         // If we are playing the tape, get the result back as fast as possible without keys/joystick press
-        if (tape_state) 
+        // --------------------------------------------------------
+        // If we are not playing the tape but we got a hit on the 
+        // loader we can start the tape in motion - auto play...
+        // --------------------------------------------------------
+        if (!tape_state)
+        {
+            if (myConfig.autoLoad)
+            {
+                if (PatchLookup[CPU.PC.W]) tape_play();
+            }
+        }
+        
+        // --------------------------------------------------------
+        // If we are playing the tape, get the result back as fast 
+        // as possible without keys/joystick press.
+        // --------------------------------------------------------
+        if (tape_state)
         {
             // ----------------------------------------------------------------
             // See if this read is patched... for faster tape edge detection.
@@ -66,7 +82,10 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
             return ~tape_pulse();
         }
         
-        u8 key = tape_pulse();
+        // -----------------------------
+        // Otherwise normal handling... 
+        // -----------------------------
+        u8 key = 0x00;
         
         for (u8 i=0; i< (kbd_keys_pressed ? kbd_keys_pressed:1); i++) // Always one pass at least for joysticks...
         {
@@ -314,7 +333,6 @@ u32 zx_colors_extend32[16] __attribute__((section(".dtcm"))) =
 // ----------------------------------------------------------------------------
 // Render one screen line of pixels. This is called on every visible scanline.
 // ----------------------------------------------------------------------------
-u8 tape_playing_skip_frame = 0;
 ITCM_CODE void speccy_render_screen(u8 line)
 {
     u8 *zx_ScreenPage = 0;
@@ -322,16 +340,19 @@ ITCM_CODE void speccy_render_screen(u8 line)
 
     if (line == 0) // At start of each new frame, handle the flashing 'timer'
     {
-        tape_playing_skip_frame++;
+        tape_play_skip_frame++;
         if (++flash_timer & 0x10) {flash_timer=0; bFlash ^= 1;} // Same timing as real ULA - 16 frames on and 16 frames off
     }
     
-    // Only draw one out of every 32 frames!
+    // -----------------------------------------------------------------------------
+    // Only draw one out of every 32 frames when we are loading tape. We want to
+    // give as much horsepower to the emulation CPU as possible here - this is 
+    // good enough to let the screen draw slowly in the background as we have time.
+    // -----------------------------------------------------------------------------
     if (tape_is_playing())
     {
-        if (tape_playing_skip_frame & 0x1F) return; 
+        if (tape_play_skip_frame & 0x1F) return; 
     }
-    
     
     if (!isDSiMode() && (flash_timer & 1)) return; // For DS-Lite/Phat, we draw every other frame...
 
@@ -344,45 +365,44 @@ ITCM_CODE void speccy_render_screen(u8 line)
     // bottom and render it into our NDS video memory
     // -----------------------------------------------
     int y = line;
+
+    // ----------------------------------------------------------------
+    // The color attribute is stored independently from the pixel data
+    // ----------------------------------------------------------------
+    u8 *attrPtr = &zx_ScreenPage[0x1800 + ((y/8)*32)];
+    word offset = ((y&0x07) << 8) | ((y&0x38) << 2) | ((y&0xC0) << 5);
+    u8 *pixelPtr = zx_ScreenPage+offset;
+    
+    // ---------------------------------------------------------------------
+    // With 8 pixels per byte, there are 32 bytes of horizontal screen data
+    // ---------------------------------------------------------------------
+    for (int x=0; x<32; x++)
     {
-        // ----------------------------------------------------------------
-        // The color attribute is stored independently from the pixel data
-        // ----------------------------------------------------------------
-        u8 *attrPtr = &zx_ScreenPage[0x1800 + ((y/8)*32)];
-        word offset = ((y&0x07) << 8) | ((y&0x38) << 2) | ((y&0xC0) << 5);
-        u8 *pixelPtr = zx_ScreenPage+offset;
-        
-        // ---------------------------------------------------------------------
-        // With 8 pixels per byte, there are 32 bytes of horizontal screen data
-        // ---------------------------------------------------------------------
-        for (int x=0; x<32; x++)
+        u8 attr = *attrPtr++;           // The color attribute and possible flashing
+        u8 paper = ((attr>>3) & 0x0F);  // Paper is the background
+        u8 pixel = *pixelPtr++;         // And here is 8 pixels to draw
+
+        if (attr & 0x80) // Flashing swaps pen/ink
         {
-            u8 attr = *attrPtr++;           // The color attribute and possible flashing
-            u8 paper = ((attr>>3) & 0x0F);  // Paper is the background
-            u8 pixel = *pixelPtr++;         // And here is 8 pixels to draw
+            if (bFlash) pixel = ~pixel; // Faster to just invert the pixel itself...
+        }
+        
+        // ---------------------------------------------------------------
+        // Normal drawing... We try to speed this up as much as possible.
+        // ---------------------------------------------------------------
+        if (pixel) // Is at least one pixel on?
+        {
+            u8 ink   = (attr & 0x07);       // Color
+            if (attr & 0x40) ink |= 0x08;   // Brightness
 
-            if (attr & 0x80) // Flashing swaps pen/ink
-            {
-                if (bFlash) pixel = ~pixel; // Faster to just invert the pixel itself...
-            }
-            
-            // ---------------------------------------------------------------
-            // Normal drawing... We try to speed this up as much as possible.
-            // ---------------------------------------------------------------
-            if (pixel) // Is at least one pixel on?
-            {
-                u8 ink   = (attr & 0x07);       // Color
-                if (attr & 0x40) ink |= 0x08;   // Brightness
-
-                *vidBuf++ = (((pixel & 0x80) ? ink:paper)) | (((pixel & 0x40) ? ink:paper) << 8) | (((pixel & 0x20) ? ink:paper) << 16) | (((pixel & 0x10) ? ink:paper) << 24);
-                *vidBuf++ = (((pixel & 0x08) ? ink:paper)) | (((pixel & 0x04) ? ink:paper) << 8) | (((pixel & 0x02) ? ink:paper) << 16) | (((pixel & 0x01) ? ink:paper) << 24);
-            }
-            else // Just drawing all background which is common...
-            {
-                // Draw background directly to the screen
-                *vidBuf++ = zx_colors_extend32[paper];
-                *vidBuf++ = zx_colors_extend32[paper];
-            }
+            *vidBuf++ = (((pixel & 0x80) ? ink:paper)) | (((pixel & 0x40) ? ink:paper) << 8) | (((pixel & 0x20) ? ink:paper) << 16) | (((pixel & 0x10) ? ink:paper) << 24);
+            *vidBuf++ = (((pixel & 0x08) ? ink:paper)) | (((pixel & 0x04) ? ink:paper) << 8) | (((pixel & 0x02) ? ink:paper) << 16) | (((pixel & 0x01) ? ink:paper) << 24);
+        }
+        else // Just drawing all background which is common...
+        {
+            // Draw background directly to the screen
+            *vidBuf++ = zx_colors_extend32[paper];
+            *vidBuf++ = zx_colors_extend32[paper];
         }
     }
 }
@@ -555,14 +575,18 @@ void speccy_reset(void)
     MemoryMap[6] = RAM_Memory + 0xC000;
     MemoryMap[7] = RAM_Memory + 0xE000;
     
-    CPU.PC.W = 0x0000;
-    portFE = 0x00;
-    portFD = 0x00;
-    zx_AY_enabled = 0;
+    CPU.PC.W            = 0x0000;
+    portFE              = 0x00;
+    portFD              = 0x00;
+    zx_AY_enabled       = 0;
     zx_AY_index_written = 0;
-    zx_special_key = 0;
+    zx_special_key      = 0;
     
-    zx_128k_mode = 0;   // Assume 48K until told otherwise
+    zx_128k_mode        = 0;   // Assume 48K until told otherwise
+    
+    // Set the 'average' contention delay... 
+    static const u8 contend_delay[3] = {4,3,5};
+    zx_contend_delay = contend_delay[myConfig.contention];
     
     // A bit wasteful to decompress again... but 
     // we want to ensure that the memory is exactly
@@ -622,9 +646,11 @@ void speccy_reset(void)
         // Move the BIOS/Diagnostic ROM into memory...
         memcpy(RAM_Memory, ROM_Memory, last_file_size);   // Load diagnostics ROM into place
 
-        if (zx_force_128k_mode)
+        if (zx_force_128k_mode || myConfig.loadAs)
         {
-            zx_128k_mode = 1;            
+            zx_128k_mode = 1;
+            myConfig.loadAs = 1;
+            
             // Now set the memory map to point to the right banks...
             MemoryMap[2] = RAM_Memory128 + (5 * 0x4000) + 0x0000; // Bank 5
             MemoryMap[3] = RAM_Memory128 + (5 * 0x4000) + 0x2000; // Bank 5
@@ -639,9 +665,10 @@ void speccy_reset(void)
     else if (speccy_mode < MODE_SNA) // TAP or TZX file - 48K or 128K
     {
         // BIOS will be loaded further below...
-        if (zx_force_128k_mode)
+        if (zx_force_128k_mode || myConfig.loadAs)
         {
-            zx_128k_mode = 1;            
+            zx_128k_mode = 1;
+            myConfig.loadAs = 1;
             
             // Now set the memory map to point to the right banks...
             MemoryMap[2] = RAM_Memory128 + (5 * 0x4000) + 0x0000; // Bank 5
@@ -765,23 +792,36 @@ ITCM_CODE u32 speccy_run(void)
     // -----------------------------------------------
     if (tape_state)
     {
+        // If we are playing back the tape - just run the emulation as fast as possible
         zx_ScreenRendering = 0;
-        ExecZ80_Speccy(zx_128k_mode ? 228:224);
+        ExecZ80_Speccy(CPU.TStates + (zx_128k_mode ? 228:224));
     }
     else
     {
-        processDirectBeeperAY3();
+        // Grab 3 samples worth of AY sound to mix with the beeper
+        processDirectAY3();
 
-        CPU.CycleDeficit = ExecZ80_Speccy(zx_128k_mode ? 66:64);
+        ExecZ80_Speccy(CPU.TStates + (zx_128k_mode ? 66:64));
         processDirectBeeper();
 
-        CPU.CycleDeficit = ExecZ80_Speccy((zx_128k_mode ? 66:64)+CPU.CycleDeficit);
+        ExecZ80_Speccy(CPU.TStates + (zx_128k_mode ? 66:64));
         processDirectBeeper();
 
         zx_ScreenRendering = 0; // On this final chunk we are drawing border and doing a horizontal sync... no contention
 
-        ExecZ80_Speccy(96+CPU.CycleDeficit);
+        ExecZ80_Speccy((zx_128k_mode ? 228:224) * zx_current_line); // This puts us exactly where we should be for the scanline
         processDirectBeeper();
+        
+        // -----------------------------------------------------------------------
+        // If we are not playing the tape, we want to reset the TStates counter
+        // on every new frame to help us with the somewhat complex handling of
+        // the memory contention which is heavily dependent on CPU Cycle counts.
+        // -----------------------------------------------------------------------
+        if (zx_current_line == (zx_128k_mode ? 311:312))
+        {
+            CPU.TStates = 0;
+            last_edge = 0;
+        }
     }
 
     // -----------------------------------------------------------
@@ -802,9 +842,9 @@ ITCM_CODE u32 speccy_run(void)
     // ------------------------------------------
     if (zx_current_line == (zx_128k_mode ? 311:312))
     {
-        IntZ80(&CPU, INT_RST38);
         zx_current_line = 0;
         zx_ScreenRendering = 0;
+        IntZ80(&CPU, INT_RST38);
         return 0; // End of frame
     }
         

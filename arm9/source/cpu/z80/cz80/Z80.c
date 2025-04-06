@@ -1,10 +1,10 @@
 /******************************************************************************
-*  SpeccyDS Z80 CPU 
+*  SpeccyDS Z80 CPU
 *
 * Note: Most of this file is from the ColEm emulator core by Marat Fayzullin
 *       but heavily modified for specific NDS use. If you want to use this
 *       code, you are advised to seek out the much more portable ColEm core
-*       and contact Marat.       
+*       and contact Marat.
 *
 ******************************************************************************/
 
@@ -40,6 +40,9 @@ extern u32 debug[];
 /** up. It has to stay inlined to be fast.                  **/
 /*************************************************************/
 extern u8 *MemoryMap[8];
+
+typedef u8 (*patchFunc)(void);
+extern patchFunc *PatchLookup;
 
 // ------------------------------------------------------
 // These defines and inline functions are to map maximum
@@ -277,21 +280,21 @@ enum CodesCB
 enum CodesED
 {
   DB_00,    DB_01,      DB_02,      DB_03,          DB_04,      DB_05,  DB_06,  DB_07,  // 0x00
-  DB_08,    DB_09,      DB_0A,      DB_0B,          DB_0C,      DB_0D,  DB_0E,  DB_0F,  
+  DB_08,    DB_09,      DB_0A,      DB_0B,          DB_0C,      DB_0D,  DB_0E,  DB_0F,
   DB_10,    DB_11,      DB_12,      DB_13,          DB_14,      DB_15,  DB_16,  DB_17,  // 0x10
-  DB_18,    DB_19,      DB_1A,      DB_1B,          DB_1C,      DB_1D,  DB_1E,  DB_1F,  
+  DB_18,    DB_19,      DB_1A,      DB_1B,          DB_1C,      DB_1D,  DB_1E,  DB_1F,
   DB_20,    DB_21,      DB_22,      DB_23,          DB_24,      DB_25,  DB_26,  DB_27,  // 0x20
-  DB_28,    DB_29,      DB_2A,      DB_2B,          DB_2C,      DB_2D,  DB_2E,  DB_2F,  
+  DB_28,    DB_29,      DB_2A,      DB_2B,          DB_2C,      DB_2D,  DB_2E,  DB_2F,
   DB_30,    DB_31,      DB_32,      DB_33,          DB_34,      DB_35,  DB_36,  DB_37,  // 0x30
-  DB_38,    DB_39,      DB_3A,      DB_3B,          DB_3C,      DB_3D,  DB_3E,  DB_3F,  
+  DB_38,    DB_39,      DB_3A,      DB_3B,          DB_3C,      DB_3D,  DB_3E,  DB_3F,
   IN_B_xC,  OUT_xC_B,   SBC_HL_BC,  LD_xWORDe_BC,   NEG,        RETN,   IM_0,   LD_I_A, // 0x40
-  IN_C_xC,  OUT_xC_C,   ADC_HL_BC,  LD_BC_xWORDe,   DB_4C,      RETI,   DB_,    LD_R_A, 
+  IN_C_xC,  OUT_xC_C,   ADC_HL_BC,  LD_BC_xWORDe,   DB_4C,      RETI,   DB_,    LD_R_A,
   IN_D_xC,  OUT_xC_D,   SBC_HL_DE,  LD_xWORDe_DE,   DB_54,      DB_55,  IM_1,   LD_A_I, // 0x50
-  IN_E_xC,  OUT_xC_E,   ADC_HL_DE,  LD_DE_xWORDe,   DB_5C,      DB_5D,  IM_2,   LD_A_R, 
+  IN_E_xC,  OUT_xC_E,   ADC_HL_DE,  LD_DE_xWORDe,   DB_5C,      DB_5D,  IM_2,   LD_A_R,
   IN_H_xC,  OUT_xC_H,   SBC_HL_HL,  LD_xWORDe_HL,   DB_64,      DB_65,  DB_66,  RRD,    // 0x60
-  IN_L_xC,  OUT_xC_L,   ADC_HL_HL,  LD_HL_xWORDe,   DB_6C,      DB_6D,  DB_6E,  RLD,    
+  IN_L_xC,  OUT_xC_L,   ADC_HL_HL,  LD_HL_xWORDe,   DB_6C,      DB_6D,  DB_6E,  RLD,
   IN_F_xC,  OUT_xC_F,   SBC_HL_SP,  LD_xWORDe_SP,   DB_74,      DB_75,  DB_76,  DB_77,  // 0x70
-  IN_A_xC,  OUT_xC_A,   ADC_HL_SP,  LD_SP_xWORDe,   DB_7C,      DB_7D,  DB_7E,  DB_7F,  
+  IN_A_xC,  OUT_xC_A,   ADC_HL_SP,  LD_SP_xWORDe,   DB_7C,      DB_7D,  DB_7E,  DB_7F,
   DB_80,    DB_81,      DB_82,      DB_83,          DB_84,      DB_85,  DB_86,  DB_87,  // 0x80
   DB_88,    DB_89,      DB_8A,      DB_8B,          DB_8C,      DB_8D,  DB_8E,  DB_8F,
   DB_90,    DB_91,      DB_92,      DB_93,          DB_94,      DB_95,  DB_96,  DB_97,  // 0x90
@@ -343,16 +346,14 @@ void ResetZ80(Z80 *R)
   CPU.R        = 0x00;
   CPU.R_HighBit= 0x00;
   CPU.IFF      = 0x00;
-  CPU.IBackup  = 0;
-  CPU.ICount   = CPU.IPeriod = 0;
   CPU.IRequest = INT_NONE;
   CPU.User     = 0;
   CPU.Trace    = 0;
   CPU.TrapBadOps = 1;
   CPU.IAutoReset = 1;
-  CPU.CycleDeficit  = 0;
+  CPU.CycleDeficit = 0;
   CPU.TStates = 0;
-  
+
   JumpZ80(CPU.PC.W);
 }
 
@@ -360,22 +361,21 @@ void ResetZ80(Z80 *R)
 /** IntZ80() *************************************************/
 /** This function will generate interrupt of given vector.  **/
 /*************************************************************/
-void IntZ80(Z80 *R,word Vector)
+ITCM_CODE void IntZ80(Z80 *R,word Vector)
 {
     /* If HALTed, take CPU off HALT instruction */
     if(CPU.IFF&IFF_HALT) { CPU.PC.W++;CPU.IFF&=~IFF_HALT; }
-    
-    CPU.ICount -= 19;
-    CPU.TStates += 19;
-    
+
+    CPU.TStates += 19; // Z80 takes 19 cycles to acknowledge interrupt, setup stack and read vector
+
     if((CPU.IFF&IFF_1)||(Vector==INT_NMI))
     {
       /* Save PC on stack */
       M_PUSH(PC);
-   
+
       /* Automatically reset IRequest */
       CPU.IRequest=INT_NONE;
-   
+
       /* If it is NMI... */
       if(Vector==INT_NMI)
       {
@@ -387,10 +387,10 @@ void IntZ80(Z80 *R,word Vector)
           /* Done */
           return;
       }
-   
+
       /* Further interrupts off */
       CPU.IFF&=~(IFF_1|IFF_2|IFF_EI);
-   
+
       /* If in IM2 mode... */
       if(CPU.IFF&IFF_IM2)
       {
@@ -400,16 +400,16 @@ void IntZ80(Z80 *R,word Vector)
           CPU.PC.B.l=RdZ80(Vector++);
           CPU.PC.B.h=RdZ80(Vector);
           JumpZ80(CPU.PC.W);
-          
+
           /* Done */
           return;
       }
-   
+
       /* If in IM1 mode, just jump to hardwired IRQ vector */
       if(CPU.IFF&IFF_IM1) { CPU.PC.W=0x0038; JumpZ80(0x0038); return; }
-   
+
       /* If in IM0 mode... Not used on ZX Spectrum but handled here anyway */
-   
+
       /* Jump to a vector */
       switch(Vector)
       {
@@ -432,7 +432,6 @@ static void CodesCB_Speccy(void)
 
   /* Read opcode and count cycles */
   I=OpZ80(CPU.PC.W++);
-  CPU.ICount  -= CyclesCB[I];
   CPU.TStates += CyclesCB[I];
 
   /* R register incremented on each M1 cycle */
@@ -455,7 +454,6 @@ static void CodesDDCB_Speccy(void)
   /* Get offset, read opcode and count cycles */
   J.W=CPU.XX.W+(offset)OpZ80(CPU.PC.W++);
   I=OpZ80(CPU.PC.W++);
-  CPU.ICount  -= CyclesXXCB[I];
   CPU.TStates += CyclesXXCB[I];
 
   switch(I)
@@ -476,7 +474,6 @@ static void CodesFDCB_Speccy(void)
   /* Get offset, read opcode and count cycles */
   J.W=CPU.XX.W+(offset)OpZ80(CPU.PC.W++);
   I=OpZ80(CPU.PC.W++);
-  CPU.ICount  -= CyclesXXCB[I];
   CPU.TStates += CyclesXXCB[I];
 
   switch(I)
@@ -495,9 +492,8 @@ ITCM_CODE static void CodesED_Speccy(void)
 
   /* Read opcode and count cycles */
   I=OpZ80(CPU.PC.W++);
-  CPU.ICount  -= CyclesED[I];
   CPU.TStates += CyclesED[I];
-  
+
   /* R register incremented on each M1 cycle */
   INCR(1);
 
@@ -519,7 +515,6 @@ static void CodesDD_Speccy(void)
 #define XX IX
   /* Read opcode and count cycles */
   I=OpZ80(CPU.PC.W++);
-  CPU.ICount  -= CyclesXX[I];
   CPU.TStates += CyclesXX[I];
 
   /* R register incremented on each M1 cycle */
@@ -547,7 +542,6 @@ static void CodesFD_Speccy(void)
 #define XX IY
   /* Read opcode and count cycles */
   I=OpZ80(CPU.PC.W++);
-  CPU.ICount  -= CyclesXX[I];
   CPU.TStates += CyclesXX[I];
 
   /* R register incremented on each M1 cycle */
@@ -566,32 +560,30 @@ static void CodesFD_Speccy(void)
   }
 #undef XX
 }
-extern u8 zx_ScreenRendering;
-ITCM_CODE int ExecZ80_Speccy(register int RunCycles)
+
+extern u8 zx_ScreenRendering, zx_contend_delay;
+ITCM_CODE void ExecZ80_Speccy(u32 RunToCycles)
 {
   register byte I;
   register pair J;
   const u8 render = zx_ScreenRendering;
 
-  for(CPU.ICount=RunCycles;;)
+  while (CPU.TStates < RunToCycles)
   {
-    while(CPU.ICount>0)
-    {
       I=OpZ80(CPU.PC.W++);
-      CPU.ICount  -= Cycles_NoM1Wait[I];
       CPU.TStates += Cycles_NoM1Wait[I];
-      
+
       // ----------------------------------------------------------------------------------------
       // If we are in contended memory - add penalty. This is not cycle accurate but we want to
       // at least make an attempt to get closer on the cycle timing. So we simply use an 'average'
-      // penalty of 4 cycles if we are in contended memory while the screen is rendering. It's 
-      // rough but gets us close enough to play games.
-      // ----------------------------------------------------------------------------------------      
+      // penalty of 4 cycles if we are in contended memory while the screen is rendering. It's
+      // rough but gets us close enough to play games. We can improve this later...
+      // ----------------------------------------------------------------------------------------
       if (render)
       {
-         if ((CPU.PC.W & 0xC000) == 0x4000) {CPU.ICount  -= 4; CPU.TStates += 4;}
+         if ((CPU.PC.W & 0xC000) == 0x4000) {CPU.TStates += zx_contend_delay;}
       }
-            
+
       /* R register incremented on each M1 cycle */
       INCR(1);
 
@@ -604,17 +596,5 @@ ITCM_CODE int ExecZ80_Speccy(register int RunCycles)
         case PFX_FD: CodesFD_Speccy();break;
         case PFX_DD: CodesDD_Speccy();break;
       }
-    }
-
-    /* Unless we have come here after EI, exit */
-    if(!(CPU.IFF&IFF_EI)) return(CPU.ICount);
-    else
-    {
-      /* Done with AfterEI state */
-      CPU.IFF=(CPU.IFF&~IFF_EI)|IFF_1;
-      /* Restore the ICount */
-      CPU.ICount  += CPU.IBackup-1;
-      CPU.TStates += CPU.IBackup-1;
-    }
   }
 }
