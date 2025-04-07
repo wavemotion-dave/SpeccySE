@@ -208,10 +208,10 @@ void tape_parse_blocks(int tapeSize)
     memset(TapeBlocks, 0x00, sizeof(TapeBlocks));
 
     // ---------------------------------------------------------------
-    // All tape files start with a block of 500ms 'gap' silence...
+    // All tape files start with a block of 750ms 'gap' silence...
     // ---------------------------------------------------------------
     TapeBlocks[num_blocks_available].id = BLOCK_ID_PAUSE_STOP;
-    TapeBlocks[num_blocks_available].gap_delay_after = 500;
+    TapeBlocks[num_blocks_available].gap_delay_after = 750;
     num_blocks_available++;
 
     // -----------------------------------------------------------------------
@@ -229,7 +229,7 @@ void tape_parse_blocks(int tapeSize)
             TapeBlocks[num_blocks_available].id              = BLOCK_ID_STANDARD;
             TapeBlocks[num_blocks_available].gap_delay_after = DEFAULT_TAPE_GAP_DELAY_MS;
             TapeBlocks[num_blocks_available].pilot_length    = DEFAULT_PILOT_LENGTH;
-            TapeBlocks[num_blocks_available].pilot_pulses    = (block_flag ? DEFAULT_DATA_PULSE_TOGGLES : DEFAULT_HEADER_PULSE_TOGGLES);
+            TapeBlocks[num_blocks_available].pilot_pulses    = ((block_flag < 128) ? DEFAULT_HEADER_PULSE_TOGGLES : DEFAULT_DATA_PULSE_TOGGLES);
             TapeBlocks[num_blocks_available].sync1_width     = DEFAULT_SYNC_PULSE1_WIDTH;
             TapeBlocks[num_blocks_available].sync2_width     = DEFAULT_SYNC_PULSE2_WIDTH;
             TapeBlocks[num_blocks_available].data_one_width  = DEFAULT_DATA_ONE_PULSE_WIDTH;
@@ -244,7 +244,7 @@ void tape_parse_blocks(int tapeSize)
             TapeBlocks[num_blocks_available].block_data_len  = block_len;
             TapeBlocks[num_blocks_available].block_flag      = block_flag;
 
-            if ((block_flag == 0x00) || (block_len == 19)) // Header
+            if ((block_flag < 128) || (block_len == 19)) // Header
             {
                 memcpy(TapeBlocks[num_blocks_available].block_filename, &ROM_Memory[idx+4], 10);
             }
@@ -487,11 +487,13 @@ void tape_reset(void)
 void tape_stop(void)
 {
     tape_state = TAPE_STOP;
+    DisplayStatusLine(false);
 }
 
 void tape_play(void)
 {
     tape_state = TAPE_START;
+    DisplayStatusLine(false);
 }
 
 void tape_position(u8 newPos)
@@ -515,20 +517,22 @@ ITCM_CODE u8 tape_pulse(void)
 {
     u32 pilot_pulse = 0;
 #if 0
-    debug[0]  = OpZ80(CPU.PC.W-7);
-    debug[1]  = OpZ80(CPU.PC.W-6);
-    debug[2]  = OpZ80(CPU.PC.W-5);
-    debug[3]  = OpZ80(CPU.PC.W-4);
-    debug[4]  = OpZ80(CPU.PC.W-3);
-    debug[5]  = OpZ80(CPU.PC.W-2);
-    debug[6]  = OpZ80(CPU.PC.W-1);
-    debug[7]  = OpZ80(CPU.PC.W+0);
-    debug[8]  = OpZ80(CPU.PC.W+1);
-    debug[9]  = OpZ80(CPU.PC.W+2);
-    debug[10] = OpZ80(CPU.PC.W+3);
-    debug[11] = OpZ80(CPU.PC.W+4);
-    debug[12] = OpZ80(CPU.PC.W+5);
-    debug[13] = OpZ80(CPU.PC.W+6);
+    debug[0]  = OpZ80(CPU.PC.W-12);
+    debug[1]  = OpZ80(CPU.PC.W-11);
+    debug[2]  = OpZ80(CPU.PC.W-10);
+    debug[3]  = OpZ80(CPU.PC.W-9);
+    debug[4]  = OpZ80(CPU.PC.W-8);
+    debug[5]  = OpZ80(CPU.PC.W-7);
+    debug[6]  = OpZ80(CPU.PC.W-6);
+    debug[7]  = OpZ80(CPU.PC.W-5);
+    debug[8]  = OpZ80(CPU.PC.W-4);
+    debug[9]  = OpZ80(CPU.PC.W-3);
+    debug[10] = OpZ80(CPU.PC.W-2);
+    debug[11] = OpZ80(CPU.PC.W-1);
+    debug[12] = OpZ80(CPU.PC.W+0);
+    debug[13] = OpZ80(CPU.PC.W+1);
+    debug[14] = OpZ80(CPU.PC.W+2);
+    debug[15] = OpZ80(CPU.PC.W+3);
 #endif
 
     // Don't return from the state machine until we have a bit value to return
@@ -696,9 +700,9 @@ ITCM_CODE u8 tape_pulse(void)
                 {
                     if (myConfig.autoStop)
                     {
-                        if (++give_up_counter > 4)
+                        if (++give_up_counter > 5)
                         {
-                            tape_state = TAPE_STOP;
+                            tape_stop();
                             return 0x00;
                         }
                     }

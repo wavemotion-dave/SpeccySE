@@ -15,6 +15,7 @@
 #include <string.h>
 
 extern u32 debug[0x10];
+extern u32 DX, DY;
 
 // These are the various special icons/menu operations
 #define MENU_CHOICE_NONE        0x00
@@ -92,6 +93,8 @@ extern u32 debug[0x10];
 // -----------------------------
 #define KBD_KEY_SYMBOL      1
 #define KBD_KEY_SHIFT       2
+#define KBD_KEY_SFTDIR      3
+#define KBD_KEY_SYMDIR      4
 #define KBD_KEY_RET         13
 
 // What format is the input file?
@@ -154,9 +157,6 @@ extern void ReadFileCRCAndConfig(void);
 extern void DisplayStatusLine(bool bForce);
 extern void ResetSpectrum(void);
 extern void processDirectAudio(void);
-extern void processDirectBeeper(void);
-extern void processDirectAY3(void);
-extern void processDirectBeeperPlusAY(void);
 extern u8   speccyTapePosition(void);
 extern void tape_frame(void);
 extern void debug_init();

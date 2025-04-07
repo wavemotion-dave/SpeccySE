@@ -1606,7 +1606,8 @@ u8 spectrumInit(char *szGame)
 
   // We've got some debug data we can use for development... reset these.
   memset(debug, 0x00, sizeof(debug));
-
+  DX = DY = 0;
+  
   // -----------------------------------------------------------------
   // Change graphic mode to initiate emulation.
   // Here we can claim back 128K of VRAM which is otherwise unused

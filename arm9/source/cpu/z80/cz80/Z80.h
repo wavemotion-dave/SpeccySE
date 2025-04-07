@@ -91,15 +91,16 @@ typedef struct
   pair AF,BC,DE,HL,IX,IY,SP;        /* Main registers                       */
   pair AF1,BC1,DE1,HL1;             /* Shadow registers                     */
   byte IFF,I;                       /* Interrupt registers                  */
-  int  CycleDeficit;                /* Cycle deficit from last scanline     */
   word IRequest;                    /* Set to address of pending IRQ        */
   byte IAutoReset;                  /* Set to 1 to autom. reset IRequest    */
   byte TrapBadOps;                  /* Set to 1 to warn of illegal opcodes  */
   byte Trace;                       /* Set Trace=1 to start tracing         */
   byte R_HighBit;                   /* Used to preserve the high bit for R  */
   u32  R;                           /* Refresh register - masked on read    */
-  u32  TStates;                     /* Mostly for Spectrum - total cycles   */
-  word User;                        /* Arbitrary user data (ID,RAM*,etc.)   */
+  u32  TStates;                     /* Total CPU Cycles - reset each frame  */
+  u32  TStates_IRequest;            /* TStates of the last INT Request      */
+  word EI_Delay;                    /* Enable Interrupt instruction delay   */
+  u32  Reserved;                    /* For future use...                    */
 } Z80;
 
 

@@ -23,7 +23,7 @@
 #include "SpeccyUtils.h"
 #include "printf.h"
 
-#define SPECCYDS_SAVE_VER   0x0002        // Change this if the basic format of the .SAV file changes. Invalidates older .sav files.
+#define SPECCYDS_SAVE_VER   0x0003       // Change this if the basic format of the .SAV file changes. Invalidates older .sav files.
 
 
 // -----------------------------------------------------------------------------------------------------

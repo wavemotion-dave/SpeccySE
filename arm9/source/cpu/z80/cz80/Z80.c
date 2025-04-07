@@ -32,6 +32,8 @@ extern Z80 CPU;
 
 u32 halt_counter=0;
 extern u32 debug[];
+extern u32 DX,DY;
+extern u8 zx_ScreenRendering, zx_contend_delay;
 
 #define INLINE static inline
 
@@ -347,11 +349,11 @@ void ResetZ80(Z80 *R)
   CPU.R_HighBit= 0x00;
   CPU.IFF      = 0x00;
   CPU.IRequest = INT_NONE;
-  CPU.User     = 0;
+  CPU.EI_Delay = 0;
   CPU.Trace    = 0;
   CPU.TrapBadOps = 1;
   CPU.IAutoReset = 1;
-  CPU.CycleDeficit = 0;
+  CPU.TStates_IRequest = 0;
   CPU.TStates = 0;
 
   JumpZ80(CPU.PC.W);
@@ -366,10 +368,10 @@ ITCM_CODE void IntZ80(Z80 *R,word Vector)
     /* If HALTed, take CPU off HALT instruction */
     if(CPU.IFF&IFF_HALT) { CPU.PC.W++;CPU.IFF&=~IFF_HALT; }
 
-    CPU.TStates += 19; // Z80 takes 19 cycles to acknowledge interrupt, setup stack and read vector
-
     if((CPU.IFF&IFF_1)||(Vector==INT_NMI))
     {
+      CPU.TStates += 19; // Z80 takes 19 cycles to acknowledge interrupt, setup stack and read vector
+
       /* Save PC on stack */
       M_PUSH(PC);
 
@@ -399,6 +401,7 @@ ITCM_CODE void IntZ80(Z80 *R,word Vector)
           /* Read the vector */
           CPU.PC.B.l=RdZ80(Vector++);
           CPU.PC.B.h=RdZ80(Vector);
+          
           JumpZ80(CPU.PC.W);
 
           /* Done */
@@ -561,7 +564,24 @@ static void CodesFD_Speccy(void)
 #undef XX
 }
 
-extern u8 zx_ScreenRendering, zx_contend_delay;
+// ------------------------------------------------------------------------
+// The Enable Interrupt is delayed 1 M1 instruction and we must also check
+// to see if we are within the 32 TState period where the ZX Spectrum ULA
+// would hold the Interrupt Request pulse... 
+// ------------------------------------------------------------------------
+void EI_Enable(void)
+{
+   if (--CPU.EI_Delay == 0) 
+   {
+       CPU.IFF=(CPU.IFF&~IFF_EI)|IFF_1;
+       if (CPU.IRequest != INT_NONE)
+       {
+           if ((CPU.TStates - CPU.TStates_IRequest) < 32) IntZ80(&CPU, CPU.IRequest); // Fire the interrupt
+           else CPU.IRequest = INT_NONE; // We missed the interrupt... 
+       }
+   }
+}
+
 ITCM_CODE void ExecZ80_Speccy(u32 RunToCycles)
 {
   register byte I;
@@ -596,5 +616,7 @@ ITCM_CODE void ExecZ80_Speccy(u32 RunToCycles)
         case PFX_FD: CodesFD_Speccy();break;
         case PFX_DD: CodesDD_Speccy();break;
       }
+      
+      if (CPU.EI_Delay) EI_Enable();
   }
 }

@@ -133,11 +133,11 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
 
             if (inv & 0x8000) // SPACE SYMBOL MNB
             {
-                if (keysCurrent() & KEY_R) key |= 0x08;  // N
                 if (zx_special_key == 2)   key |= 0x02;  // Symbol was previously pressed
 
                 if (kbd_key)
                 {
+                    if (kbd_key == KBD_KEY_SYMDIR) key  |= 0x02;
                     if (kbd_key == ' ')            key  |= 0x01;
                     if (kbd_key == KBD_KEY_SYMBOL){key  |= 0x02; zx_special_key = 2;}
                     if (kbd_key == 'M')            key  |= 0x04;
@@ -160,8 +160,6 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
 
             if (inv & 0x2000) // POIUY
             {
-                if (keysCurrent() & KEY_L) key |= 0x10; // Y
-
                 if (kbd_key)
                 {
                     if (kbd_key == 'P')           key  |= 0x01;
@@ -177,11 +175,12 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
                 if (zx_special_key == 1)     key |= 0x01; // Shift was previously pressed
                 if (kbd_key)
                 {
-                    if (kbd_key == KBD_KEY_SHIFT){key  |= 0x01; zx_special_key = 1;}
-                    if (kbd_key == 'Z')           key  |= 0x02;
-                    if (kbd_key == 'X')           key  |= 0x04;
-                    if (kbd_key == 'C')           key  |= 0x08;
-                    if (kbd_key == 'V')           key  |= 0x10;
+                    if (kbd_key == KBD_KEY_SFTDIR) key  |= 0x01;
+                    if (kbd_key == KBD_KEY_SHIFT) {key  |= 0x01; zx_special_key = 1;}
+                    if (kbd_key == 'Z')            key  |= 0x02;
+                    if (kbd_key == 'X')            key  |= 0x04;
+                    if (kbd_key == 'C')            key  |= 0x08;
+                    if (kbd_key == 'V')            key  |= 0x10;
                 }
             }
 
@@ -799,18 +798,13 @@ ITCM_CODE u32 speccy_run(void)
     else
     {
         // Grab 3 samples worth of AY sound to mix with the beeper
-        processDirectAY3();
+        processDirectAudio();
 
-        ExecZ80_Speccy(CPU.TStates + (zx_128k_mode ? 66:64));
-        processDirectBeeper();
-
-        ExecZ80_Speccy(CPU.TStates + (zx_128k_mode ? 66:64));
-        processDirectBeeper();
+        ExecZ80_Speccy(CPU.TStates + (zx_128k_mode ? 132:128)); // Execute CPU for the visible portion of the scanline
 
         zx_ScreenRendering = 0; // On this final chunk we are drawing border and doing a horizontal sync... no contention
 
         ExecZ80_Speccy((zx_128k_mode ? 228:224) * zx_current_line); // This puts us exactly where we should be for the scanline
-        processDirectBeeper();
         
         // -----------------------------------------------------------------------
         // If we are not playing the tape, we want to reset the TStates counter
@@ -844,7 +838,9 @@ ITCM_CODE u32 speccy_run(void)
     {
         zx_current_line = 0;
         zx_ScreenRendering = 0;
-        IntZ80(&CPU, INT_RST38);
+        CPU.IRequest = INT_RST38;
+        IntZ80(&CPU, CPU.IRequest);
+        CPU.TStates_IRequest = CPU.TStates;
         return 0; // End of frame
     }
         

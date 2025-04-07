@@ -36,6 +36,8 @@
 #include "printf.h"
 
 u32 debug[0x10]={0};
+u32 DX = 0;
+u32 DY = 0;
 
 // --------------------------------------------------------------------------
 // This is the full 64K Spectrum memory map:
@@ -56,6 +58,7 @@ char initial_path[MAX_ROM_NAME] = "";
 u8 last_speccy_mode  = 99;
 u8 bFirstTime        = 3;
 u8 bottom_screen     = 0;
+u8 bStartIn          = 0;
 
 // ---------------------------------------------------------------------------
 // Some timing and frame rate comutations to keep the emulation on pace...
@@ -185,7 +188,7 @@ s16 mixer[WAVE_DIRECT_BUF_SIZE+1];
 // -------------------------------------------------------------------------------------------
 s16 last_sample __attribute__((section(".dtcm"))) = 0;
 int breather    __attribute__((section(".dtcm"))) = 0;
-extern void processDirectBeeperPlusAY(void);
+
 ITCM_CODE mm_word OurSoundMixer(mm_word len, mm_addr dest, mm_stream_formats format)
 {
     if (soundEmuPause)  // If paused, just "mix" in mute sound chip... all channels are OFF
@@ -202,9 +205,12 @@ ITCM_CODE mm_word OurSoundMixer(mm_word len, mm_addr dest, mm_stream_formats for
         s16 *p = (s16*)dest;
         for (int i=0; i<len*2; i++)
         {
-            if (mixer_read == mixer_write) {processDirectBeeperPlusAY();}
-            *p++ = mixer[mixer_read];
-            mixer_read = (mixer_read + 1) & WAVE_DIRECT_BUF_SIZE;
+            if (mixer_read == mixer_write) {*p = *(p-1); p++;}
+            else
+            {
+                *p++ = mixer[mixer_read];
+                mixer_read = (mixer_read + 1) & WAVE_DIRECT_BUF_SIZE;
+            }
         }
         last_sample = *(p-1);
         if (breather) {breather -= (len*2); if (breather < 0) breather = 0;}
@@ -214,65 +220,38 @@ ITCM_CODE mm_word OurSoundMixer(mm_word len, mm_addr dest, mm_stream_formats for
 }
 
 // --------------------------------------------------------------------------------------------
-// This is called when we are configured for 'Beeper' sound - it's really only useful for the
-// ZX Spectrum handling. We mix in AY samples as well if we are a ZX 128K... however, the AY 
-// doesn't need to be sampled quite as often so we grab 4 fresh samples per scanline and then
-// use those to mix into the beeper processing which is happening at 4x per scanline.
+// This is called when we want to sample the audio directly - we grab 3x AY samples and mix
+// them with the beeper tones. We do a little bit of edge smoothing on the audio  tones here
+// to make the direct beeper sound a bit less harsh - but this really needs to be properly
+// over-sampled and smoothed someday to make it really shine... good enough for now.
 // --------------------------------------------------------------------------------------------
 s16 mixbufAY[4]  __attribute__((section(".dtcm")));
-u8  mixbufAY_idx __attribute__((section(".dtcm"))) = 0;
-ITCM_CODE void processDirectAY3(void)
+const s16 beeper_vol[4] ={ 0x000, 0x200, 0x600, 0xA00 };
+u32 vol __attribute__((section(".dtcm"))) = 0;
+ITCM_CODE void processDirectAudio(void)
 {
     if (zx_AY_enabled) 
     {
         ay38910Mixer(3, mixbufAY, &myAY);
     }
     
-    mixbufAY_idx = 0;
-}
-
-const u16 beeper_vol[8] ={ 0x000, 0x200, 0x400, 0x600, 0x700, 0x800, 0x900, 0xA00 };
-u8 vol = 0;
-ITCM_CODE void processDirectBeeper(void)
-{
-    if (breather) {return;}
-
-    // Smooth edges of beeper...
-    if (portFE & 0x10) 
+    for (u8 i=0; i<3; i++)
     {
-        if (vol < 7) vol++;
+        // Smooth edges of beeper slightly...
+        if (portFE & 0x10) {if (vol < 3) vol++;}
+        else {if (vol) vol--;}
+        
+        if (breather) {return;}
+        s16 sample = mixbufAY[i] + beeper_vol[vol];
+        mixer[mixer_write] = sample;
+        mixer_write++; mixer_write &= WAVE_DIRECT_BUF_SIZE;
+        if (((mixer_write+1)&WAVE_DIRECT_BUF_SIZE) == mixer_read) {breather = 2048;}
     }
-    else 
-    {
-        if (vol) vol--;
-    }
-    
-    s16 sample = mixbufAY[mixbufAY_idx++] + beeper_vol[vol];
-    mixer[mixer_write] = sample;
-    mixer_write++; mixer_write &= WAVE_DIRECT_BUF_SIZE;
-    if (((mixer_write+1)&WAVE_DIRECT_BUF_SIZE) == mixer_read) {breather = 2048;}
 }
-
-
-ITCM_CODE void processDirectBeeperPlusAY(void)
-{
-    s16 tmpAYbuf[2] = {0};
-
-    s16 sample = (portFE & 0x10) ? 0xA00 : 0x000;
-    
-    if (zx_AY_enabled)
-    {
-        ay38910Mixer(1, tmpAYbuf, &myAY);        
-        sample += tmpAYbuf[0];
-    }
-    mixer[mixer_write] = sample;
-    mixer_write++; mixer_write &= WAVE_DIRECT_BUF_SIZE;
-}
-
 
 // -------------------------------------------------------------------------------------------
 // Setup the maxmod audio stream - this will be a 16-bit Stereo PCM output at 55KHz which
-// sounds about right for the Spectrum.
+// sounds about right for the ZX Spectrum AY chip (we mix in beeper tones as well)
 // -------------------------------------------------------------------------------------------
 void setupStream(void)
 {
@@ -371,6 +350,7 @@ void ResetSpectrum(void)
   emuFps=0;
   
   bFirstTime = 2;
+  bStartIn = 0;
   bottom_screen = 0;
   last_speccy_mode = 99;
 }
@@ -446,6 +426,8 @@ void ShowDebugZ80(void)
         {
             sprintf(tmp, "D%X %-7lu %04X", i, debug[i], (u16)debug[i]); DSPrint(17,idx++, 7, tmp);
         }
+        sprintf(tmp, "DX %-9lu", DX); DSPrint(17,idx++, 7, tmp);
+        sprintf(tmp, "DY %-9lu", DY); DSPrint(17,idx++, 7, tmp);
     }
     else
     {
@@ -474,10 +456,10 @@ void DisplayStatusLine(bool bForce)
         DSPrint(18,0,6, zx_128k_mode ? "SPECCY 128K" : "SPECCY 48K ");
     }
 
-    if (zx_special_key || (kbd_key == KBD_KEY_SYMBOL) || (kbd_key == KBD_KEY_SHIFT))
+    if (zx_special_key || (kbd_key == KBD_KEY_SYMBOL) || (kbd_key == KBD_KEY_SHIFT) || (kbd_key == KBD_KEY_SYMDIR) || (kbd_key == KBD_KEY_SFTDIR))
     {
-        if ((zx_special_key == 1) || (kbd_key == KBD_KEY_SHIFT))  DSPrint(3,0,6, "@");
-        if ((zx_special_key == 2) || (kbd_key == KBD_KEY_SYMBOL)) DSPrint(3,0,2, "@");
+        if ((zx_special_key == 1) || (kbd_key == KBD_KEY_SHIFT)  || (kbd_key == KBD_KEY_SFTDIR)) DSPrint(3,0,6, "@");
+        if ((zx_special_key == 2) || (kbd_key == KBD_KEY_SYMBOL) || (kbd_key == KBD_KEY_SYMDIR)) DSPrint(3,0,2, "@");
     } else DSPrint(3,0,6, " ");
     
     if (tape_is_playing())
@@ -1122,6 +1104,14 @@ void SpeccyDS_main(void)
             DisplayStatusLine(false);
             emuActFrames = 0;
             
+            if (bStartIn)
+            {
+                if (--bStartIn == 0)
+                {
+                    tape_play();
+                }
+            }
+            
             if (bFirstTime)
             {
                 if (--bFirstTime == 0)
@@ -1132,6 +1122,7 @@ void SpeccyDS_main(void)
                         if (myConfig.autoLoad)
                         {
                             BufferKey('J'); BufferKey(KBD_KEY_SYMBOL); BufferKey('P'); BufferKey(KBD_KEY_SYMBOL); BufferKey('P'); BufferKey(KBD_KEY_RET);
+                            if (myConfig.autoLoad && (myConfig.tapeSpeed == 0)) bStartIn = 2;
                         }
                     }
                 }
@@ -1347,8 +1338,8 @@ void SpeccyDS_main(void)
                       else if ((keyCoresp[myConfig.keymap[i]] >= META_KBD_0) && (keyCoresp[myConfig.keymap[i]] <= META_KBD_9))  kbd_key = ('0' + (keyCoresp[myConfig.keymap[i]] - META_KBD_0));
                       else if (keyCoresp[myConfig.keymap[i]] == META_KBD_SPACE)     kbd_key  = ' ';
                       else if (keyCoresp[myConfig.keymap[i]] == META_KBD_RETURN)    kbd_key  = KBD_KEY_RET;
-                      else if (keyCoresp[myConfig.keymap[i]] == META_KBD_SHIFT)    {kbd_key  = KBD_KEY_SHIFT;  DisplayStatusLine(false);}
-                      else if (keyCoresp[myConfig.keymap[i]] == META_KBD_SYMBOL)   {kbd_key  = KBD_KEY_SYMBOL; DisplayStatusLine(false);}
+                      else if (keyCoresp[myConfig.keymap[i]] == META_KBD_SHIFT)    {kbd_key  = KBD_KEY_SFTDIR;  DisplayStatusLine(false);}
+                      else if (keyCoresp[myConfig.keymap[i]] == META_KBD_SYMBOL)   {kbd_key  = KBD_KEY_SYMDIR;  DisplayStatusLine(false);}
 
                       if (kbd_key != 0)
                       {

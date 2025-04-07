@@ -18,7 +18,7 @@
 #include "printf.h"
 
 // ------------------------------------------------------------------------------------
-// We need to put a practical limit on the size of the high scores... 740 games it is!
+// We need to put a practical limit on the size of the high scores... 550 games it is!
 // ------------------------------------------------------------------------------------
 #define MAX_HS_GAMES    550         // Fits into 96K (3 SD card clusters)
 #define HS_VERSION      0x0001      // Changing this will wipe high scores on the next install
@@ -60,7 +60,7 @@ struct highscore_t
 };
 
 // -----------------------------------------------------------------------------------
-// We save up to 300 games worth of scores. We also have a spot for default initials 
+// We save up to 550 games worth of scores. We also have a spot for default initials 
 // so we can re-use the last initials for the last high-score entered. Saves time 
 // for most people who are always the ones using their DS system.
 // -----------------------------------------------------------------------------------

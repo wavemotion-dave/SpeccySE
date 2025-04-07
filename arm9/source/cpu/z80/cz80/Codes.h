@@ -249,7 +249,7 @@ case EI:
   if(!(CPU.IFF&(IFF_1|IFF_EI)))
   {
     CPU.IFF|=IFF_2|IFF_EI;
-    CPU.IFF=(CPU.IFF&~IFF_EI)|IFF_1;
+    CPU.EI_Delay = 2;       // We process the EI and then the instruction after it before actually enabling
   }
   break;
 
