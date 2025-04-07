@@ -6,7 +6,7 @@
 // royalty provided this copyright notice is used and wavemotion-dave (Phoenix-Edition),
 // Alekmaul (original port) and Marat Fayzullin (ColEM core) are thanked profusely.
 //
-// The SpeccyDS emulator is offered as-is, without any warranty.
+// The SpeccySE emulator is offered as-is, without any warranty.
 // =====================================================================================
 
 

@@ -6,7 +6,7 @@
 // royalty provided this copyright notice is used and wavemotion-dave and Marat
 // Fayzullin (Z80 core) are thanked profusely.
 //
-// The SpeccyDS emulator is offered as-is, without any warranty. Please see readme.md
+// The SpeccySE emulator is offered as-is, without any warranty. Please see readme.md
 // =====================================================================================
 #include <nds.h>
 
@@ -18,7 +18,7 @@
 #include <ctype.h>
 #include <dirent.h>
 
-#include "SpeccyDS.h"
+#include "SpeccySE.h"
 #include "CRC32.h"
 #include "cpu/z80/Z80_interface.h"
 #include "SpeccyUtils.h"

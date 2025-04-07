@@ -6,7 +6,7 @@
 // royalty provided this copyright notice is used and wavemotion-dave and Marat
 // Fayzullin (Z80 core) are thanked profusely.
 //
-// The SpeccyDS emulator is offered as-is, without any warranty. Please see readme.md
+// The SpeccySE emulator is offered as-is, without any warranty. Please see readme.md
 // =====================================================================================
 #include <nds.h>
 
@@ -17,7 +17,7 @@
 #include <unistd.h>
 #include <maxmod9.h>
 
-#include "SpeccyDS.h"
+#include "SpeccySE.h"
 #include "SpeccyUtils.h"
 #include "topscreen.h"
 #include "mainmenu.h"
@@ -229,7 +229,7 @@ u8 showMessage(char *szCh1, char *szCh2)
   return uRet;
 }
 
-void SpeccyDSModeNormal(void) {
+void SpeccySEModeNormal(void) {
   REG_BG3CNT = BG_BMP8_256x256;
   REG_BG3PA = (1<<8);
   REG_BG3PB = 0;
@@ -242,11 +242,11 @@ void SpeccyDSModeNormal(void) {
 //*****************************************************************************
 // Put the top screen in refocused bitmap mode
 //*****************************************************************************
-void SpeccyDSInitScreenUp(void) {
+void SpeccySEInitScreenUp(void) {
   videoSetMode(MODE_5_2D | DISPLAY_BG3_ACTIVE);
   vramSetBankA(VRAM_A_MAIN_BG_0x06000000);
   vramSetBankB(VRAM_B_MAIN_SPRITE);
-  SpeccyDSModeNormal();
+  SpeccySEModeNormal();
 }
 
 /*********************************************************************************
@@ -629,7 +629,7 @@ u8 speccyDSLoadFile(u8 bTapeOnly)
 
 
 // ---------------------------------------------------------------------------
-// Write out the SpeccyDS.DAT configuration file to capture the settings for
+// Write out the SpeccySE.DAT configuration file to capture the settings for
 // each game.  This one file contains global settings ~1000 game settings.
 // ---------------------------------------------------------------------------
 void SaveConfig(bool bShow)
@@ -678,7 +678,7 @@ void SaveConfig(bool bShow)
     {
         mkdir("/data", 0777);   // Doesn't exist - make it...
     }
-    fp = fopen("/data/SpeccyDS.DAT", "wb+");
+    fp = fopen("/data/SpeccySE.DAT", "wb+");
     if (fp != NULL)
     {
         fwrite(&myGlobalConfig, sizeof(myGlobalConfig), 1, fp); // Write the global config
@@ -812,7 +812,7 @@ void SetDefaultGameConfig(void)
 
 // ----------------------------------------------------------
 // Load configuration into memory where we can use it.
-// The configuration is stored in SpeccyDS.DAT
+// The configuration is stored in SpeccySE.DAT
 // ----------------------------------------------------------
 void LoadConfig(void)
 {
@@ -822,9 +822,9 @@ void LoadConfig(void)
     // -----------------------------------------------------------------
     SetDefaultGameConfig();
 
-    if (ReadFileCarefully("/data/SpeccyDS.DAT", (u8*)&myGlobalConfig, sizeof(myGlobalConfig), 0))  // Read Global Config
+    if (ReadFileCarefully("/data/SpeccySE.DAT", (u8*)&myGlobalConfig, sizeof(myGlobalConfig), 0))  // Read Global Config
     {
-        ReadFileCarefully("/data/SpeccyDS.DAT", (u8*)&AllConfigs, sizeof(AllConfigs), sizeof(myGlobalConfig)); // Read the full game array of configs
+        ReadFileCarefully("/data/SpeccySE.DAT", (u8*)&AllConfigs, sizeof(AllConfigs), sizeof(myGlobalConfig)); // Read the full game array of configs
 
         if (myGlobalConfig.config_ver != CONFIG_VER)
         {
@@ -934,7 +934,7 @@ u8 display_options_list(bool bFullDisplay)
 //*****************************************************************************
 // Change Game Options for the current game
 //*****************************************************************************
-void SpeccyDSGameOptions(bool bIsGlobal)
+void SpeccySEGameOptions(bool bIsGlobal)
 {
     u8 optionHighlighted;
     u8 idx;
@@ -1073,7 +1073,7 @@ void SwapKeymap(void)
 // Allow the user to change the key map for the current game and give them
 // the option of writing that keymap out to a configuration file for the game.
 // ------------------------------------------------------------------------------
-void SpeccyDSChangeKeymap(void)
+void SpeccySEChangeKeymap(void)
 {
   u32 ucHaut=0x00, ucBas=0x00,ucL=0x00,ucR=0x00,ucY= 6, bOK=0, bIndTch=0;
 
@@ -1440,7 +1440,7 @@ void speccyDSChangeOptions(void)
           case 9 :     // REDEFINE KEYS
             if (ucGameChoice != -1)
             {
-                SpeccyDSChangeKeymap();
+                SpeccySEChangeKeymap();
                 BottomScreenOptions();
                 dispInfoOptions(ucY);
                 DisplayFileName();
@@ -1453,7 +1453,7 @@ void speccyDSChangeOptions(void)
           case 11 :     // GAME OPTIONS
             if (ucGameChoice != -1)
             {
-                SpeccyDSGameOptions(false);
+                SpeccySEGameOptions(false);
                 BottomScreenOptions();
                 dispInfoOptions(ucY);
                 DisplayFileName();
@@ -1465,7 +1465,7 @@ void speccyDSChangeOptions(void)
             break;
 
           case 13 :     // GLOBAL OPTIONS
-            SpeccyDSGameOptions(true);
+            SpeccySEGameOptions(true);
             BottomScreenOptions();
             dispInfoOptions(ucY);
             DisplayFileName();
@@ -1788,7 +1788,7 @@ void PatchZ80(register Z80 *r)
 }
 
 // -----------------------------------------------------------------
-// Trap and report illegal opcodes to the SpeccyDS debugger...
+// Trap and report illegal opcodes to the SpeccySE debugger...
 // -----------------------------------------------------------------
 void Trap_Bad_Ops(char *prefix, byte I, word W)
 {

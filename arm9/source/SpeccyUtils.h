@@ -6,12 +6,12 @@
 // royalty provided this copyright notice is used and wavemotion-dave and Marat 
 // Fayzullin (ColEM core) are thanked profusely.
 //
-// The SpeccyDS emulator is offered as-is, without any warranty. Please see readme.md
+// The SpeccySE emulator is offered as-is, without any warranty. Please see readme.md
 // =====================================================================================
 #ifndef _SPECCY_UTILS_H_
 #define _SPECCY_UTILS_H_
 #include <nds.h>
-#include "SpeccyDS.h"
+#include "SpeccySE.h"
 #include "cpu/z80/Z80_interface.h"
 #include "cpu/ay38910/AY38910.h"
 

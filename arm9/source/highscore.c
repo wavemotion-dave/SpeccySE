@@ -6,14 +6,14 @@
 // royalty provided this copyright notice is used and wavemotion-dave (Phoenix-Edition),
 // Alekmaul (original port) and Marat Fayzullin (ColEM core) are thanked profusely.
 //
-// The SpeccyDS emulator is offered as-is, without any warranty. Please see readme.md
+// The SpeccySE emulator is offered as-is, without any warranty. Please see readme.md
 // =====================================================================================
 #include <nds.h>
 #include <stdio.h>
 #include <fat.h>
 #include <dirent.h>
 #include <unistd.h>
-#include "SpeccyDS.h"
+#include "SpeccySE.h"
 #include "SpeccyUtils.h"
 #include "printf.h"
 
@@ -111,7 +111,7 @@ void highscore_init(void)
     // ------------------------------------------------------
     // See if the high score file exists... if so, read it!
     // ------------------------------------------------------
-    if (ReadFileCarefully("/data/SpeccyDS.hi", (u8*)&highscores, sizeof(highscores), 0))
+    if (ReadFileCarefully("/data/SpeccySE.hi", (u8*)&highscores, sizeof(highscores), 0))
     {
         // --------------------------------------------
         // If the high score version is wrong or if 
@@ -198,7 +198,7 @@ void highscore_save(void)
     // -------------------------------------------------------
     // Open file in binary mode... overwrite if it exists...
     // -------------------------------------------------------
-    fp = fopen("/data/SpeccyDS.hi", "wb+");
+    fp = fopen("/data/SpeccySE.hi", "wb+");
     if (fp != NULL)
     {
         // -----------------------------------------

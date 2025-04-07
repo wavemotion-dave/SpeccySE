@@ -13,11 +13,11 @@ endif
 
 include $(DEVKITARM)/ds_rules
 
-export TARGET		:=	SpeccyDS
+export TARGET		:=	SpeccySE
 export TOPDIR		:=	$(CURDIR)
 export VERSION		:=  0.6b
 
-ICON 		:= -b $(CURDIR)/logo.bmp "SpeccyDS $(VERSION);wavemotion-dave;https://github.com/wavemotion-dave/SpeccyDS" 
+ICON 		:= -b $(CURDIR)/logo.bmp "SpeccySE $(VERSION);wavemotion-dave;https://github.com/wavemotion-dave/SpeccySE" 
 
 .PHONY: $(TARGET).arm7 $(TARGET).arm9
 
