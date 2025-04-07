@@ -20,7 +20,7 @@
 #include <fat.h>
 #include <maxmod9.h>
 
-#include "SpeccyDS.h"
+#include "SpeccySE.h"
 #include "highscore.h"
 #include "SpeccyUtils.h"
 #include "speccy_kbd.h"
