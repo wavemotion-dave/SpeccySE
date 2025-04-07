@@ -102,5 +102,4 @@ location as the BIOS (+0000 to +4000). Only up to 16K can be loaded in this
 way. This is mainly used to load diagnostic test programs such as the
 amazing RETROLEUM DIAGROM.
 
-
 More to come...
