@@ -435,7 +435,7 @@ void ShowDebugZ80(void)
         for (u8 i=0; i<4; i++)
         {
             sprintf(tmp, "D%d %-7ld %04lX  D%d %-7ld %04lX", i, (s32)debug[i], (debug[i] < 0xFFFF ? debug[i]:0xFFFF), 4+i, (s32)debug[4+i], (debug[4+i] < 0xFFFF ? debug[4+i]:0xFFFF)); 
-            DSPrint(0,idx++,7, tmp);
+            DSPrint(0,idx++,0, tmp);
         }
     }
     idx++;
@@ -453,7 +453,7 @@ void DisplayStatusLine(bool bForce)
     if ((speccy_mode != last_speccy_mode) || bForce)
     {
         last_speccy_mode = speccy_mode;
-        DSPrint(18,0,6, zx_128k_mode ? "SPECCY 128K" : "SPECCY 48K ");
+        DSPrint(28,0,2, zx_128k_mode ? "128K" : " 48K");
     }
 
     if (zx_special_key || (kbd_key == KBD_KEY_SYMBOL) || (kbd_key == KBD_KEY_SHIFT) || (kbd_key == KBD_KEY_SYMDIR) || (kbd_key == KBD_KEY_SFTDIR))
@@ -464,11 +464,17 @@ void DisplayStatusLine(bool bForce)
     
     if (tape_is_playing())
     {
+        DSPrint(2, 21, 2, "$%&");
+        DSPrint(2, 22, 2, "DEF");
+        
         sprintf(tmp, "TAPE %-6d", tape_bytes_processed);
         DSPrint(5,0,6, tmp);
     }
     else 
     {
+        DSPrint(2, 21, 2, "!\"#");
+        DSPrint(2, 22, 2, "ABC");
+        
         DSPrint(5,0,6, "            ");
     }
 }
@@ -698,6 +704,7 @@ void MiniMenuShow(bool bClearScreen, u8 sel)
     DSPrint(8,9+mini_menu_items,(sel==mini_menu_items)?2:0,  " HIGH   SCORE  ");  mini_menu_items++;
     DSPrint(8,9+mini_menu_items,(sel==mini_menu_items)?2:0,  " SAVE   STATE  ");  mini_menu_items++;
     DSPrint(8,9+mini_menu_items,(sel==mini_menu_items)?2:0,  " LOAD   STATE  ");  mini_menu_items++;
+    DSPrint(8,9+mini_menu_items,(sel==mini_menu_items)?2:0,  " DEFINE KEYS   ");  mini_menu_items++;
     DSPrint(8,9+mini_menu_items,(sel==mini_menu_items)?2:0,  " EXIT   MENU   ");  mini_menu_items++;
 }
 
@@ -736,7 +743,8 @@ u8 MiniMenu(void)
             else if (menuSelection == 2) retVal = MENU_CHOICE_HI_SCORE;
             else if (menuSelection == 3) retVal = MENU_CHOICE_SAVE_GAME;
             else if (menuSelection == 4) retVal = MENU_CHOICE_LOAD_GAME;
-            else if (menuSelection == 5) retVal = MENU_CHOICE_NONE;
+            else if (menuSelection == 5) retVal = MENU_CHOICE_DEFINE_KEYS;
+            else if (menuSelection == 6) retVal = MENU_CHOICE_NONE;
             else retVal = MENU_CHOICE_NONE;
             break;
         }
@@ -907,6 +915,13 @@ u8 __attribute__((noinline)) handle_meta_key(u8 meta_key)
             {
               spectrumLoadState();
             }
+            BottomScreenKeyboard();
+            SoundUnPause();
+            break;
+            
+        case MENU_CHOICE_DEFINE_KEYS:
+            SoundPause();
+            SpeccySEChangeKeymap();
             BottomScreenKeyboard();
             SoundUnPause();
             break;

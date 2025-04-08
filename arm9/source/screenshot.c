@@ -44,20 +44,23 @@ void write32(void *address, u32 value) {
     *fourth = (value >> 24) & 0xff;
 }
 
-u8 Screenshot_Buffer[100*1024];
 bool screenshotbmp(const char* filename) {
     FILE *file = fopen(filename, "wb");
 
-    if(!file)
-        return false;
+    if(!file) return false;
 
     REG_DISPCAPCNT = DCAP_BANK(DCAP_BANK_VRAM_B) | DCAP_SIZE(DCAP_SIZE_256x192) | DCAP_ENABLE;
     while(REG_DISPCAPCNT & DCAP_ENABLE);
 
     // ---------------------------------------------------------
     // The screenshot requires a bit less than 100K of memory...
+    // We steal this from the back end of the big read-only 
+    // memory block. If we have a tape that is huge, we would
+    // run into problems but it would be astronomically rare
+    // and it's better than wasting another 100K bytes that is
+    // mostly underutilized.
     // ---------------------------------------------------------
-    u8 *temp = (u8*)Screenshot_Buffer;
+    u8 *temp = (u8*)ROM_Memory + (sizeof(ROM_Memory) - (100*1024));
 
     HEADER *header= (HEADER*)temp;
     INFOHEADER *infoheader = (INFOHEADER*)(temp + sizeof(HEADER));

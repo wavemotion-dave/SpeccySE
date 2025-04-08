@@ -17,7 +17,7 @@
 
 #define MAX_ROMS                    2048
 #define MAX_ROM_NAME                160
-#define MAX_TAPE_SIZE               (512*1024) // 512K is big enough for any .TAP/.TZX or Snapshot 
+#define MAX_TAPE_SIZE               (640*1024) // 640K is big enough for any .TAP/.TZX or Snapshot 
             
 #define MAX_CONFIGS                 1000
 #define CONFIG_VER                  0x0002
@@ -176,5 +176,6 @@ extern void spectrumSaveState();
 extern void intro_logo(void);
 extern void BufferKey(u8 key);
 extern void ProcessBufferedKeys(void);
+extern void SpeccySEChangeKeymap(void);
 
 #endif // _SPECCY_UTILS_H_
