@@ -18,6 +18,7 @@ Features :
 * Save and Restore states so you can pick up where you left off
 * Chuckie-Egg style Joystick configuration to make climing ladders more forgiving (try it - you'll like it!)
 * High Score saving for 10 scores with initials, date/time.
+* Solid Z80 core that passes the ZEXDOC test suite (covering everything but not undocumented flags).
 * Minimal design asthetic - pick game, play game. Runs unpached from your SD card via TWL++ or similar.
 
 Copyright :
