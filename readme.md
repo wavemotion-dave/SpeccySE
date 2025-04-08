@@ -7,6 +7,19 @@ To run requires one or both of the original ZX Spectrum BIOS ROMs.
 Place 48.ROM and 128.ROM (exactly so named) into the same directory 
 as the emulator or else in /roms/bios or /data/bios
 
+Features :
+-----------------------
+* Loads .SNA snapshots (48K only)
+* Loads .Z80 snapshots (V1, V2 and V3 formats)
+* Loads .TAP files up to 640K total length (can swap tapes mid-game)
+* Loads .TZX files up to 640K total length (can swap tapes mid-game)
+* Kempston and Sinclair joystick support.
+* Fully configurable keys for the 12 NDS keys to any combination of joystick/keyboard
+* Save and Restore states so you can pick up where you left off
+* Chuckie-Egg style Joystick configuration to make climing ladders more forgiving (try it - you'll like it!)
+* High Score saving for 10 scores with initials, date/time.
+* Minimal design asthetic - pick game, play game. Rights right from your SD card via TWL++ or similar.
+
 Copyright :
 -----------------------
 SpeccySE is Copyright (c) 2025 Dave Bernazzani (wavemotion-dave)
