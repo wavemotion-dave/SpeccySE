@@ -68,7 +68,7 @@ quote mark ("), you would press and release Symbol, then press the letter P.
 
 Joystick Support :
 -----------------------
-The emulator has support for the Kempston and Sinclair 1 joysticks but
+The emulator has support for the Kempston and Sinclair (67890) joysticks but
 really any keyboard key can be mapped to any one of the 12 NDS buttons
 so you should be able to configure things exactly as desired. When using
 the 'REDEFINE KEYS' menu, you can press the NDS 'X' button to toggle between
@@ -106,7 +106,10 @@ were part of the charm of the original system.
 You can press the Cassette Icon to swap in another tape or set the tape
 position manually. Most games just figure it out - and the auto-play
 and auto-stop of tapes should be working _reasonably_ well. You can 
-override this as needed.
+override this as needed. While the tape is playing, most of the keyboard
+handling is disabled to gain maximum speed - so if you find that the
+auto tape stop isn't working, press the Cassette Icon and manually stop
+the tape.
 
 ROM Support :
 -----------------------
