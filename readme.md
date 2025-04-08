@@ -9,10 +9,11 @@ as the emulator or else in /roms/bios or /data/bios
 
 Features :
 -----------------------
-* Loads .SNA snapshots (48K only)
-* Loads .Z80 snapshots (V1, V2 and V3 formats)
 * Loads .TAP files up to 640K total length (can swap tapes mid-game)
 * Loads .TZX files up to 640K total length (can swap tapes mid-game)
+* Loads .SNA snapshots (48K only)
+* Loads .Z80 snapshots (V1, V2 and V3 formats)
+* Loads .ROM files up to 16K in place of standard BIOS (diagnostics, etc)
 * Kempston and Sinclair joystick support.
 * Fully configurable keys for the 12 NDS keys to any combination of joystick/keyboard
 * Save and Restore states so you can pick up where you left off
