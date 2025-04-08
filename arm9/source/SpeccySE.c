@@ -6,7 +6,7 @@
 // royalty provided this copyright notice is used and wavemotion-dave and Marat 
 // Fayzullin (Z80 core) are thanked profusely.
 //
-// The SpeccyDS emulator is offered as-is, without any warranty. Please see readme.md
+// The SpeccySE emulator is offered as-is, without any warranty. Please see readme.md
 // =====================================================================================
 #include <nds.h>
 #include <nds/fifomessages.h>
@@ -49,7 +49,7 @@ u8 RAM_Memory128[0x20000] ALIGN(32) = {0};  // The Z80 Memory is 64K but we expa
 u8 SpectrumBios[0x4000]             = {0};  // We keep the 16k ZX Spectrum 48K BIOS around
 u8 SpectrumBios128[0x8000]          = {0};  // We keep the 32k ZX Spectrum 128K BIOS around
 
-u8 ROM_Memory[MAX_CART_SIZE];               // This is where we keep the raw untouched file as read from the SD card (.TAP, .TZX, .Z80, etc)
+u8 ROM_Memory[MAX_TAPE_SIZE];               // This is where we keep the raw untouched file as read from the SD card (.TAP, .TZX, .Z80, etc)
 
 static char cmd_line_file[256];
 char initial_file[MAX_ROM_NAME] = "";
@@ -485,7 +485,7 @@ void CassetteInsert(char *filename)
     FILE *inFile = fopen(filename, "rb");
     if (inFile)
     {
-        last_file_size = fread(ROM_Memory, 1, MAX_CART_SIZE, inFile);
+        last_file_size = fread(ROM_Memory, 1, MAX_TAPE_SIZE, inFile);
         fclose(inFile);
         tape_parse_blocks(last_file_size);
         tape_reset();
@@ -629,7 +629,7 @@ void CassetteMenu(void)
                     break;
 
                 case MENU_ACTION_SWAP:
-                    speccyDSLoadFile(1);
+                    speccySELoadFile(1);
                     if (ucGameChoice >= 0)
                     {
                         CassetteInsert(gpFic[ucGameChoice].szName);
@@ -1029,7 +1029,7 @@ u8 chuckie_key_right = 0;
 // ------------------------------------------------------------------------
 // The main emulation loop is here... call into the Z80, VDP and PSG
 // ------------------------------------------------------------------------
-void SpeccyDS_main(void)
+void SpeccySE_main(void)
 {
   u16 iTx,  iTy;
   u32 ucDEUX;
@@ -1397,7 +1397,7 @@ void useVRAM(void)
 /*********************************************************************************
  * Init DS Emulator - setup VRAM banks and background screen rendering banks
  ********************************************************************************/
-void speccyDSInit(void)
+void speccySEInit(void)
 {
   //  Init graphic mode (bitmap mode)
   videoSetMode(MODE_0_2D  | DISPLAY_BG0_ACTIVE | DISPLAY_BG1_ACTIVE | DISPLAY_SPR_1D_LAYOUT | DISPLAY_SPR_ACTIVE);
@@ -1423,7 +1423,7 @@ void speccyDSInit(void)
   BottomScreenOptions();
 
   //  Find the files
-  speccyDSFindFiles(0);
+  speccySEFindFiles(0);
 }
 
 void BottomScreenOptions(void)
@@ -1513,7 +1513,7 @@ void BottomScreenCassette(void)
 /*********************************************************************************
  * Init CPU for the current game
  ********************************************************************************/
-void speccyDSInitCPU(void)
+void speccySEInitCPU(void)
 {
   //  -----------------------------------------
   //  Init Main Memory and VDP Video Memory
@@ -1668,7 +1668,7 @@ int main(int argc, char **argv)
   //  ------------------------------------------------------------
   while(1)
   {
-    speccyDSInit();
+    speccySEInit();
 
     // ---------------------------------------------------------------
     // Let the user know what BIOS files were found - the only BIOS
@@ -1697,12 +1697,12 @@ int main(int argc, char **argv)
       }
       else
       {
-          speccyDSChangeOptions();
+          speccySEChangeOptions();
       }
 
       //  Run Machine
-      speccyDSInitCPU();
-      SpeccyDS_main();
+      speccySEInitCPU();
+      SpeccySE_main();
     }
   }
   return(0);

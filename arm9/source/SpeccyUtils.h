@@ -17,7 +17,7 @@
 
 #define MAX_ROMS                    2048
 #define MAX_ROM_NAME                160
-#define MAX_CART_SIZE               (512*1024) // 512K is big enough for any .TAP/.TZX or Snapshot 
+#define MAX_TAPE_SIZE               (512*1024) // 512K is big enough for any .TAP/.TZX or Snapshot 
             
 #define MAX_CONFIGS                 1000
 #define CONFIG_VER                  0x0002
@@ -127,7 +127,7 @@ extern u8 zx_ScreenRendering;
 extern u8 SpectrumBios[0x4000];
 extern u8 SpectrumBios128[0x8000];
 
-extern u8 ROM_Memory[MAX_CART_SIZE];
+extern u8 ROM_Memory[MAX_TAPE_SIZE];
 extern u8 RAM_Memory[0x10000];
 extern u8 RAM_Memory128[0x20000];
 
@@ -141,12 +141,12 @@ extern int ucGameChoice;
 
 extern void LoadConfig(void);
 extern u8   showMessage(char *szCh1, char *szCh2);
-extern void speccyDSFindFiles(u8 bTapeOnly);
-extern void speccyDSChangeOptions(void);
+extern void speccySEFindFiles(u8 bTapeOnly);
+extern void speccySEChangeOptions(void);
 extern void DSPrint(int iX,int iY,int iScr,char *szMessage);
 extern u32  crc32 (unsigned int crc, const unsigned char *buf, unsigned int len);
 extern void FadeToColor(unsigned char ucSens, unsigned short ucBG, unsigned char ucScr, unsigned char valEnd, unsigned char uWait);
-extern u8   speccyDSLoadFile(u8 bTapeOnly);
+extern u8   speccySELoadFile(u8 bTapeOnly);
 extern void DisplayFileName(void);
 extern void DisplayFileNameCassette(void);
 extern u32  ReadFileCarefully(char *filename, u8 *buf, u32 buf_size, u32 buf_offset);

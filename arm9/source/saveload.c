@@ -23,7 +23,7 @@
 #include "SpeccyUtils.h"
 #include "printf.h"
 
-#define SPECCYDS_SAVE_VER   0x0003       // Change this if the basic format of the .SAV file changes. Invalidates older .sav files.
+#define SPECCY_SAVE_VER   0x0003       // Change this if the basic format of the .SAV file changes. Invalidates older .sav files.
 
 
 // -----------------------------------------------------------------------------------------------------
@@ -79,7 +79,7 @@ void spectrumSaveState()
   if (handle != NULL)
   {
     // Write Version
-    u16 save_ver = SPECCYDS_SAVE_VER;
+    u16 save_ver = SPECCY_SAVE_VER;
     retVal = fwrite(&save_ver, sizeof(u16), 1, handle);
 
     // Write CZ80 CPU
@@ -220,7 +220,7 @@ void spectrumLoadState()
         u16 save_ver = 0xBEEF;
         retVal = fread(&save_ver, sizeof(u16), 1, handle);
 
-        if (save_ver == SPECCYDS_SAVE_VER)
+        if (save_ver == SPECCY_SAVE_VER)
         {
             // Load CZ80 CPU
             retVal = fread(&CPU, sizeof(CPU), 1, handle);

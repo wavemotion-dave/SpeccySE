@@ -92,7 +92,7 @@ u32 getFileCrc(const char* filename)
         file_size = 0;
         crc1 = 0xFFFFFFFF;
         FILE* file = fopen(filename, "rb");
-        while ((bytesRead1 = fread(ROM_Memory, 1, MAX_CART_SIZE, file)) > 0)
+        while ((bytesRead1 = fread(ROM_Memory, 1, MAX_TAPE_SIZE, file)) > 0)
         {
             file_size += bytesRead1;
             for (int i=0; i < bytesRead1; i++)
@@ -105,7 +105,7 @@ u32 getFileCrc(const char* filename)
         // Read #2
         crc2 = 0xFFFFFFFF;
         FILE* file2 = fopen(filename, "rb");
-        while ((bytesRead2 = fread(ROM_Memory, 1, MAX_CART_SIZE, file2)) > 0)
+        while ((bytesRead2 = fread(ROM_Memory, 1, MAX_TAPE_SIZE, file2)) > 0)
         {
             for (int i=0; i < bytesRead2; i++)
             {

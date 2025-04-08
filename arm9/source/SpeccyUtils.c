@@ -313,7 +313,7 @@ int Filescmp (const void *c1, const void *c2)
 /*********************************************************************************
  * Find files (TAP/TZX/Z80/SNA) available - sort them for display.
  ********************************************************************************/
-void speccyDSFindFiles(u8 bTapeOnly)
+void speccySEFindFiles(u8 bTapeOnly)
 {
   u32 uNbFile;
   DIR *dir;
@@ -394,7 +394,7 @@ void speccyDSFindFiles(u8 bTapeOnly)
 // ----------------------------------------------------------------
 // Let the user select a new game (rom) file and load it up!
 // ----------------------------------------------------------------
-u8 speccyDSLoadFile(u8 bTapeOnly)
+u8 speccySELoadFile(u8 bTapeOnly)
 {
   bool bDone=false;
   u16 ucHaut=0x00, ucBas=0x00,ucSHaut=0x00, ucSBas=0x00, romSelected= 0, firstRomDisplay=0,nbRomPerPage, uNbRSPage;
@@ -407,7 +407,7 @@ u8 speccyDSLoadFile(u8 bTapeOnly)
 
   DSPrint(1,3,0,"A=LOAD 48K, B=EXIT, Y=128K");
 
-  speccyDSFindFiles(bTapeOnly);
+  speccySEFindFiles(bTapeOnly);
 
   ucGameChoice = -1;
 
@@ -575,7 +575,7 @@ u8 speccyDSLoadFile(u8 bTapeOnly)
       else
       {
         chdir(gpFic[ucGameAct].szName);
-        speccyDSFindFiles(bTapeOnly);
+        speccySEFindFiles(bTapeOnly);
         ucGameAct = 0;
         nbRomPerPage = (countCV>=14 ? 14 : countCV);
         uNbRSPage = (countCV>=5 ? 5 : countCV);
@@ -1288,7 +1288,7 @@ void ReadFileCRCAndConfig(void)
     // ----------------------------------------------------------------------------------
     // Clear the entire ROM buffer[] - fill with 0xFF to emulate non-responsive memory
     // ----------------------------------------------------------------------------------
-    memset(ROM_Memory, 0xFF, MAX_CART_SIZE);
+    memset(ROM_Memory, 0xFF, MAX_TAPE_SIZE);
 
     // Grab the all-important file CRC - this also loads the file into ROM_Memory[]
     getfile_crc(gpFic[ucGameChoice].szName);
@@ -1353,7 +1353,7 @@ u32 ReadFileCarefully(char *filename, u8 *buf, u32 buf_size, u32 buf_offset)
 // --------------------------------------------------------------------
 // Let the user select new options for the currently loaded game...
 // --------------------------------------------------------------------
-void speccyDSChangeOptions(void)
+void speccySEChangeOptions(void)
 {
   u16 ucHaut=0x00, ucBas=0x00,ucA=0x00,ucY= 5, bOK=0;
 
@@ -1416,7 +1416,7 @@ void speccyDSChangeOptions(void)
         ucA = 0x01;
         switch (ucY) {
           case 5 :      // LOAD GAME
-            speccyDSLoadFile(0);
+            speccySELoadFile(0);
             dmaFillWords(dmaVal | (dmaVal<<16),(void*) bgGetMapPtr(bg1b)+5*32*2,32*19*2);
             BottomScreenOptions();
             if (ucGameChoice != -1)

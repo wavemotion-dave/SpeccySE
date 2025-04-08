@@ -6,10 +6,10 @@
 // royalty provided this copyright notice is used and wavemotion-dave and Marat 
 // Fayzullin (ColEM core) are thanked profusely.
 //
-// The SpeccyDS emulator is offered as-is, without any warranty. Please see readme.md
+// The SpeccySE emulator is offered as-is, without any warranty. Please see readme.md
 // =====================================================================================
-#ifndef _SPECCYDS_H_
-#define _SPECCYDS_H_
+#ifndef _SPECCYSE_H_
+#define _SPECCYSE_H_
 
 #include <nds.h>
 #include <string.h>
@@ -163,4 +163,4 @@ extern void debug_init();
 extern void debug_save();
 extern void debug_printf(const char * str, ...);
 
-#endif // _SPECCYDS_H_
+#endif // _SPECCYSE_H_
