@@ -119,4 +119,15 @@ location as the BIOS (+0000 to +4000). Only up to 16K can be loaded in this
 way. This is mainly used to load diagnostic test programs such as the
 amazing RETROLEUM DIAGROM.
 
-More to come...
+Why? :
+-----------------------
+There was never a need for this emulator to exist. ZXDS is the defacto standard of 
+accuracy and features for a ZX Spectrum emulator on the DS.  Why does this exist?
+Mainly because as an American who got hooked on a Spectrum in recent months, I got
+curious as to the workings. As a developer who had a number of DS/DSi emulators
+under my belt, the best way for me to learn the ins-and-outs of the system was to
+put together an emulator for the system. The design was kept very simple - and has
+the benefit of running directly from SD card via TWL++ or Unlaunch or similar. But
+really if you're looking for world-class ZX emulation for your DS/DSi handheld, 
+you're likely going to want ZXDS.
+
