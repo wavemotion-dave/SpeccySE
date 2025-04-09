@@ -28,7 +28,7 @@ BACKGRD		:=  gfx_data
 #ARCH	:=	-mthumb -mthumb-interwork
 ARCH	:=
 
-CFLAGS	:= -Wall -Wno-strict-aliasing -O2 -march=armv5te -mtune=arm946e-s -fomit-frame-pointer -ffast-math $(ARCH) -falign-functions=4 -frename-registers -finline-functions
+CFLAGS	:= -Wall -Wno-strict-aliasing -Wno-misleading-indentation -O2 -march=armv5te -mtune=arm946e-s -fomit-frame-pointer -ffast-math $(ARCH) -falign-functions=4 -frename-registers -finline-functions
 
 CFLAGS	+=	$(INCLUDE) -DARM9
 CXXFLAGS	:=	$(CFLAGS) -fno-rtti -fno-exceptions

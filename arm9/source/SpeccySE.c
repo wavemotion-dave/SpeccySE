@@ -170,7 +170,7 @@ void SoundUnPause(void)
 // We were using the normal ARM7 sound core but it sounded "scratchy" and so with the help
 // of FluBBa, we've swiched over to the maxmod sound core which performs much better.
 // --------------------------------------------------------------------------------------------
-#define sample_rate         (23100)    // To match how many samples (3x per scanline x 312 scanlines x 50 frames)
+#define sample_rate         (30800)    // To roughly match how many samples (4x per scanline x 312 scanlines x 50 frames)
 #define buffer_size         (512+16)   // Enough buffer that we don't have to fill it too often. Must be multiple of 16.
 
 mm_ds_system sys   __attribute__((section(".dtcm")));
@@ -205,14 +205,14 @@ ITCM_CODE mm_word OurSoundMixer(mm_word len, mm_addr dest, mm_stream_formats for
         s16 *p = (s16*)dest;
         for (int i=0; i<len*2; i++)
         {
-            if (mixer_read == mixer_write) {*p = *(p-1); p++;}
+            if (mixer_read == mixer_write) {*p++ = last_sample;}
             else
             {
-                *p++ = mixer[mixer_read];
+                last_sample = mixer[mixer_read];
+                *p++ = last_sample;
                 mixer_read = (mixer_read + 1) & WAVE_DIRECT_BUF_SIZE;
             }
         }
-        last_sample = *(p-1);
         if (breather) {breather -= (len*2); if (breather < 0) breather = 0;}
     }
     
@@ -220,7 +220,7 @@ ITCM_CODE mm_word OurSoundMixer(mm_word len, mm_addr dest, mm_stream_formats for
 }
 
 // --------------------------------------------------------------------------------------------
-// This is called when we want to sample the audio directly - we grab 3x AY samples and mix
+// This is called when we want to sample the audio directly - we grab 2x AY samples and mix
 // them with the beeper tones. We do a little bit of edge smoothing on the audio  tones here
 // to make the direct beeper sound a bit less harsh - but this really needs to be properly
 // over-sampled and smoothed someday to make it really shine... good enough for now.
@@ -232,10 +232,10 @@ ITCM_CODE void processDirectAudio(void)
 {
     if (zx_AY_enabled) 
     {
-        ay38910Mixer(3, mixbufAY, &myAY);
+        ay38910Mixer(2, mixbufAY, &myAY);
     }
     
-    for (u8 i=0; i<3; i++)
+    for (u8 i=0; i<2; i++)
     {
         // Smooth edges of beeper slightly...
         if (portFE & 0x10) {if (vol < 3) vol++;}
@@ -466,9 +466,12 @@ void DisplayStatusLine(bool bForce)
     {
         DSPrint(2, 21, 2, "$%&");
         DSPrint(2, 22, 2, "DEF");
-        
-        sprintf(tmp, "TAPE %-6d", tape_bytes_processed);
-        DSPrint(5,0,6, tmp);
+
+        if (myGlobalConfig.emuText)
+        {
+            sprintf(tmp, "TAPE %-6d", tape_bytes_processed);
+            DSPrint(5,0,6, tmp);
+        }
     }
     else 
     {
@@ -698,14 +701,15 @@ void MiniMenuShow(bool bClearScreen, u8 sel)
       BottomScreenOptions();
     }
 
-    DSPrint(8,7,6,                                           " DS MINI MENU  ");
-    DSPrint(8,9+mini_menu_items,(sel==mini_menu_items)?2:0,  " RESET  GAME   ");  mini_menu_items++;
-    DSPrint(8,9+mini_menu_items,(sel==mini_menu_items)?2:0,  " QUIT   GAME   ");  mini_menu_items++;
-    DSPrint(8,9+mini_menu_items,(sel==mini_menu_items)?2:0,  " HIGH   SCORE  ");  mini_menu_items++;
-    DSPrint(8,9+mini_menu_items,(sel==mini_menu_items)?2:0,  " SAVE   STATE  ");  mini_menu_items++;
-    DSPrint(8,9+mini_menu_items,(sel==mini_menu_items)?2:0,  " LOAD   STATE  ");  mini_menu_items++;
-    DSPrint(8,9+mini_menu_items,(sel==mini_menu_items)?2:0,  " DEFINE KEYS   ");  mini_menu_items++;
-    DSPrint(8,9+mini_menu_items,(sel==mini_menu_items)?2:0,  " EXIT   MENU   ");  mini_menu_items++;
+    DSPrint(8,6,6,                                           " DS MINI MENU  ");
+    DSPrint(8,8+mini_menu_items,(sel==mini_menu_items)?2:0,  " RESET  GAME   ");  mini_menu_items++;
+    DSPrint(8,8+mini_menu_items,(sel==mini_menu_items)?2:0,  " QUIT   GAME   ");  mini_menu_items++;
+    DSPrint(8,8+mini_menu_items,(sel==mini_menu_items)?2:0,  " HIGH   SCORE  ");  mini_menu_items++;
+    DSPrint(8,8+mini_menu_items,(sel==mini_menu_items)?2:0,  " SAVE   STATE  ");  mini_menu_items++;
+    DSPrint(8,8+mini_menu_items,(sel==mini_menu_items)?2:0,  " LOAD   STATE  ");  mini_menu_items++;
+    DSPrint(8,8+mini_menu_items,(sel==mini_menu_items)?2:0,  " DEFINE KEYS   ");  mini_menu_items++;
+    DSPrint(8,8+mini_menu_items,(sel==mini_menu_items)?2:0,  " POKE   MEMORY ");  mini_menu_items++;
+    DSPrint(8,8+mini_menu_items,(sel==mini_menu_items)?2:0,  " EXIT   MENU   ");  mini_menu_items++;
 }
 
 // ------------------------------------------------------------------------
@@ -744,7 +748,8 @@ u8 MiniMenu(void)
             else if (menuSelection == 3) retVal = MENU_CHOICE_SAVE_GAME;
             else if (menuSelection == 4) retVal = MENU_CHOICE_LOAD_GAME;
             else if (menuSelection == 5) retVal = MENU_CHOICE_DEFINE_KEYS;
-            else if (menuSelection == 6) retVal = MENU_CHOICE_NONE;
+            else if (menuSelection == 6) retVal = MENU_CHOICE_POKE_MEMORY;
+            else if (menuSelection == 7) retVal = MENU_CHOICE_NONE;
             else retVal = MENU_CHOICE_NONE;
             break;
         }
@@ -922,6 +927,13 @@ u8 __attribute__((noinline)) handle_meta_key(u8 meta_key)
         case MENU_CHOICE_DEFINE_KEYS:
             SoundPause();
             SpeccySEChangeKeymap();
+            BottomScreenKeyboard();
+            SoundUnPause();
+            break;
+            
+        case MENU_CHOICE_POKE_MEMORY:
+            SoundPause();
+            pok_select();
             BottomScreenKeyboard();
             SoundUnPause();
             break;

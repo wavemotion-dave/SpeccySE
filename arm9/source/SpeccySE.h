@@ -25,7 +25,8 @@ extern u32 DX, DY;
 #define MENU_CHOICE_LOAD_GAME   0x04
 #define MENU_CHOICE_HI_SCORE    0x05
 #define MENU_CHOICE_DEFINE_KEYS 0x06
-#define MENU_CHOICE_CASSETTE    0x07
+#define MENU_CHOICE_POKE_MEMORY 0x07
+#define MENU_CHOICE_CASSETTE    0x08
 #define MENU_CHOICE_MENU        0xFF        // Special brings up a menu of choices
 
 // ------------------------------------------------------------------------------

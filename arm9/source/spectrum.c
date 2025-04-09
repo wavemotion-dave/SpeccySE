@@ -797,10 +797,13 @@ ITCM_CODE u32 speccy_run(void)
     }
     else
     {
-        // Grab 3 samples worth of AY sound to mix with the beeper
+        // Grab 2 samples worth of AY sound to mix with the beeper
         processDirectAudio();
 
         ExecZ80_Speccy(CPU.TStates + (zx_128k_mode ? 132:128)); // Execute CPU for the visible portion of the scanline
+        
+        // Grab 2 more samples worth of AY sound to mix with the beeper
+        processDirectAudio();
 
         zx_ScreenRendering = 0; // On this final chunk we are drawing border and doing a horizontal sync... no contention
 

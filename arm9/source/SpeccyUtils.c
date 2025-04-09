@@ -331,8 +331,8 @@ void speccySEFindFiles(u8 bTapeOnly)
     {
       if (!((szFile[0] == '.') && (strlen(szFile) == 1)))
       {
-        // Do not include the [sav] DIRECTORYory
-        if (strcasecmp(szFile, "sav") != 0)
+        // Do not include the [sav] and [pok] directories
+        if ((strcasecmp(szFile, "sav") != 0) && (strcasecmp(szFile, "pok") != 0))
         {
             strcpy(gpFic[uNbFile].szName,szFile);
             gpFic[uNbFile].uType = DIRECTORY;
