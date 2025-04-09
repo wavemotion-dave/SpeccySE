@@ -158,103 +158,119 @@ void pok_select(void)
 
     BottomScreenOptions();
 
-    DSPrint(0,23,0,"PRESS A TO APPLY POKE, B TO EXIT");
-    
     u8 max = pok_readfile();
-    u8 screen_max = (max < POKES_PER_SCREEN ? max:POKES_PER_SCREEN);
-    u8 offset = 0;
-    for (u8 i=0; i < screen_max; i++)
-    {
-        sprintf(tmp, "%-31s", Pokes[offset+i].pok_name);
-        DSPrint(1,4+i,(i==sel) ? 2:0,tmp);
-    }
     
-    while (1)
+    if (max == 0) // No POKEs found...
     {
-        u16 keys = keysCurrent();
-        if (keys & KEY_A)
+        DSPrint(0,8,0, "    NO .POK FILE WAS FOUND      ");
+        DSPrint(0,10,0,"ENSURE .POK IS NAMED THE SAME   ");
+        DSPrint(0,11,0,"BASE FILENAME AS GAME AND IS    ");
+        DSPrint(0,12,0,"IN A SUBDIR NAMED /POK RELATIVE ");
+        DSPrint(0,13,0,"TO WHERE THE GAME FILE IS FOUND ");
+        WAITVBL;WAITVBL;WAITVBL;
+        while (!keysCurrent()) {WAITVBL;}
+    }
+    else
+    {
+        DSPrint(0,23,0,"PRESS A TO APPLY POKE, B TO EXIT");
+        
+        u8 screen_max = (max < POKES_PER_SCREEN ? max:POKES_PER_SCREEN);
+        u8 offset = 0;
+        for (u8 i=0; i < screen_max; i++)
         {
-            while ((keysCurrent() & (KEY_UP | KEY_DOWN | KEY_A ))!=0); // Wait for release
-            DSPrint(0,21,0,"      APPLYING MEMORY POKE      ");
-            pok_apply(offset+sel);
-            WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;
-            DSPrint(0,21,0,"                                ");
+            sprintf(tmp, "%-31s", Pokes[offset+i].pok_name);
+            DSPrint(1,4+i,(i==sel) ? 2:0,tmp);
         }
         
-        if (keys & KEY_B) {break;}
-        
-        if (keys & KEY_DOWN)
+        while (1)
         {
-            if (sel < (screen_max-1))
+            u16 keys = keysCurrent();
+            if (keys & KEY_A)
             {
-                sprintf(tmp, "%-31s", Pokes[offset+sel].pok_name);
-                DSPrint(1,4+sel,0,tmp);
-                sel++;
-                sprintf(tmp, "%-31s", Pokes[offset+sel].pok_name);
-                DSPrint(1,4+sel,2,tmp);
-                WAITVBL;WAITVBL;
+                while ((keysCurrent() & (KEY_UP | KEY_DOWN | KEY_A ))!=0); // Wait for release
+                DSPrint(0,21,0,"      APPLYING MEMORY POKE      ");
+                pok_apply(offset+sel);
+                WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;
+                DSPrint(0,21,0,"                                ");
             }
-            else
+            
+            if (keys & KEY_B) {break;}
+            
+            if (keys & KEY_DOWN)
             {
-                if ((offset + screen_max) < max) 
+                if (sel < (screen_max-1))
                 {
-                    offset += POKES_PER_SCREEN;
-                    screen_max = ((max-offset) < POKES_PER_SCREEN ? (max-offset):POKES_PER_SCREEN);
-                    sel = 0;
-                    for (u8 i=0; i < POKES_PER_SCREEN; i++)
+                    sprintf(tmp, "%-31s", Pokes[offset+sel].pok_name);
+                    DSPrint(1,4+sel,0,tmp);
+                    sel++;
+                    sprintf(tmp, "%-31s", Pokes[offset+sel].pok_name);
+                    DSPrint(1,4+sel,2,tmp);
+                    WAITVBL;WAITVBL;
+                }
+                else
+                {
+                    if ((offset + screen_max) < max) 
                     {
-                        if (i < screen_max)
+                        offset += POKES_PER_SCREEN;
+                        screen_max = ((max-offset) < POKES_PER_SCREEN ? (max-offset):POKES_PER_SCREEN);
+                        sel = 0;
+                        for (u8 i=0; i < POKES_PER_SCREEN; i++)
                         {
-                            sprintf(tmp, "%-31s", Pokes[offset+i].pok_name);
-                            DSPrint(1,4+i,(i==sel) ? 2:0,tmp);
+                            if (i < screen_max)
+                            {
+                                sprintf(tmp, "%-31s", Pokes[offset+i].pok_name);
+                                DSPrint(1,4+i,(i==sel) ? 2:0,tmp);
+                            }
+                            else
+                            {
+                                DSPrint(1,4+i,0,"                                ");
+                            }
                         }
-                        else
-                        {
-                            DSPrint(1,4+i,0,"                                ");
-                        }
+                        WAITVBL;WAITVBL;WAITVBL;WAITVBL;
                     }
-                    WAITVBL;WAITVBL;WAITVBL;WAITVBL;
+                }
+            }
+            if (keys & KEY_UP)
+            {
+                if (sel > 0)
+                {
+                    sprintf(tmp, "%-31s", Pokes[offset+sel].pok_name);
+                    DSPrint(1,4+sel,0,tmp);
+                    sel--;
+                    sprintf(tmp, "%-31s", Pokes[offset+sel].pok_name);
+                    DSPrint(1,4+sel,2,tmp);
+                    WAITVBL;WAITVBL;
+                }
+                else
+                {
+                    if (offset > 0)
+                    {
+                        offset -= POKES_PER_SCREEN;
+                        screen_max = ((max-offset) < POKES_PER_SCREEN ? (max-offset):POKES_PER_SCREEN);
+                        sel = 0;
+                        for (u8 i=0; i < POKES_PER_SCREEN; i++)
+                        {
+                            if (i < screen_max)
+                            {
+                                sprintf(tmp, "%-31s", Pokes[offset+i].pok_name);
+                                DSPrint(1,4+i,(i==sel) ? 2:0,tmp);
+                            }
+                            else
+                            {
+                                DSPrint(0,4+i,0,"                                ");
+                            }
+                        }
+                        WAITVBL;WAITVBL;WAITVBL;WAITVBL;
+                    }
                 }
             }
         }
-        if (keys & KEY_UP)
-        {
-            if (sel > 0)
-            {
-                sprintf(tmp, "%-31s", Pokes[offset+sel].pok_name);
-                DSPrint(1,4+sel,0,tmp);
-                sel--;
-                sprintf(tmp, "%-31s", Pokes[offset+sel].pok_name);
-                DSPrint(1,4+sel,2,tmp);
-                WAITVBL;WAITVBL;
-            }
-            else
-            {
-                if (offset > 0)
-                {
-                    offset -= POKES_PER_SCREEN;
-                    screen_max = ((max-offset) < POKES_PER_SCREEN ? (max-offset):POKES_PER_SCREEN);
-                    sel = 0;
-                    for (u8 i=0; i < POKES_PER_SCREEN; i++)
-                    {
-                        if (i < screen_max)
-                        {
-                            sprintf(tmp, "%-31s", Pokes[offset+i].pok_name);
-                            DSPrint(1,4+i,(i==sel) ? 2:0,tmp);
-                        }
-                        else
-                        {
-                            DSPrint(0,4+i,0,"                                ");
-                        }
-                    }
-                    WAITVBL;WAITVBL;WAITVBL;WAITVBL;
-                }
-            }
-        }
     }
     
-    while ((keysCurrent() & (KEY_UP | KEY_DOWN | KEY_A ))!=0);
-    WAITVBL;WAITVBL;
+    while (keysCurrent())
+    {
+        WAITVBL;WAITVBL;
+    }
     
     return;
 }
