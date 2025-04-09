@@ -14,6 +14,7 @@ Features :
 * Loads .SNA snapshots (48K only)
 * Loads .Z80 snapshots (V1, V2 and V3 formats)
 * Loads .ROM files up to 16K in place of standard BIOS (diagnostics, etc)
+* Supports .POK files (same name as base game and stored in POK subdir)
 * Kempston and Sinclair joystick support.
 * Fully configurable keys for the 12 NDS keys to any combination of joystick/keyboard
 * Save and Restore states so you can pick up where you left off
@@ -119,6 +120,15 @@ The emulator allows you to load a .ROM file directly into the same memory
 location as the BIOS (+0000 to +4000). Only up to 16K can be loaded in this
 way. This is mainly used to load diagnostic test programs such as the
 amazing RETROLEUM DIAGROM.
+
+POK Support :
+-----------------------
+The emulator supports .pok files. The .pok file should have the same base
+filename as the game you are playing and must be stored in a pok subdirectory.
+
+So if you have a roms directory, make a pok subdirectory and place your .pok
+file there. If properly named, you will see a list of all possible pokes when
+you select the 'POKE MEMORY' menu option.
 
 Why? :
 -----------------------
