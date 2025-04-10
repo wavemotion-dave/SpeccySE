@@ -164,7 +164,7 @@ void tape_patch(void)
     if (myConfig.tapeSpeed)
     {
         PatchLookup[0x05F3] = tape_sample_standard;
-        PatchLookup[0x05E9] = tape_predelay_accel;  // DEC A followed by JRNZ back to the DEC A (delay loop) 0x3D 0x20 +0xFD
+        PatchLookup[0x05EA] = tape_predelay_accel;  // DEC A followed by JRNZ back to the DEC A (delay loop) 0x3D 0x20 +0xFD
         loader_type = "STANDARD";
     }
 }
@@ -256,7 +256,7 @@ void tape_parse_blocks(int tapeSize)
 
                     TapeBlocks[num_blocks_available].gap_delay_after = gap_len;
                     TapeBlocks[num_blocks_available].pilot_length    = DEFAULT_PILOT_LENGTH;
-                    TapeBlocks[num_blocks_available].pilot_pulses    = (block_flag ? DEFAULT_DATA_PULSE_TOGGLES : DEFAULT_HEADER_PULSE_TOGGLES);
+                    TapeBlocks[num_blocks_available].pilot_pulses    = ((block_flag < 128) ? DEFAULT_DATA_PULSE_TOGGLES : DEFAULT_HEADER_PULSE_TOGGLES);
                     TapeBlocks[num_blocks_available].sync1_width     = DEFAULT_SYNC_PULSE1_WIDTH;
                     TapeBlocks[num_blocks_available].sync2_width     = DEFAULT_SYNC_PULSE2_WIDTH;
                     TapeBlocks[num_blocks_available].data_one_width  = DEFAULT_DATA_ONE_PULSE_WIDTH;
@@ -269,7 +269,7 @@ void tape_parse_blocks(int tapeSize)
                     TapeBlocks[num_blocks_available].data_one_widthX2  = TapeBlocks[num_blocks_available].data_one_width << 1;
                     TapeBlocks[num_blocks_available].data_zero_widthX2 = TapeBlocks[num_blocks_available].data_zero_width << 1;
 
-                    if ((block_flag == 0x00) || (block_len == 19)) // Header
+                    if ((block_flag < 128) || (block_len == 19)) // Header
                     {
                         memcpy(TapeBlocks[num_blocks_available].block_filename, &ROM_Memory[idx+4+2], 10);
                     }
@@ -305,7 +305,7 @@ void tape_parse_blocks(int tapeSize)
                     TapeBlocks[num_blocks_available].data_one_widthX2  = TapeBlocks[num_blocks_available].data_one_width << 1;
                     TapeBlocks[num_blocks_available].data_zero_widthX2 = TapeBlocks[num_blocks_available].data_zero_width << 1;
 
-                    if ((block_flag == 0x00) || (block_len == 19)) // Header
+                    if ((block_flag < 128) || (block_len == 19)) // Header
                     {
                         memcpy(TapeBlocks[num_blocks_available].block_filename, &ROM_Memory[idx+18+2], 10);
                     }
@@ -591,6 +591,7 @@ ITCM_CODE u8 tape_pulse(void)
                         break;
 
                     case BLOCK_ID_PAUSE_STOP: // Delay/Pause/Stop the Tape
+                        last_edge = CPU.TStates;
                         tape_state = TAPE_DELAY_AFTER;
                         break;
 
@@ -706,11 +707,17 @@ ITCM_CODE u8 tape_pulse(void)
                 // --------------------------------------------------------------------------
                 if ((CPU.TStates-last_edge) > 10000) // Slow bit reads happening?
                 {
-                    if (myConfig.autoStop)
+                    if (++give_up_counter > 5)
                     {
-                        if (++give_up_counter > 5)
+                        if (myConfig.autoStop)
                         {
                             tape_stop();
+                            return 0x00;
+                        }
+                        else // No auto-stop... best we can do is go back to the start of the block
+                        {
+                            tape_stop();
+                            tape_play();
                             return 0x00;
                         }
                     }
@@ -777,6 +784,8 @@ ITCM_CODE u8 tape_pulse(void)
                 if ((CPU.TStates-last_edge) <= (TapeBlocks[current_block].gap_delay_after * 3500)) return 0x00;
                 else
                 {
+                    tape_search_for_loader();
+
                     // A delay of zero is not special unless we are the BLOCK_ID_PAUSE_STOP block type...
                     if ((TapeBlocks[current_block].id == BLOCK_ID_PAUSE_STOP) && (TapeBlocks[current_block].gap_delay_after == 0))
                     {
@@ -787,8 +796,6 @@ ITCM_CODE u8 tape_pulse(void)
                     {
                         current_block++;
                         tape_state = TAPE_NEXT_BLOCK;    // And back to play if we have more tape
-
-                        tape_search_for_loader();
                     }
                 }
                 break;

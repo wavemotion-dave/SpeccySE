@@ -1798,7 +1798,6 @@ void debug_save()
             fwrite(debug_buffer, 1, debug_len, fp);
             fclose(fp);
         }
-        debug[1]++;
     }
 }
 

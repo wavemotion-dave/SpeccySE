@@ -359,10 +359,9 @@ ITCM_CODE void speccy_render_screen(u8 line)
     if (zx_128k_mode) zx_ScreenPage = RAM_Memory128 + ((portFD & 0x08) ? 7:5) * 0x4000;
     else zx_ScreenPage = RAM_Memory + 0x4000;
 
-    // -----------------------------------------------
-    // Now run through the entire screen from top to
-    // bottom and render it into our NDS video memory
-    // -----------------------------------------------
+    // --------------------------------------------------
+    // Render the current line into our NDS video memory
+    // --------------------------------------------------
     int y = line;
 
     // ----------------------------------------------------------------
