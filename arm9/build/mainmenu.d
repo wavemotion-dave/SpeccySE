@@ -1,0 +1,1 @@
+mainmenu.o: mainmenu.s
