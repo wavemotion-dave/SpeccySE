@@ -1256,7 +1256,7 @@ void dispInfoOptions(u32 uY)
 {
     DSPrint(2, 5,(uY== 5 ? 2 : 0),("         LOAD  GAME         "));
     DSPrint(2, 7,(uY== 7 ? 2 : 0),("         PLAY  GAME         "));
-    DSPrint(2, 9,(uY== 9 ? 2 : 0),("     REDEFINE  KEYS         "));
+    DSPrint(2, 9,(uY== 9 ? 2 : 0),("       DEFINE  KEYS         "));
     DSPrint(2,11,(uY==11 ? 2 : 0),("         GAME  OPTIONS      "));
     DSPrint(2,13,(uY==13 ? 2 : 0),("       GLOBAL  OPTIONS      "));
     DSPrint(2,15,(uY==15 ? 2 : 0),("         QUIT  EMULATOR     "));

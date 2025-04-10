@@ -464,8 +464,11 @@ void DisplayStatusLine(bool bForce)
     
     if (tape_is_playing())
     {
-        DSPrint(2, 21, 2, "$%&");
-        DSPrint(2, 22, 2, "DEF");
+        if (myGlobalConfig.debugger <= 2)
+        {
+            DSPrint(2, 21, 2, "$%&");
+            DSPrint(2, 22, 2, "DEF");
+        }
 
         if (myGlobalConfig.emuText)
         {
@@ -475,8 +478,11 @@ void DisplayStatusLine(bool bForce)
     }
     else 
     {
-        DSPrint(2, 21, 2, "!\"#");
-        DSPrint(2, 22, 2, "ABC");
+        if (myGlobalConfig.debugger <= 2)
+        {
+            DSPrint(2, 21, 2, "!\"#");
+            DSPrint(2, 22, 2, "ABC");
+        }
         
         DSPrint(5,0,6, "            ");
     }
