@@ -278,16 +278,16 @@ void zx_bank(u8 new_bank)
 }
 
 // A fast look-up table when we are rendering background pixels
-u8 zx_border_colors[8][3] __attribute__((section(".dtcm"))) =
+u16 zx_border_colors[8] __attribute__((section(".dtcm"))) =
 {
-  {0x00,0x00,0x00},   // Black
-  {0x00,0x00,0xD8},   // Blue
-  {0xD8,0x00,0x00},   // Red
-  {0xD8,0x00,0xD8},   // Magenta
-  {0x00,0xD8,0x00},   // Green
-  {0x00,0xD8,0xD8},   // Cyan
-  {0xD8,0xD8,0x00},   // Yellow
-  {0x02,0x02,0x02}    // White (quite bright... hardly used... we use dark grey instead)
+  (u16)RGB15(0x00,0x00,0x00),   // Black
+  (u16)RGB15(0x00,0x00,0xD8),   // Blue
+  (u16)RGB15(0xD8,0x00,0x00),   // Red
+  (u16)RGB15(0xD8,0x00,0xD8),   // Magenta
+  (u16)RGB15(0x00,0xD8,0x00),   // Green
+  (u16)RGB15(0x00,0xD8,0xD8),   // Cyan
+  (u16)RGB15(0xD8,0xD8,0x00),   // Yellow
+  (u16)RGB15(0x02,0x02,0x02)    // White (quite bright... hardly used... we use dark grey instead)
 };
 
 
@@ -298,7 +298,7 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
         // Change the background color as needed...
         if ((portFE & 0x07) != (Value & 0x07))
         {
-             BG_PALETTE_SUB[1] = RGB15(zx_border_colors[Value & 0x07][0],zx_border_colors[Value & 0x07][1],zx_border_colors[Value & 0x07][2]);
+             BG_PALETTE_SUB[1] = zx_border_colors[Value & 0x07];
         }
         portFE = Value;        
     }
@@ -563,6 +563,7 @@ void speccy_reset(void)
 {
     tape_reset();
     tape_patch();
+    pok_init();
     
     // Default to a simplified memory map - remap as needed below
     MemoryMap[0] = RAM_Memory + 0x0000;

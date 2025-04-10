@@ -172,7 +172,10 @@ case DEC_D:    M_DEC(CPU.DE.B.h);break;
 case DEC_E:    M_DEC(CPU.DE.B.l);break;
 case DEC_H:    M_DEC(CPU.HL.B.h);break;
 case DEC_L:    M_DEC(CPU.HL.B.l);break;
-case DEC_A:    M_DEC(CPU.AF.B.h);break;
+case DEC_A:    
+    if (PatchLookup[CPU.PC.W-1]) (void)PatchLookup[CPU.PC.W-1]();
+    else { M_DEC(CPU.AF.B.h); }
+    break;
 case DEC_xHL:  I=RdZ80(CPU.HL.W);M_DEC(I);WrZ80(CPU.HL.W,I);break;
 
 case INC_B:    M_INC(CPU.BC.B.h);break;
@@ -351,10 +354,6 @@ case LD_xHL_BYTE: WrZ80(CPU.HL.W,OpZ80(CPU.PC.W++));break;
 
 case LD_A_BYTE:
    CPU.AF.B.h=OpZ80(CPU.PC.W++);
-   if (OpZ80(CPU.PC.W) == 0x3D) // Check for DEC A - might be a tape patch
-   {
-     if (PatchLookup[CPU.PC.W]) (void)PatchLookup[CPU.PC.W]();
-   }
    break;
 
 case LD_xWORD_HL:

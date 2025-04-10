@@ -178,5 +178,6 @@ extern void BufferKey(u8 key);
 extern void ProcessBufferedKeys(void);
 extern void SpeccySEChangeKeymap(void);
 extern void pok_select(void);
+extern void pok_init();
 
 #endif // _SPECCY_UTILS_H_

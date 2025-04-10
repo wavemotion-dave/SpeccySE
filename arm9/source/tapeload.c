@@ -109,6 +109,7 @@ u8 give_up_counter = 0;
 char *loader_type = "STANDARD";
 extern patchFunc *PatchLookup;
 u8 tape_sample_standard(void);
+u8 tape_predelay_accel(void);
 
 inline byte OpZ80(word A)  {return *(MemoryMap[(A)>>13] + ((A)&0x1FFF));}
 
@@ -152,29 +153,6 @@ u8 tape_find_positions(void)
     return pos_idx;
 }
 
-
-// -----------------------------------------------------------------------------
-// Many of the loaders have a pre-edge detect delay that chews up a lot of
-// emulation time. So we trap on this and eliminate the entire delay by
-// "fast-forwarding" the CPU.TStates as if the entire delay went by in a flash.
-// -----------------------------------------------------------------------------
-// 05E7  LDA BYTE {+7}
-// 05E8  +16
-// 05E9  DEC A {+4}
-// 05EA  JR,NZ {+12/7}
-// 05EB  +/-XX
-// 05EC  AND A {+4}
-ITCM_CODE u8 tape_predelay_accel(void)
-{
-    // We trapped on the LD,A BYTE and we've read the byte already... so now we're on the DEC A
-    u32 loop_TStates = (CPU.AF.B.h * 16) - 5;   // Each pass around the loop is 16 cycles... except the last pass is only 11 cycles (5 less)
-    CPU.TStates += loop_TStates;                // Account for the cycles it would have taken
-    CPU.AF.B.h = 0x00;                          // Skip the loop entirely
-    CPU.PC.W += 3;                              // Jump to the AND A in the standard ROM loader
-
-    return CPU.AF.B.h;
-}
-
 // -----------------------------------------------
 // This traps out the tape loader main routine...
 // -----------------------------------------------
@@ -186,7 +164,7 @@ void tape_patch(void)
     if (myConfig.tapeSpeed)
     {
         PatchLookup[0x05F3] = tape_sample_standard;
-        PatchLookup[0x05E9] = tape_predelay_accel;  // LD A, BYTE (actually DEC A as the PC will have advanced)
+        PatchLookup[0x05E9] = tape_predelay_accel;  // DEC A followed by JRNZ back to the DEC A (delay loop) 0x3D 0x20 +0xFD
         loader_type = "STANDARD";
     }
 }
@@ -507,6 +485,28 @@ void tape_frame(void)
     // Not sure if we need this yet... called after every 1 frame of timing in the main loop
 }
 
+// -----------------------------------------------------------------------------
+// Many of the loaders have a pre-edge detect delay that chews up a lot of
+// emulation time. So we trap on this and eliminate the entire delay by
+// "fast-forwarding" the CPU.TStates as if the entire delay went by in a flash.
+// -----------------------------------------------------------------------------
+//  DEC A {+4}
+//  JR,NZ {+12/7}
+//  +/-XX  back to the DEC A
+//  AND A {+4} or whatever comes after the delay loop
+ITCM_CODE u8 tape_predelay_accel(void)
+{
+    // ----------------------------------------------------
+    // We trapped on the DEC A... so our PC is right at
+    // the start of JRNZ and A has been decremented by one.
+    // ----------------------------------------------------
+    CPU.TStates += (CPU.AF.B.h * 16) + 7;   // Each pass around the loop is 16 cycles... and the final JRNZ is 7 cycles more
+    CPU.AF.B.h = 0x00;                      // Skip the loop entirely
+    CPU.PC.W += 2;                          // Jump over the JRNZ
+
+    return CPU.AF.B.h;
+}
+
 // ----------------------------------------------------------------
 // This is called when the Spectrum ULA reads from port 0xFE
 // It will sift and sort the current tape block data and return
@@ -614,8 +614,9 @@ ITCM_CODE u8 tape_pulse(void)
                         break;
 
                     case BLOCK_ID_LOOP_END:
-                        if (--loop_counter) // If not done with loop, go back to the block after the loop started
+                        if (loop_counter) // If not done with loop, go back to the block after the loop started
                         {
+                            loop_counter--;
                             current_block = loop_block;
                         }
                         else // Done with loop... move along
@@ -883,8 +884,8 @@ ld_sample:
 //
 // LD-SAMPLE  INC  B        [+4]    Count each pass
 //            RET  Z        [+11/5] Return carry reset & zero set if 'time-up'.
-//            LD   A,+7F    [+7]    Read from port +7FFE   <== This is where the PC Trap is
-//            IN   A,(+FE)  [+11]   i.e. BREAK and EAR
+//            LD   A,+7F    [+7]    Read from port +7FFE
+//            IN   A,(+FE)  [+11]   i.e. BREAK and EAR <== This is where the PC Trap is
 //            RRA           [+4]    Shift the byte
 //            XOR  C        [+4]    Now test the byte against the 'last edge-type'
 //            AND  +20      [+7]    Mask off just the bit we care about (normally 0x40 but it's been shifted down)
@@ -919,6 +920,17 @@ ld_sample:
     }
     else                                // Edge not detected - we will do another pass or timeout
     {
+        // -----------------------------------------------------------------------
+        // For the standard loader if we're at least 4 counts away from the
+        // timeout, we can accelerate the timing a bit and still not miss an edge.
+        // -----------------------------------------------------------------------
+        if (B & 0xFC)
+        {
+            CPU.TStates += 3*54;        // Three times the normal loop time - faster edge detection
+            B-=3;                       // Reduce counter by 3
+            goto ld_sample;             // Take another sample.
+        }
+        
         CPU.TStates += 54;              // It takes 54 total cycles when we take another pass around the loop
         if (--B) goto ld_sample;        // If no time-out... take another sample.
 
@@ -1088,7 +1100,8 @@ ITCM_CODE void tape_search_for_loader(void)
                           {
                               loader_type = "STANDARD";
                               PatchLookup[addr+2]  = tape_sample_standard;
-                              if (OpZ80(addr-10) == 0x3E) PatchLookup[addr-8] = tape_predelay_accel;
+                              //0x3D 0x20 +0xFD
+                              if (OpZ80(addr-8) == 0x3D) PatchLookup[addr-8] = tape_predelay_accel;
                           }
 
                 // Speedlock Loader (omits the check for SPACE=break)
@@ -1100,7 +1113,7 @@ ITCM_CODE void tape_search_for_loader(void)
                         {
                             loader_type = "SPEEDLOCK";
                             PatchLookup[addr+2] = tape_sample_speedlock;
-                            if (OpZ80(addr-10) == 0x3E) PatchLookup[addr-8] = tape_predelay_accel;
+                            if (OpZ80(addr-8) == 0x3D) PatchLookup[addr-8] = tape_predelay_accel;
                         }
 
                 // Owens Loader
@@ -1113,7 +1126,7 @@ ITCM_CODE void tape_search_for_loader(void)
                           {
                               loader_type = "OWENS";
                               PatchLookup[addr+2] = tape_sample_standard; // Since this has the same cycle count - we can use the standard loader
-                              if (OpZ80(addr-10) == 0x3E) PatchLookup[addr-8] = tape_predelay_accel;
+                              if (OpZ80(addr-8) == 0x3D) PatchLookup[addr-8] = tape_predelay_accel;
                           }
 
                 // Dinaload Loader
@@ -1126,7 +1139,7 @@ ITCM_CODE void tape_search_for_loader(void)
                           {
                               loader_type = "DINALOAD";
                               PatchLookup[addr+2] = tape_sample_standard; // Since this has the same cycle count - we can use the standard loader
-                              if (OpZ80(addr-10) == 0x3E) PatchLookup[addr-8] = tape_predelay_accel;
+                              if (OpZ80(addr-8) == 0x3D) PatchLookup[addr-8] = tape_predelay_accel;
                           }
 
                 // Microsphere Loader
@@ -1139,7 +1152,7 @@ ITCM_CODE void tape_search_for_loader(void)
                           {
                               loader_type = "MICROSPHERE";
                               PatchLookup[addr+2] = tape_sample_microsphere_bleepload;
-                              if (OpZ80(addr-10) == 0x3E) PatchLookup[addr-8] = tape_predelay_accel;
+                              if (OpZ80(addr-8) == 0x3D) PatchLookup[addr-8] = tape_predelay_accel;
                           }
 
                 // Bleepload Loader
@@ -1152,7 +1165,7 @@ ITCM_CODE void tape_search_for_loader(void)
                           {
                               loader_type = "BLEEPLOAD";
                               PatchLookup[addr+2] = tape_sample_microsphere_bleepload;
-                              if (OpZ80(addr-10) == 0x3E) PatchLookup[addr-8] = tape_predelay_accel;
+                              if (OpZ80(addr-8) == 0x3D) PatchLookup[addr-8] = tape_predelay_accel;
                           }
              }
              else // Now the odd-balls
@@ -1169,7 +1182,7 @@ ITCM_CODE void tape_search_for_loader(void)
                               {
                                   loader_type = "ALKATRAZ";
                                   PatchLookup[addr+2] = tape_sample_alkatraz;
-                                  if (OpZ80(addr-12) == 0x3E) PatchLookup[addr-10] = tape_predelay_accel;
+                                  if (OpZ80(addr-10) == 0x3D) PatchLookup[addr-10] = tape_predelay_accel;
                               }
              }
         }

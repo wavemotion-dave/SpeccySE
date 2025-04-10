@@ -36,7 +36,8 @@
 
 typedef struct
 {
-  char pok_name[32];            // Poke Name - cut off at 31 chars plus NULL
+  char pok_name[31];            // Poke Name - cut off at 31 chars plus NULL
+  u8   pok_applied;             // 1 if the poke has been applied already
   u16  pok_mem[MAX_POK_MEM];    // List of memory areas to poke
   u16  pok_val[MAX_POK_MEM];    // List of values to poke into pok_mem[] - 256 is special (means ask user)
   u8   pok_bank[MAX_POK_MEM];   // List of values to poke into pok_mem[] - usually '8' but could be a 128K bank
@@ -44,10 +45,21 @@ typedef struct
 
 Poke_t Pokes[MAX_POKES];  // This holds all our POKEs for the current game
 
+char szLoadFile[256];
+char szLine[256];
+u32  last_file_crc_poke_read;
+
 inline void WrZ80(word A, byte value)   {if (A & 0xC000) *(MemoryMap[(A)>>13] + ((A)&0x1FFF))=value;}
+
+void pok_init()
+{
+    memset(Pokes, 0x00, sizeof(Pokes));
+    last_file_crc_poke_read = 0x00000000;
+}
 
 void pok_apply(u8 sel)
 {
+    Pokes[sel].pok_applied = 1;
     for (u8 j=0; j<MAX_POK_MEM; j++)
     {
         if (Pokes[sel].pok_mem[j] != 0)
@@ -86,12 +98,16 @@ void pok_apply(u8 sel)
     }
 }
 
-char szLoadFile[256];
-char szLine[256];
+u8 num_pokes = 0;
 u8 pok_readfile(void)
 {
+    if (last_file_crc_poke_read == file_crc) return num_pokes;
+    
+    last_file_crc_poke_read = file_crc;
+    
     // Zero out all pokes before reading file
     memset(Pokes, 0x00, sizeof(Pokes));
+    num_pokes = 0;
     
     // POK files must be in a ./pok subdirectory
     sprintf(szLoadFile,"pok/%s", initial_file);
@@ -104,7 +120,6 @@ u8 pok_readfile(void)
 
     FILE *infile = fopen(szLoadFile, "rb");
 
-    u8 num_pokes = 0;
     if (infile)
     {
         u8 mem_idx = 0;
@@ -180,6 +195,7 @@ void pok_select(void)
         {
             sprintf(tmp, "%-31s", Pokes[offset+i].pok_name);
             DSPrint(1,4+i,(i==sel) ? 2:0,tmp);
+            if (Pokes[offset+i].pok_applied) DSPrint(0,4+i,2,"@"); else DSPrint(0,4+i,0," ");
         }
         
         while (1)
@@ -188,6 +204,7 @@ void pok_select(void)
             if (keys & KEY_A)
             {
                 while ((keysCurrent() & (KEY_UP | KEY_DOWN | KEY_A ))!=0); // Wait for release
+                DSPrint(0,4+sel,2,"@");
                 DSPrint(0,21,0,"      APPLYING MEMORY POKE      ");
                 pok_apply(offset+sel);
                 WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;
@@ -220,10 +237,12 @@ void pok_select(void)
                             {
                                 sprintf(tmp, "%-31s", Pokes[offset+i].pok_name);
                                 DSPrint(1,4+i,(i==sel) ? 2:0,tmp);
+                                if (Pokes[offset+i].pok_applied) DSPrint(0,4+i,2,"@"); else DSPrint(0,4+i,0," ");
                             }
                             else
                             {
                                 DSPrint(1,4+i,0,"                                ");
+                                DSPrint(0,4+i,0," ");
                             }
                         }
                         WAITVBL;WAITVBL;WAITVBL;WAITVBL;
@@ -254,10 +273,12 @@ void pok_select(void)
                             {
                                 sprintf(tmp, "%-31s", Pokes[offset+i].pok_name);
                                 DSPrint(1,4+i,(i==sel) ? 2:0,tmp);
+                                if (Pokes[offset+i].pok_applied) DSPrint(0,4+i,2,"@"); else DSPrint(0,4+i,0," ");
                             }
                             else
                             {
                                 DSPrint(0,4+i,0,"                                ");
+                                DSPrint(0,4+i,0," ");
                             }
                         }
                         WAITVBL;WAITVBL;WAITVBL;WAITVBL;
