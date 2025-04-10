@@ -130,6 +130,12 @@ So if you have a roms directory, make a pok subdirectory and place your .pok
 file there. If properly named, you will see a list of all possible pokes when
 you select the 'POKE MEMORY' menu option.
 
+Memory Pokes remain in effect until you reset or reload the game. There is no 
+other way to reverse the Memory Poke that has been done. If you are using a tape
+(.TAP or .TZX) you should wait for the game to load before applying the memory
+poke. Use at your own risk (oh... you can't really damage anything but the poke
+might not work the way you expect if you do it at the wrong time).
+
 Why? :
 -----------------------
 There was never a need for this emulator to exist. ZXDS is the defacto standard of 
