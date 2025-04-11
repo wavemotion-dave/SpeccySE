@@ -78,7 +78,14 @@ is a symbol/shift button and it will wait for the _next_ button to be pressed
 and use it in combination with the symbol/shift. So if you want to type the 
 quote mark ("), you would press and release Symbol, then press the letter P.
 
-![image](./png/speccy_kbd.png)
+![image](./png/keyboard.bmp)
+
+Emulator Use :
+-----------------------
+The emulator has TBD
+
+![image](./png/mainmenu.bmp)
+![image](./png/cassette.bmp)
 
 Joystick Support :
 -----------------------
