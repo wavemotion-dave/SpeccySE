@@ -54,7 +54,9 @@ And Sir Clive.
 
 How do I run this thing? :
 -----------------------
-
+That's a bit beyond what I can help with in this readme... but if you have a DSi (with an SD card slot on the right-hand side of the handheld),
+then you're in luck. Google 'DSi Camera Exploit' and 'Twilight Menu++' and you'll be on the right track. If you have an older DS handheld, you'll
+probably have to use a flash/multi cart such as one of the R4 clones.
 
 ZX Spectrum BIOS ROMS :
 -----------------------
