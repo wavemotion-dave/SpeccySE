@@ -12,10 +12,10 @@ Features :
 * Loads .TAP files up to 640K total length (can swap tapes mid-game)
 * Loads .TZX files up to 640K total length (can swap tapes mid-game)
 * Loads .SNA snapshots (48K only)
-* Loads .Z80 snapshots (V1, V2 and V3 formats)
+* Loads .Z80 snapshots (V1, V2 and V3 formats, 48K or 128K)
 * Loads .ROM files up to 16K in place of standard BIOS (diagnostics, etc)
 * Supports .POK files (same name as base game and stored in POK subdir)
-* Kempston and Sinclair joystick support.
+* Kempston and Sinclair joystick support
 * Fully configurable keys for the 12 NDS keys to any combination of joystick/keyboard
 * Save and Restore states so you can pick up where you left off
 * Chuckie-Egg style Joystick configuration to make climing ladders more forgiving (try it - you'll like it!)
@@ -102,6 +102,14 @@ save/load the game state and set some high scores for the game being played.
 ![image](./png/mainmenu.bmp)
 ![image](./png/cassette.bmp)
 ![image](./png/minimenu.bmp)
+
+Key Mapping :
+-----------------------
+Each game can have a custom set of keys mapped to the 12 DS/DSi keys (yes
+that includes START, SELECT and the L/R shoulder buttons). By default, 
+the DPad and 'A' button is set to the Kempston standard.
+
+![image](./png/keymap.bmp)
 
 Joystick Support :
 -----------------------
