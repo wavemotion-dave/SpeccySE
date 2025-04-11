@@ -82,10 +82,26 @@ quote mark ("), you would press and release Symbol, then press the letter P.
 
 Emulator Use :
 -----------------------
-The emulator has TBD
+The emulator is fairly straightforward to navigatge. The main menu lets you 
+select the game you wish to play (.TAP, .TZX or .Z80). Once you've picked
+a game, the title will show at the bottom along with the size and CRC (which
+isn't all that important but I like to see it). Then you can play the game or
+you can change the settings for a game (define keys or set specific game 
+options). Each game allows you to save off a configuration that is specific
+to that game - so each game can have its own custom key settings, etc.
+
+When you're playing the game, there are two button that bring up additional
+menus. The cassette icon will bring up some options for dealing with the 
+cassette (tape) player. Usually the tape will auto-start and auto-stop but
+sometimes you have to override what's happening with the emulation. You can
+also use this menu to swap in a 'Side B' or 'Tape 2' for the current game.
+
+The other menu is the 'Mini Menu' which allows you to quit the current game, 
+save/load the game state and set some high scores for the game being played.
 
 ![image](./png/mainmenu.bmp)
 ![image](./png/cassette.bmp)
+![image](./png/minimenu.bmp)
 
 Joystick Support :
 -----------------------
