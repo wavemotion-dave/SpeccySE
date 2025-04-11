@@ -448,8 +448,6 @@ void ShowDebugZ80(void)
 // ------------------------------------------------------------
 void DisplayStatusLine(bool bForce)
 {
-    //if (myGlobalConfig.emuText == 0) return;
-    
     if ((speccy_mode != last_speccy_mode) || bForce)
     {
         last_speccy_mode = speccy_mode;
@@ -469,12 +467,6 @@ void DisplayStatusLine(bool bForce)
             DSPrint(2, 21, 2, "$%&");
             DSPrint(2, 22, 2, "DEF");
         }
-
-        if (myGlobalConfig.emuText)
-        {
-            sprintf(tmp, "TAPE %-6d", tape_bytes_processed);
-            DSPrint(5,0,6, tmp);
-        }
     }
     else 
     {
@@ -482,9 +474,7 @@ void DisplayStatusLine(bool bForce)
         {
             DSPrint(2, 21, 2, "!\"#");
             DSPrint(2, 22, 2, "ABC");
-        }
-        
-        DSPrint(5,0,6, "            ");
+        }        
     }
 }
 

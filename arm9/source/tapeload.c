@@ -207,7 +207,7 @@ void tape_parse_blocks(int tapeSize)
             TapeBlocks[num_blocks_available].id              = BLOCK_ID_STANDARD;
             TapeBlocks[num_blocks_available].gap_delay_after = DEFAULT_TAPE_GAP_DELAY_MS;
             TapeBlocks[num_blocks_available].pilot_length    = DEFAULT_PILOT_LENGTH;
-            TapeBlocks[num_blocks_available].pilot_pulses    = ((block_flag < 128) ? DEFAULT_HEADER_PULSE_TOGGLES : DEFAULT_DATA_PULSE_TOGGLES);
+            TapeBlocks[num_blocks_available].pilot_pulses    = ((block_flag & 0x80) ? DEFAULT_DATA_PULSE_TOGGLES : DEFAULT_HEADER_PULSE_TOGGLES);
             TapeBlocks[num_blocks_available].sync1_width     = DEFAULT_SYNC_PULSE1_WIDTH;
             TapeBlocks[num_blocks_available].sync2_width     = DEFAULT_SYNC_PULSE2_WIDTH;
             TapeBlocks[num_blocks_available].data_one_width  = DEFAULT_DATA_ONE_PULSE_WIDTH;
@@ -222,7 +222,7 @@ void tape_parse_blocks(int tapeSize)
             TapeBlocks[num_blocks_available].block_data_len  = block_len;
             TapeBlocks[num_blocks_available].block_flag      = block_flag;
 
-            if ((block_flag < 128) || (block_len == 19)) // Header
+            if (!(block_flag & 0x80) || (block_len == 19)) // Header
             {
                 memcpy(TapeBlocks[num_blocks_available].block_filename, &ROM_Memory[idx+4], 10);
             }
@@ -256,7 +256,7 @@ void tape_parse_blocks(int tapeSize)
 
                     TapeBlocks[num_blocks_available].gap_delay_after = gap_len;
                     TapeBlocks[num_blocks_available].pilot_length    = DEFAULT_PILOT_LENGTH;
-                    TapeBlocks[num_blocks_available].pilot_pulses    = ((block_flag < 128) ? DEFAULT_DATA_PULSE_TOGGLES : DEFAULT_HEADER_PULSE_TOGGLES);
+                    TapeBlocks[num_blocks_available].pilot_pulses    = ((block_flag & 0x80) ? DEFAULT_DATA_PULSE_TOGGLES : DEFAULT_HEADER_PULSE_TOGGLES);
                     TapeBlocks[num_blocks_available].sync1_width     = DEFAULT_SYNC_PULSE1_WIDTH;
                     TapeBlocks[num_blocks_available].sync2_width     = DEFAULT_SYNC_PULSE2_WIDTH;
                     TapeBlocks[num_blocks_available].data_one_width  = DEFAULT_DATA_ONE_PULSE_WIDTH;
@@ -269,7 +269,7 @@ void tape_parse_blocks(int tapeSize)
                     TapeBlocks[num_blocks_available].data_one_widthX2  = TapeBlocks[num_blocks_available].data_one_width << 1;
                     TapeBlocks[num_blocks_available].data_zero_widthX2 = TapeBlocks[num_blocks_available].data_zero_width << 1;
 
-                    if ((block_flag < 128) || (block_len == 19)) // Header
+                    if (!(block_flag & 0x80) || (block_len == 19)) // Header
                     {
                         memcpy(TapeBlocks[num_blocks_available].block_filename, &ROM_Memory[idx+4+2], 10);
                     }
@@ -305,7 +305,7 @@ void tape_parse_blocks(int tapeSize)
                     TapeBlocks[num_blocks_available].data_one_widthX2  = TapeBlocks[num_blocks_available].data_one_width << 1;
                     TapeBlocks[num_blocks_available].data_zero_widthX2 = TapeBlocks[num_blocks_available].data_zero_width << 1;
 
-                    if ((block_flag < 128) || (block_len == 19)) // Header
+                    if (!(block_flag & 0x80) || (block_len == 19)) // Header
                     {
                         memcpy(TapeBlocks[num_blocks_available].block_filename, &ROM_Memory[idx+18+2], 10);
                     }
@@ -480,9 +480,23 @@ void tape_position(u8 newPos)
 }
 
 // Called every frame
+u8 show_tape_counter = 0;
 void tape_frame(void)
 {
-    // Not sure if we need this yet... called after every 1 frame of timing in the main loop
+    char tmp[5];
+    if (tape_state)
+    {
+        sprintf(tmp, "%03d", (tape_bytes_processed/1000) % 1000);
+        DSPrint(2, 20, 0, tmp);
+        show_tape_counter = 60;
+    }
+    else if (show_tape_counter)
+    {
+        if (--show_tape_counter == 0)
+        {
+            DSPrint(2, 20, 0, "   ");
+        }
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -735,7 +749,7 @@ ITCM_CODE u8 tape_pulse(void)
                     {
                         last_edge = CPU.TStates;
                         tape_state = TAPE_DELAY_AFTER; // We're done with this block... delay after
-                        return 0x00; // But make at least one transition back to 'low'
+                        // Do not return here... if delay is zero we don't want to perform any transition
                     }
                     else  // We've got another byte to process...
                     {
@@ -781,7 +795,7 @@ ITCM_CODE u8 tape_pulse(void)
                 break;
 
             case TAPE_DELAY_AFTER: // Normally ~1 second but can be different for custom tapes
-                if ((CPU.TStates-last_edge) <= (TapeBlocks[current_block].gap_delay_after * 3500)) return 0x00;
+                if ((CPU.TStates-last_edge) < (TapeBlocks[current_block].gap_delay_after * 3500)) return 0x00; // Must be < so we do nothing if delay is zero
                 else
                 {
                     tape_search_for_loader();
