@@ -52,6 +52,10 @@ Also thanks to Marat Fayzullin, as the author of ColEM and Speccy - which is whe
 
 And Sir Clive.
 
+How do I run this thing? :
+-----------------------
+
+
 ZX Spectrum BIOS ROMS :
 -----------------------
 The emulator does not include any proprietary BIOS ROMs but you will
