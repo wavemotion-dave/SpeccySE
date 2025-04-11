@@ -39,9 +39,20 @@ and those copyrights remain his.
 
 Royalty Free Music for the opening jingle provided by Anvish Parker
 
+The Sinclair logo is used without permission but with the maximum
+of respect and love.
+
 The SpeccySE emulator is offered as-is, without any warranty.
 
-ZX SPECTRUM BIOS ROMS :
+Special Thanks :
+-----------------------
+Thanks to Flubba for the SN76496, AY38910 and SCC sound cores. You can seek out his latest and greatest at https://github.com/FluBBaOfWard
+
+Also thanks to Marat Fayzullin, as the author of ColEM and Speccy - which is where the CZ80 CPU core came from.
+
+And Sir Clive.
+
+ZX Spectrum BIOS ROMS :
 -----------------------
 The emulator does not include any proprietary BIOS ROMs but you will
 need them to play anything. There are two ZX Spectrum BIOS ROMs you 
