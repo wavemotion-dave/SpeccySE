@@ -267,7 +267,7 @@ void setupStream(void)
   //----------------------------------------------------------------
   //  open stream
   //----------------------------------------------------------------
-  myStream.sampling_rate  = sample_rate;            // sample_rate for the CV to match the SN/AY drivers
+  myStream.sampling_rate  = sample_rate;            // sample_rate for the ZX to match the AY/Beeper drivers
   myStream.buffer_length  = buffer_size;            // buffer length = (512+16)
   myStream.callback       = OurSoundMixer;          // set callback function
   myStream.format         = MM_STREAM_16BIT_STEREO; // format = stereo 16-bit
@@ -1050,7 +1050,7 @@ u8 chuckie_key_left = 0;
 u8 chuckie_key_right = 0;
 
 // ------------------------------------------------------------------------
-// The main emulation loop is here... call into the Z80, VDP and PSG
+// The main emulation loop is here... call into the Z80 and render frame
 // ------------------------------------------------------------------------
 void SpeccySE_main(void)
 {

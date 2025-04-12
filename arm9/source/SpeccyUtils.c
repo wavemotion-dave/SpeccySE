@@ -29,7 +29,7 @@
 #include "CRC32.h"
 #include "printf.h"
 
-int         countCV=0;
+int         countZX=0;
 int         ucGameAct=0;
 int         ucGameChoice = -1;
 FISpeccy    gpFic[MAX_ROMS];
@@ -49,7 +49,7 @@ u16 *pVidFlipBuf  = (u16*) (0x06000000);    // Video flipping buffer
 // Used by our system to map into 8K memory chunks which allows for very
 // rapid banking of memory - mostly useful for the ZX Spectrum 128K
 // -----------------------------------------------------------------------
-u8 *MemoryMap[8]        __attribute__((section(".dtcm"))) = {0,0,0,0,0,0,0,0};
+u8 *MemoryMap[4]        __attribute__((section(".dtcm"))) = {0,0,0,0};
 
 // ------------------------------------------------------------------------
 // The Z80 Processor! Put the entire CPU state into fast memory for speed!
@@ -122,7 +122,7 @@ const char szKeyName[MAX_KEY_OPTIONS][16] = {
 /*********************************************************************************
  * Show A message with YES / NO
  ********************************************************************************/
-u8 showMessage(char *szCh1, char *szCh2) 
+u8 showMessage(char *szCh1, char *szCh2)
 {
   u16 iTx, iTy;
   u8 uRet=ID_SHM_CANCEL;
@@ -259,12 +259,12 @@ void dsDisplayFiles(u16 NoDebGame, u8 ucSel)
   u8 maxLen;
 
   DSPrint(31,5,0,(NoDebGame>0 ? "<" : " "));
-  DSPrint(31,22,0,(NoDebGame+14<countCV ? ">" : " "));
+  DSPrint(31,22,0,(NoDebGame+14<countZX ? ">" : " "));
 
   for (ucBcl=0;ucBcl<18; ucBcl++)
   {
     ucGame= ucBcl+NoDebGame;
-    if (ucGame < countCV)
+    if (ucGame < countZX)
     {
       maxLen=strlen(gpFic[ucGame].szName);
       strcpy(szName,gpFic[ucGame].szName);
@@ -320,7 +320,7 @@ void speccySEFindFiles(u8 bTapeOnly)
   struct dirent *pent;
 
   uNbFile=0;
-  countCV=0;
+  countZX=0;
 
   dir = opendir(".");
   while (((pent=readdir(dir))!=NULL) && (uNbFile<MAX_ROMS))
@@ -337,7 +337,7 @@ void speccySEFindFiles(u8 bTapeOnly)
             strcpy(gpFic[uNbFile].szName,szFile);
             gpFic[uNbFile].uType = DIRECTORY;
             uNbFile++;
-            countCV++;
+            countZX++;
         }
       }
     }
@@ -350,32 +350,32 @@ void speccySEFindFiles(u8 bTapeOnly)
               strcpy(gpFic[uNbFile].szName,szFile);
               gpFic[uNbFile].uType = SPECCY_FILE;
               uNbFile++;
-              countCV++;
+              countZX++;
             }
             if ( (strcasecmp(strrchr(szFile, '.'), ".sna") == 0) )  {
               strcpy(gpFic[uNbFile].szName,szFile);
               gpFic[uNbFile].uType = SPECCY_FILE;
               uNbFile++;
-              countCV++;
+              countZX++;
             }
             if ( (strcasecmp(strrchr(szFile, '.'), ".rom") == 0) )  {
               strcpy(gpFic[uNbFile].szName,szFile);
               gpFic[uNbFile].uType = SPECCY_FILE;
               uNbFile++;
-              countCV++;
+              countZX++;
             }
         }
         if ( (strcasecmp(strrchr(szFile, '.'), ".tap") == 0) )  {
           strcpy(gpFic[uNbFile].szName,szFile);
           gpFic[uNbFile].uType = SPECCY_FILE;
           uNbFile++;
-          countCV++;
+          countZX++;
         }
         if ( (strcasecmp(strrchr(szFile, '.'), ".tzx") == 0) )  {
           strcpy(gpFic[uNbFile].szName,szFile);
           gpFic[uNbFile].uType = SPECCY_FILE;
           uNbFile++;
-          countCV++;
+          countZX++;
         }
       }
     }
@@ -385,9 +385,9 @@ void speccySEFindFiles(u8 bTapeOnly)
   // ----------------------------------------------
   // If we found any files, go sort the list...
   // ----------------------------------------------
-  if (countCV)
+  if (countZX)
   {
-    qsort (gpFic, countCV, sizeof(FISpeccy), Filescmp);
+    qsort (gpFic, countZX, sizeof(FISpeccy), Filescmp);
   }
 }
 
@@ -411,13 +411,13 @@ u8 speccySELoadFile(u8 bTapeOnly)
 
   ucGameChoice = -1;
 
-  nbRomPerPage = (countCV>=18 ? 18 : countCV);
-  uNbRSPage = (countCV>=5 ? 5 : countCV);
+  nbRomPerPage = (countZX>=18 ? 18 : countZX);
+  uNbRSPage = (countZX>=5 ? 5 : countZX);
 
-  if (ucGameAct>countCV-nbRomPerPage)
+  if (ucGameAct>countZX-nbRomPerPage)
   {
-    firstRomDisplay=countCV-nbRomPerPage;
-    romSelected=ucGameAct-countCV+nbRomPerPage;
+    firstRomDisplay=countZX-nbRomPerPage;
+    romSelected=ucGameAct-countZX+nbRomPerPage;
   }
   else
   {
@@ -425,7 +425,7 @@ u8 speccySELoadFile(u8 bTapeOnly)
     romSelected=0;
   }
 
-  if (romSelected >= countCV) romSelected = 0; // Just start at the top
+  if (romSelected >= countZX) romSelected = 0; // Just start at the top
 
   dsDisplayFiles(firstRomDisplay,romSelected);
 
@@ -438,14 +438,14 @@ u8 speccySELoadFile(u8 bTapeOnly)
     {
       if (!ucHaut)
       {
-        ucGameAct = (ucGameAct>0 ? ucGameAct-1 : countCV-1);
+        ucGameAct = (ucGameAct>0 ? ucGameAct-1 : countZX-1);
         if (romSelected>uNbRSPage) { romSelected -= 1; }
         else {
           if (firstRomDisplay>0) { firstRomDisplay -= 1; }
           else {
             if (romSelected>0) { romSelected -= 1; }
             else {
-              firstRomDisplay=countCV-nbRomPerPage;
+              firstRomDisplay=countZX-nbRomPerPage;
               romSelected=nbRomPerPage-1;
             }
           }
@@ -467,10 +467,10 @@ u8 speccySELoadFile(u8 bTapeOnly)
     if (keysCurrent() & KEY_DOWN)
     {
       if (!ucBas) {
-        ucGameAct = (ucGameAct< countCV-1 ? ucGameAct+1 : 0);
+        ucGameAct = (ucGameAct< countZX-1 ? ucGameAct+1 : 0);
         if (romSelected<uNbRSPage-1) { romSelected += 1; }
         else {
-          if (firstRomDisplay<countCV-nbRomPerPage) { firstRomDisplay += 1; }
+          if (firstRomDisplay<countZX-nbRomPerPage) { firstRomDisplay += 1; }
           else {
             if (romSelected<nbRomPerPage-1) { romSelected += 1; }
             else {
@@ -500,10 +500,10 @@ u8 speccySELoadFile(u8 bTapeOnly)
     {
       if (!ucSBas)
       {
-        ucGameAct = (ucGameAct< countCV-nbRomPerPage ? ucGameAct+nbRomPerPage : countCV-nbRomPerPage);
-        if (firstRomDisplay<countCV-nbRomPerPage) { firstRomDisplay += nbRomPerPage; }
-        else { firstRomDisplay = countCV-nbRomPerPage; }
-        if (ucGameAct == countCV-nbRomPerPage) romSelected = 0;
+        ucGameAct = (ucGameAct< countZX-nbRomPerPage ? ucGameAct+nbRomPerPage : countZX-nbRomPerPage);
+        if (firstRomDisplay<countZX-nbRomPerPage) { firstRomDisplay += nbRomPerPage; }
+        else { firstRomDisplay = countZX-nbRomPerPage; }
+        if (ucGameAct == countZX-nbRomPerPage) romSelected = 0;
         ucSBas=0x01;
         dsDisplayFiles(firstRomDisplay,romSelected);
       }
@@ -577,11 +577,11 @@ u8 speccySELoadFile(u8 bTapeOnly)
         chdir(gpFic[ucGameAct].szName);
         speccySEFindFiles(bTapeOnly);
         ucGameAct = 0;
-        nbRomPerPage = (countCV>=14 ? 14 : countCV);
-        uNbRSPage = (countCV>=5 ? 5 : countCV);
-        if (ucGameAct>countCV-nbRomPerPage) {
-          firstRomDisplay=countCV-nbRomPerPage;
-          romSelected=ucGameAct-countCV+nbRomPerPage;
+        nbRomPerPage = (countZX>=14 ? 14 : countZX);
+        uNbRSPage = (countZX>=5 ? 5 : countZX);
+        if (ucGameAct>countZX-nbRomPerPage) {
+          firstRomDisplay=countZX-nbRomPerPage;
+          romSelected=ucGameAct-countZX+nbRomPerPage;
         }
         else {
           firstRomDisplay=ucGameAct;
@@ -889,6 +889,7 @@ const struct options_t Option_Table[2][20] =
         {"AUTO FIRE",      {"OFF", "ON"},                                              &myConfig.autoFire,          2},
         {"TAPE SPEED",     {"NORMAL", "ACCELERATED"},                                  &myConfig.tapeSpeed,         2},
         {"BUS CONTEND",    {"NORMAL", "LIGHT", "HEAVY"},                               &myConfig.contention,        3},
+        {"NDS D-PAD",      {"NORMAL", "DIAGONALS", "CHUCKIE"},                         &myConfig.dpad,              3},
         {NULL,             {"",      ""},                                              NULL,                        1},
     },
     // Global Options
@@ -1606,7 +1607,7 @@ u8 spectrumInit(char *szGame)
   // We've got some debug data we can use for development... reset these.
   memset(debug, 0x00, sizeof(debug));
   DX = DY = 0;
-  
+
   // -----------------------------------------------------------------
   // Change graphic mode to initiate emulation.
   // Here we can claim back 128K of VRAM which is otherwise unused

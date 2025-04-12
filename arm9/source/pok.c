@@ -49,7 +49,7 @@ char szLoadFile[256];
 char szLine[256];
 u32  last_file_crc_poke_read;
 
-inline void WrZ80(word A, byte value)   {if (A & 0xC000) *(MemoryMap[(A)>>13] + ((A)&0x1FFF))=value;}
+inline void WrZ80(word A, byte value)   {if (A & 0xC000) *(MemoryMap[(A)>>14] + ((A)&0x3FFF))=value;}
 
 void pok_init()
 {

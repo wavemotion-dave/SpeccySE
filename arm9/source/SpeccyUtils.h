@@ -131,7 +131,7 @@ extern u8 ROM_Memory[MAX_TAPE_SIZE];
 extern u8 RAM_Memory[0x10000];
 extern u8 RAM_Memory128[0x20000];
 
-extern u8 *MemoryMap[8];
+extern u8 *MemoryMap[4];
 extern AY38910 myAY;
 
 extern FISpeccy gpFic[MAX_ROMS];  

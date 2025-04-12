@@ -242,7 +242,7 @@ case OUTA: I=OpZ80(CPU.PC.W++);OutZ80(I|(CPU.AF.W&0xFF00),CPU.AF.B.h);break;
 case INA:  I=OpZ80(CPU.PC.W++);CPU.AF.B.h=InZ80(I|(CPU.AF.W&0xFF00));break;
 
 case HALT:
-  halt_counter++;
+  CPU.TStates = RunToCycles;  // We're just waiting for an interrupt... so just skip ahead. This is often how a ZX game waits for the next frame.
   CPU.PC.W--;
   CPU.IFF|=IFF_HALT;
   break;
@@ -255,7 +255,7 @@ case EI:
   if(!(CPU.IFF&(IFF_1|IFF_EI)))
   {
     CPU.IFF|=IFF_2|IFF_EI;
-    CPU.EI_Delay = 2;       // We process the EI and then the instruction after it before actually enabling
+    EI_Enable();
   }
   break;
 

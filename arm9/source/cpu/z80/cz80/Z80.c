@@ -30,10 +30,10 @@
 
 extern Z80 CPU;
 
-u32 halt_counter=0;
 extern u32 debug[];
 extern u32 DX,DY;
 extern u8 zx_ScreenRendering, zx_contend_delay, zx_128k_mode, portFD;
+extern void EI_Enable(void);
 
 #define INLINE static inline
 
@@ -41,7 +41,7 @@ extern u8 zx_ScreenRendering, zx_contend_delay, zx_128k_mode, portFD;
 /** This is system-dependent code put here to speed things  **/
 /** up. It has to stay inlined to be fast.                  **/
 /*************************************************************/
-extern u8 *MemoryMap[8];
+extern u8 *MemoryMap[4];
 
 typedef u8 (*patchFunc)(void);
 extern patchFunc *PatchLookup;
@@ -62,7 +62,7 @@ extern u8 speccy_mode;
 // ------------------------------------------------------------------------------
 inline byte OpZ80(word A)
 {
-    return *(MemoryMap[(A)>>13] + ((A)&0x1FFF));
+    return *(MemoryMap[(A)>>14] + ((A)&0x3FFF));
 }
 
 #define RdZ80 OpZ80 // Nothing unique about a memory read - same as an OpZ80 opcode fetch
@@ -70,7 +70,7 @@ inline byte OpZ80(word A)
 // -------------------------------------------------------------------------------------------
 // The only extra protection we have in writes is to ensure we don't write into the ROM area.
 // -------------------------------------------------------------------------------------------
-inline void WrZ80(word A, byte value)   {if (A & 0xC000) *(MemoryMap[(A)>>13] + ((A)&0x1FFF))=value;}
+inline void WrZ80(word A, byte value)   {if (A & 0xC000) *(MemoryMap[(A)>>14] + ((A)&0x3FFF))=value;}
 
 // -------------------------------------------------------------------
 // And these two macros will give us access to the Z80 I/O ports...
@@ -582,6 +582,48 @@ static void CodesFD_Speccy(void)
 #undef XX
 }
 
+// ------------------------------------------------------------------------------
+// Almost 15K wasted space... but needed so we can keep the Enable Interrupt
+// instruction out of the main fast Z80 instruction loop. When the EI instruction
+// is issued, the interrupts are not enabled until one instruction later. This
+// function let's us execute that one instruction - somewhat more slowly but 
+// interrupts are enabled very infrequently (often enabled and left that way).
+// ------------------------------------------------------------------------------
+void ExecOneInstruction(void)
+{
+  register byte I;
+  register pair J;
+  u8 render = zx_ScreenRendering;
+  u32 RunToCycles = CPU.TStates+1;   
+
+  // ----------------------------------------------------------------------------------------
+  // If we are in contended memory - add penalty. This is not cycle accurate but we want to
+  // at least make an attempt to get closer on the cycle timing. So we simply use an 'average'
+  // penalty of 4 cycles if we are in contended memory while the screen is rendering. It's
+  // rough but gets us close enough to play games. We can improve this later...
+  // ----------------------------------------------------------------------------------------
+  if (render)
+  {
+    if ((CPU.PC.W & 0xC000) == 0x4000) CPU.TStates += zx_contend_delay; 
+  }
+
+  I=OpZ80(CPU.PC.W++);
+  CPU.TStates += Cycles_NoM1Wait[I];
+
+  /* R register incremented on each M1 cycle */
+  INCR(1);
+
+  /* Interpret opcode */
+  switch(I)
+  {
+#include "Codes.h"
+    case PFX_CB: CodesCB_Speccy();break;
+    case PFX_ED: CodesED_Speccy();break;
+    case PFX_FD: CodesFD_Speccy();break;
+    case PFX_DD: CodesDD_Speccy();break;
+  }
+}
+  
 // ------------------------------------------------------------------------
 // The Enable Interrupt is delayed 1 M1 instruction and we must also check
 // to see if we are within the 32 TState period where the ZX Spectrum ULA
@@ -589,17 +631,19 @@ static void CodesFD_Speccy(void)
 // ------------------------------------------------------------------------
 void EI_Enable(void)
 {
-   if (--CPU.EI_Delay == 0) 
+   ExecOneInstruction(); 
+   CPU.IFF=(CPU.IFF&~IFF_EI)|IFF_1;
+   if (CPU.IRequest != INT_NONE)
    {
-       CPU.IFF=(CPU.IFF&~IFF_EI)|IFF_1;
-       if (CPU.IRequest != INT_NONE)
-       {
-           if ((CPU.TStates - CPU.TStates_IRequest) < 32) IntZ80(&CPU, CPU.IRequest); // Fire the interrupt
-           else CPU.IRequest = INT_NONE; // We missed the interrupt... 
-       }
+       if ((CPU.TStates - CPU.TStates_IRequest) < 32) IntZ80(&CPU, CPU.IRequest); // Fire the interrupt
+       else CPU.IRequest = INT_NONE; // We missed the interrupt... 
    }
 }
 
+// -----------------------------------------------------------------------------------
+// The main Z80 instruction loop. We put this 15K chunk into fast memory as we 
+// want to make the Z80 run as quickly as possible - this is the heart of the system.
+// -----------------------------------------------------------------------------------
 ITCM_CODE void ExecZ80_Speccy(u32 RunToCycles)
 {
   register byte I;
@@ -634,7 +678,5 @@ ITCM_CODE void ExecZ80_Speccy(u32 RunToCycles)
         case PFX_FD: CodesFD_Speccy();break;
         case PFX_DD: CodesDD_Speccy();break;
       }
-      
-      if (CPU.EI_Delay) EI_Enable();
   }
 }

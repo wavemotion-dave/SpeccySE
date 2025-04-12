@@ -23,8 +23,7 @@
 #include "SpeccyUtils.h"
 #include "printf.h"
 
-#define SPECCY_SAVE_VER   0x0003       // Change this if the basic format of the .SAV file changes. Invalidates older .sav files.
-
+#define SPECCY_SAVE_VER   0x0004       // Change this if the basic format of the .SAV file changes. Invalidates older .sav files.
 
 // -----------------------------------------------------------------------------------------------------
 // Since the main MemoryMap[] can point to differt things (RAM, ROM, BIOS, etc) and since we can't rely
@@ -37,7 +36,7 @@ struct RomOffset
     u32  offset;
 };
 
-struct RomOffset Offsets[8];
+struct RomOffset Offsets[4];
 
 #define TYPE_ROM        0
 #define TYPE_RAM        1
@@ -89,7 +88,7 @@ void spectrumSaveState()
     retVal = fwrite(&myAY, sizeof(myAY), 1, handle);
 
     // And the Memory Map - we must only save offsets so that this is generic when we change code and memory shifts...
-    for (u8 i=0; i<8; i++)
+    for (u8 i=0; i<4; i++)
     {
         if ((MemoryMap[i] >= SpectrumBios) && (MemoryMap[i] < SpectrumBios+(sizeof(SpectrumBios))))
         {
@@ -230,7 +229,7 @@ void spectrumLoadState()
 
             // Load back the Memory Map - these were saved as offsets so we must reconstruct actual pointers
             if (retVal) retVal = fread(Offsets, sizeof(Offsets),1, handle);
-            for (u8 i=0; i<8; i++)
+            for (u8 i=0; i<4; i++)
             {
                 if (Offsets[i].type == TYPE_BIOS)
                 {

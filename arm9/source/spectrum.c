@@ -93,8 +93,6 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
             word inv = ~Port;
             if (inv & 0x0800) // 12345 row
             {
-                if (keysCurrent() & KEY_SELECT) key |= 0x01; // 1
-
                 if (kbd_key)
                 {
                     if (kbd_key == '1')           key  |= 0x01;
@@ -107,8 +105,6 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
 
             if (inv & 0x1000) // 09876 row
             {
-                if (keysCurrent() & KEY_START) key |= 0x01; // 0
-
                 if (kbd_key)
                 {
                     if (kbd_key == '0')           key  |= 0x01;
@@ -214,7 +210,7 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
 
         return (u8)~key;
     }
-
+    else
     if ((Port & 0x3F) == 0x1F)  // Kempston Joystick interface... (only A5 driven low)
     {
         u8 joy1 = 0x00;
@@ -226,7 +222,7 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
         if (JoyState & JST_FIRE)  joy1 |= 0x10;
         return joy1;
     }
-
+    else
     if ((Port & 0xc002) == 0xc000) // AY input
     {
         return ay38910DataR(&myAY);
@@ -267,12 +263,10 @@ void zx_bank(u8 new_bank)
     if (speccy_mode != MODE_BIOS)
     {
         MemoryMap[0] = SpectrumBios128 + ((new_bank & 0x10) ? 0x4000 : 0x0000);
-        MemoryMap[1] = SpectrumBios128 + ((new_bank & 0x10) ? 0x6000 : 0x2000);
     }
     
-    // Map in the correct page of banked memory
-    MemoryMap[6] = RAM_Memory128 + ((new_bank & 0x07) * 0x4000) + 0x0000;
-    MemoryMap[7] = RAM_Memory128 + ((new_bank & 0x07) * 0x4000) + 0x2000;
+    // Map in the correct page of banked memory to 0xC000
+    MemoryMap[3] = RAM_Memory128 + ((new_bank & 0x07) * 0x4000) + 0x0000;
 
     portFD = new_bank;
 }
@@ -287,7 +281,7 @@ u16 zx_border_colors[8] __attribute__((section(".dtcm"))) =
   (u16)RGB15(0x00,0xD8,0x00),   // Green
   (u16)RGB15(0x00,0xD8,0xD8),   // Cyan
   (u16)RGB15(0xD8,0xD8,0x00),   // Yellow
-  (u16)RGB15(0xFD,0xFD,0xFD)    // White (dim it slightly)
+  (u16)RGB15(0xD8,0xD8,0xD8),   // White
 };
 
 
@@ -302,12 +296,12 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
         }
         portFE = Value;        
     }
-
+    
     if (zx_128k_mode && ((Port & 0x8002) == 0x0000)) // 128K Bankswitch
     {
         zx_bank(Value);
     }
-
+    else
     if ((Port & 0xc002) == 0xc000) // AY Register Select
     {
         ay38910IndexW(Value&0xF, &myAY);
@@ -332,7 +326,7 @@ u32 zx_colors_extend32[16] __attribute__((section(".dtcm"))) =
 // ----------------------------------------------------------------------------
 // Render one screen line of pixels. This is called on every visible scanline.
 // ----------------------------------------------------------------------------
-ITCM_CODE void speccy_render_screen(u8 line)
+ITCM_CODE void speccy_render_screen_line(u8 line)
 {
     u8 *zx_ScreenPage = 0;
     u32 *vidBuf = (u32*) (0x06000000 + (line << 8));    // Video buffer... write 32-bits at a time for maximum speed
@@ -362,13 +356,12 @@ ITCM_CODE void speccy_render_screen(u8 line)
     // --------------------------------------------------
     // Render the current line into our NDS video memory
     // --------------------------------------------------
-    int y = line;
 
     // ----------------------------------------------------------------
     // The color attribute is stored independently from the pixel data
     // ----------------------------------------------------------------
-    u8 *attrPtr = &zx_ScreenPage[0x1800 + ((y/8)*32)];
-    word offset = ((y&0x07) << 8) | ((y&0x38) << 2) | ((y&0xC0) << 5);
+    u8 *attrPtr = &zx_ScreenPage[0x1800 + ((line/8)*32)];
+    word offset = ((line&0x07) << 8) | ((line&0x38) << 2) | ((line&0xC0) << 5);
     u8 *pixelPtr = zx_ScreenPage+offset;
     
     // ---------------------------------------------------------------------
@@ -385,12 +378,12 @@ ITCM_CODE void speccy_render_screen(u8 line)
             if (bFlash) pixel = ~pixel; // Faster to just invert the pixel itself...
         }
         
-        // ---------------------------------------------------------------
-        // Normal drawing... We try to speed this up as much as possible.
-        // ---------------------------------------------------------------
+        // --------------------------------------------------------------------------
+        // And now the pixel drawing... We try to speed this up as much as possible.
+        // --------------------------------------------------------------------------
         if (pixel) // Is at least one pixel on?
         {
-            u8 ink   = (attr & 0x07);       // Color
+            u8 ink   = (attr & 0x07);       // Ink Color is the foreground
             if (attr & 0x40) ink |= 0x08;   // Brightness
 
             *vidBuf++ = (((pixel & 0x80) ? ink:paper)) | (((pixel & 0x40) ? ink:paper) << 8) | (((pixel & 0x20) ? ink:paper) << 16) | (((pixel & 0x10) ? ink:paper) << 24);
@@ -566,13 +559,9 @@ void speccy_reset(void)
     
     // Default to a simplified memory map - remap as needed below
     MemoryMap[0] = RAM_Memory + 0x0000;
-    MemoryMap[1] = RAM_Memory + 0x2000;
-    MemoryMap[2] = RAM_Memory + 0x4000;
-    MemoryMap[3] = RAM_Memory + 0x6000;
-    MemoryMap[4] = RAM_Memory + 0x8000;
-    MemoryMap[5] = RAM_Memory + 0xA000;
-    MemoryMap[6] = RAM_Memory + 0xC000;
-    MemoryMap[7] = RAM_Memory + 0xE000;
+    MemoryMap[1] = RAM_Memory + 0x4000;
+    MemoryMap[2] = RAM_Memory + 0x8000;
+    MemoryMap[3] = RAM_Memory + 0xC000;
     
     CPU.PC.W            = 0x0000;
     portFE              = 0x00;
@@ -651,14 +640,9 @@ void speccy_reset(void)
             myConfig.loadAs = 1;
             
             // Now set the memory map to point to the right banks...
-            MemoryMap[2] = RAM_Memory128 + (5 * 0x4000) + 0x0000; // Bank 5
-            MemoryMap[3] = RAM_Memory128 + (5 * 0x4000) + 0x2000; // Bank 5
-
-            MemoryMap[4] = RAM_Memory128 + (2 * 0x4000) + 0x0000; // Bank 2
-            MemoryMap[5] = RAM_Memory128 + (2 * 0x4000) + 0x2000; // Bank 2
-
-            MemoryMap[6] = RAM_Memory128 + (0 * 0x4000) + 0x0000; // Bank 0
-            MemoryMap[7] = RAM_Memory128 + (0 * 0x4000) + 0x2000; // Bank 0
+            MemoryMap[1] = RAM_Memory128 + (5 * 0x4000) + 0x0000; // Bank 5
+            MemoryMap[2] = RAM_Memory128 + (2 * 0x4000) + 0x0000; // Bank 2
+            MemoryMap[3] = RAM_Memory128 + (0 * 0x4000) + 0x0000; // Bank 0
         }
     }
     else if (speccy_mode < MODE_SNA) // TAP or TZX file - 48K or 128K
@@ -670,14 +654,9 @@ void speccy_reset(void)
             myConfig.loadAs = 1;
             
             // Now set the memory map to point to the right banks...
-            MemoryMap[2] = RAM_Memory128 + (5 * 0x4000) + 0x0000; // Bank 5
-            MemoryMap[3] = RAM_Memory128 + (5 * 0x4000) + 0x2000; // Bank 5
-
-            MemoryMap[4] = RAM_Memory128 + (2 * 0x4000) + 0x0000; // Bank 2
-            MemoryMap[5] = RAM_Memory128 + (2 * 0x4000) + 0x2000; // Bank 2            
-            
-            MemoryMap[6] = RAM_Memory128 + (0 * 0x4000) + 0x0000; // Bank 0
-            MemoryMap[7] = RAM_Memory128 + (0 * 0x4000) + 0x2000; // Bank 0            
+            MemoryMap[1] = RAM_Memory128 + (5 * 0x4000) + 0x0000; // Bank 5
+            MemoryMap[2] = RAM_Memory128 + (2 * 0x4000) + 0x0000; // Bank 2
+            MemoryMap[3] = RAM_Memory128 + (0 * 0x4000) + 0x0000; // Bank 0
         }
     }        
     else // Z80 snapshot
@@ -736,11 +715,8 @@ void speccy_reset(void)
             if (zx_128k_mode)
             {
                 // Now set the memory map to point to the right banks...
-                MemoryMap[2] = RAM_Memory128 + (5 * 0x4000) + 0x0000; // Bank 5
-                MemoryMap[3] = RAM_Memory128 + (5 * 0x4000) + 0x2000; // Bank 5
-
-                MemoryMap[4] = RAM_Memory128 + (2 * 0x4000) + 0x0000; // Bank 2
-                MemoryMap[5] = RAM_Memory128 + (2 * 0x4000) + 0x2000; // Bank 2
+                MemoryMap[1] = RAM_Memory128 + (5 * 0x4000) + 0x0000; // Bank 5
+                MemoryMap[2] = RAM_Memory128 + (2 * 0x4000) + 0x0000; // Bank 2
 
                 zx_bank(ROM_Memory[35]);     // Last write to 0x7ffd (banking)
                 
@@ -829,7 +805,7 @@ ITCM_CODE u32 speccy_run(void)
         if ((zx_current_line & 0x100) == 0)
         {
             // Render one scanline... 
-            speccy_render_screen(zx_current_line - 64);
+            speccy_render_screen_line(zx_current_line - 64);
             zx_ScreenRendering = 1;
         }
     }
