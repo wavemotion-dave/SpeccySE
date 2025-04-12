@@ -883,12 +883,11 @@ const struct options_t Option_Table[2][20] =
 {
     // Game Specific Configuration
     {
+        {"LOAD AS",        {"48K SPECTRUM", "128K SPECTRUM"},                          &myConfig.loadAs,            2},
         {"AUTO PLAY",      {"NO", "YES"},                                              &myConfig.autoLoad,          2},
         {"AUTO STOP",      {"NO", "YES"},                                              &myConfig.autoStop,          2},
         {"AUTO FIRE",      {"OFF", "ON"},                                              &myConfig.autoFire,          2},
-        {"NDS D-PAD",      {"NORMAL", "DIAGONALS", "CHUCKIE"},                         &myConfig.dpad,              3},
         {"TAPE SPEED",     {"NORMAL", "ACCELERATED"},                                  &myConfig.tapeSpeed,         2},
-        {"LOAD AS",        {"48K SPECTRUM", "128K SPECTRUM"},                          &myConfig.loadAs,            2},
         {"BUS CONTEND",    {"NORMAL", "LIGHT", "HEAVY"},                               &myConfig.contention,        3},
         {NULL,             {"",      ""},                                              NULL,                        1},
     },
@@ -1027,29 +1026,29 @@ char szCha[34];
 void DisplayKeymapName(u32 uY)
 {
   sprintf(szCha," PAD UP    : %-17s",szKeyName[myConfig.keymap[0]]);
-  DSPrint(1, 6,(uY==  6 ? 2 : 0),szCha);
+  DSPrint(1, 5,(uY==  5 ? 2 : 0),szCha);
   sprintf(szCha," PAD DOWN  : %-17s",szKeyName[myConfig.keymap[1]]);
-  DSPrint(1, 7,(uY==  7 ? 2 : 0),szCha);
+  DSPrint(1, 6,(uY==  6 ? 2 : 0),szCha);
   sprintf(szCha," PAD LEFT  : %-17s",szKeyName[myConfig.keymap[2]]);
-  DSPrint(1, 8,(uY==  8 ? 2 : 0),szCha);
+  DSPrint(1, 7,(uY==  7 ? 2 : 0),szCha);
   sprintf(szCha," PAD RIGHT : %-17s",szKeyName[myConfig.keymap[3]]);
-  DSPrint(1, 9,(uY== 9 ? 2 : 0),szCha);
+  DSPrint(1, 8,(uY== 8 ? 2 : 0),szCha);
   sprintf(szCha," KEY A     : %-17s",szKeyName[myConfig.keymap[4]]);
-  DSPrint(1,10,(uY== 10 ? 2 : 0),szCha);
+  DSPrint(1, 9,(uY== 9 ? 2 : 0),szCha);
   sprintf(szCha," KEY B     : %-17s",szKeyName[myConfig.keymap[5]]);
-  DSPrint(1,11,(uY== 11 ? 2 : 0),szCha);
+  DSPrint(1,10,(uY== 10 ? 2 : 0),szCha);
   sprintf(szCha," KEY X     : %-17s",szKeyName[myConfig.keymap[6]]);
-  DSPrint(1,12,(uY== 12 ? 2 : 0),szCha);
+  DSPrint(1,11,(uY== 11 ? 2 : 0),szCha);
   sprintf(szCha," KEY Y     : %-17s",szKeyName[myConfig.keymap[7]]);
-  DSPrint(1,13,(uY== 13 ? 2 : 0),szCha);
+  DSPrint(1,12,(uY== 12 ? 2 : 0),szCha);
   sprintf(szCha," KEY R     : %-17s",szKeyName[myConfig.keymap[8]]);
-  DSPrint(1,14,(uY== 14 ? 2 : 0),szCha);
+  DSPrint(1,13,(uY== 13 ? 2 : 0),szCha);
   sprintf(szCha," KEY L     : %-17s",szKeyName[myConfig.keymap[9]]);
-  DSPrint(1,15,(uY== 15 ? 2 : 0),szCha);
+  DSPrint(1,14,(uY== 14 ? 2 : 0),szCha);
   sprintf(szCha," START     : %-17s",szKeyName[myConfig.keymap[10]]);
-  DSPrint(1,16,(uY== 16 ? 2 : 0),szCha);
+  DSPrint(1,15,(uY== 15 ? 2 : 0),szCha);
   sprintf(szCha," SELECT    : %-17s",szKeyName[myConfig.keymap[11]]);
-  DSPrint(1,17,(uY== 17 ? 2 : 0),szCha);
+  DSPrint(1,16,(uY== 16 ? 2 : 0),szCha);
 }
 
 u8 keyMapType = 0;
@@ -1058,14 +1057,14 @@ void SwapKeymap(void)
     keyMapType = (keyMapType+1) % 5;
     switch (keyMapType)
     {
-        case 0: MapPlayer1();  DSPrint(10,4,0,("KEMPSTON P1")); break;
-        case 1: MapQAOP();     DSPrint(10,4,0,("   QAOP    ")); break;
-        case 2: MapWASD();     DSPrint(10,4,0,("   WASD    "));break;
-        case 3: MapZXSpace();  DSPrint(10,4,0,(" ZX SPACE  "));break;
-        case 4: Sinclair1();   DSPrint(10,4,0,("SINCLAIR P1"));break;
+        case 0: MapPlayer1();  DSPrint(10,3,0,("KEMPSTON P1")); break;
+        case 1: Sinclair1();   DSPrint(10,3,0,("SINCLAIR P1")); break;
+        case 2: MapQAOP();     DSPrint(10,3,0,("   QAOP    ")); break;
+        case 3: MapWASD();     DSPrint(10,3,0,("   WASD    ")); break;
+        case 4: MapZXSpace();  DSPrint(10,3,0,(" ZX SPACE  ")); break;
     }
-    WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;
-    DSPrint(10,4,0,("           "));
+    WAITVBL;WAITVBL;WAITVBL;WAITVBL;
+    DSPrint(10,3,0,("           "));
 }
 
 
@@ -1075,7 +1074,7 @@ void SwapKeymap(void)
 // ------------------------------------------------------------------------------
 void SpeccySEChangeKeymap(void)
 {
-  u32 ucHaut=0x00, ucBas=0x00,ucL=0x00,ucR=0x00,ucY= 6, bOK=0, bIndTch=0;
+  u16 ucHaut=0x00, ucBas=0x00,ucL=0x00,ucR=0x00,ucY= 5, bOK=0, bIndTch=0;
 
   // ------------------------------------------------------
   // Clear the screen so we can put up Key Map infomation
@@ -1105,8 +1104,8 @@ void SpeccySEChangeKeymap(void)
     if (keysCurrent() & KEY_UP) {
       if (!ucHaut) {
         DisplayKeymapName(32);
-        ucY = (ucY == 6 ? 17 : ucY -1);
-        bIndTch = myConfig.keymap[ucY-6];
+        ucY = (ucY == 5 ? 16 : ucY -1);
+        bIndTch = myConfig.keymap[ucY-5];
         ucHaut=0x01;
         DisplayKeymapName(ucY);
       }
@@ -1121,8 +1120,8 @@ void SpeccySEChangeKeymap(void)
     if (keysCurrent() & KEY_DOWN) {
       if (!ucBas) {
         DisplayKeymapName(32);
-        ucY = (ucY == 17 ? 6 : ucY +1);
-        bIndTch = myConfig.keymap[ucY-6];
+        ucY = (ucY == 16 ? 5 : ucY +1);
+        bIndTch = myConfig.keymap[ucY-5];
         ucBas=0x01;
         DisplayKeymapName(ucY);
       }
@@ -1150,7 +1149,7 @@ void SpeccySEChangeKeymap(void)
         if (ucL == 0) {
           bIndTch = (bIndTch == 0 ? (MAX_KEY_OPTIONS-1) : bIndTch-1);
           ucL=1;
-          myConfig.keymap[ucY-6] = bIndTch;
+          myConfig.keymap[ucY-5] = bIndTch;
           DisplayKeymapName(ucY);
         }
         else {
@@ -1169,7 +1168,7 @@ void SpeccySEChangeKeymap(void)
         {
           bIndTch = (bIndTch == (MAX_KEY_OPTIONS-1) ? 0 : bIndTch+1);
           ucR=1;
-          myConfig.keymap[ucY-6] = bIndTch;
+          myConfig.keymap[ucY-5] = bIndTch;
           DisplayKeymapName(ucY);
         }
         else
@@ -1187,7 +1186,7 @@ void SpeccySEChangeKeymap(void)
     if (keysCurrent() & KEY_X)
     {
         SwapKeymap();
-        bIndTch = myConfig.keymap[ucY-6];
+        bIndTch = myConfig.keymap[ucY-5];
         DisplayKeymapName(ucY);
         while (keysCurrent() & KEY_X)
             ;
@@ -1615,7 +1614,7 @@ u8 spectrumInit(char *szGame)
   // -----------------------------------------------------------------
   videoSetMode(MODE_5_2D | DISPLAY_BG3_ACTIVE);
   vramSetBankA(VRAM_A_MAIN_BG_0x06000000);      // This is our top emulation screen (where the game is played)
-  vramSetBankB(VRAM_B_LCD);                     // 128K of Video Memory mapped at 0x6820000
+  vramSetBankB(VRAM_B_LCD);
   REG_BG3CNT = BG_BMP8_256x256;
   REG_BG3PA = (1<<8);
   REG_BG3PB = 0;

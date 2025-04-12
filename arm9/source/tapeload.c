@@ -153,6 +153,18 @@ u8 tape_find_positions(void)
     return pos_idx;
 }
 
+// Used in the pre-loader in the standard ROM... speeds up a ~1 second loop
+u8 tape_preloader_delay(void)
+{
+    u8 B = (CPU.BC.B.h-1) & 0xFF;
+    if (B)
+    {
+        CPU.TStates += B * 13; // DJNZ is 13 bytes on every loop pass...
+        CPU.BC.B.h = 1;        // So when we return, the DEC will produce zero - end of loop
+    }
+    return CPU.BC.B.h;
+}
+
 // -----------------------------------------------
 // This traps out the tape loader main routine...
 // -----------------------------------------------
@@ -163,8 +175,9 @@ void tape_patch(void)
 
     if (myConfig.tapeSpeed)
     {
-        PatchLookup[0x05F3] = tape_sample_standard;
+        PatchLookup[0x05F3] = tape_sample_standard; // This is the edge detection routine - the heart of every loader
         PatchLookup[0x05EA] = tape_predelay_accel;  // DEC A followed by JRNZ back to the DEC A (delay loop) 0x3D 0x20 +0xFD
+        PatchLookup[0x0575] = tape_preloader_delay; // DJNZ jumping back to itself... pre-loader delay loop
         loader_type = "STANDARD";
     }
 }
@@ -428,12 +441,6 @@ void tape_parse_blocks(int tapeSize)
                 case 0x5A: // Glue Block
                     idx += 9;
                     break;
-#if 0
-                default:
-                    printf("Unknown ID = %02Xh\n", id);
-                    idx = size;
-                    break;
-#endif
             }
         }
 
@@ -1015,6 +1022,13 @@ ld_sample:
     }
     else                                // Edge not detected - we will do another pass or timeout
     {
+        if (B & 0xFC)
+        {
+            CPU.TStates += 3*59;        // Three times the normal loop time - faster edge detection
+            B-=3;                       // Reduce counter by 3
+            goto ld_sample;             // Take another sample.
+        }
+
         CPU.TStates += 59;              // It takes 59 total cycles when we take another pass around the loop to the IN A,(FE)
         if (--B) goto ld_sample;        // If no time-out... take another sample.
 
@@ -1168,6 +1182,11 @@ ITCM_CODE void tape_search_for_loader(void)
                               loader_type = "DINALOAD";
                               PatchLookup[addr+2] = tape_sample_standard; // Since this has the same cycle count - we can use the standard loader
                               if (OpZ80(addr-8) == 0x3D) PatchLookup[addr-7] = tape_predelay_accel;
+                              // Look for the loader delay which is often outside the main edge loop
+                              for (u16 j=addr; j<addr+100; j++)
+                              {
+                                  if ((OpZ80(j) == 0x10) && (OpZ80(j+1) == 0xFE)) PatchLookup[j+1] = tape_preloader_delay;
+                              }
                           }
 
                 // Microsphere Loader

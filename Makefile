@@ -15,7 +15,7 @@ include $(DEVKITARM)/ds_rules
 
 export TARGET		:=	SpeccySE
 export TOPDIR		:=	$(CURDIR)
-export VERSION		:=  0.8b
+export VERSION		:=  0.8c
 
 ICON 		:= -b $(CURDIR)/logo.bmp "SpeccySE $(VERSION);wavemotion-dave;https://github.com/wavemotion-dave/SpeccySE" 
 

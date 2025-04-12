@@ -287,7 +287,7 @@ u16 zx_border_colors[8] __attribute__((section(".dtcm"))) =
   (u16)RGB15(0x00,0xD8,0x00),   // Green
   (u16)RGB15(0x00,0xD8,0xD8),   // Cyan
   (u16)RGB15(0xD8,0xD8,0x00),   // Yellow
-  (u16)RGB15(0x02,0x02,0x02)    // White (quite bright... hardly used... we use dark grey instead)
+  (u16)RGB15(0xFD,0xFD,0xFD)    // White (dim it slightly)
 };
 
 
@@ -835,7 +835,7 @@ ITCM_CODE u32 speccy_run(void)
     }
 
     // ------------------------------------------
-    // Generate an interrupt only at end of line
+    // Generate an interrupt only at end of frame
     // ------------------------------------------
     if (zx_current_line == (zx_128k_mode ? 311:312))
     {

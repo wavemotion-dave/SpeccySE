@@ -227,7 +227,10 @@ case POP_DE:   M_POP(DE);break;
 case POP_HL:   M_POP(HL);break;
 case POP_AF:   M_POP(AF);break;
 
-case DJNZ: if(--CPU.BC.B.h) { M_JR; } else {CPU.TStates-=5; CPU.PC.W++;} break;
+case DJNZ: 
+  if (PatchLookup[CPU.PC.W]) (void)PatchLookup[CPU.PC.W](); // Tape pre-load speedup...
+  if(--CPU.BC.B.h) { M_JR; } else {CPU.TStates-=5; CPU.PC.W++;} break;
+
 case JP:   M_JP;break;
 case JR:   M_JR;break;
 case CALL: M_CALL;break;

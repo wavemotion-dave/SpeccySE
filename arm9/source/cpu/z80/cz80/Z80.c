@@ -33,7 +33,7 @@ extern Z80 CPU;
 u32 halt_counter=0;
 extern u32 debug[];
 extern u32 DX,DY;
-extern u8 zx_ScreenRendering, zx_contend_delay;
+extern u8 zx_ScreenRendering, zx_contend_delay, zx_128k_mode, portFD;
 
 #define INLINE static inline
 
@@ -53,6 +53,32 @@ extern patchFunc *PatchLookup;
 extern unsigned char cpu_readport_speccy(register unsigned short Port);
 extern void cpu_writeport_speccy(register unsigned short Port,register unsigned char Value);
 extern u8 speccy_mode;
+
+
+// ------------------------------------------------------------------------------
+// This is how we access the Z80 memory. We indirect through the MemoryMap[] to 
+// allow for easy mapping by the 128K machines. It's slightly slower than direct
+// RAM access but much faster than having to move around chunks of bank memory.
+// ------------------------------------------------------------------------------
+inline byte OpZ80(word A)
+{
+    return *(MemoryMap[(A)>>13] + ((A)&0x1FFF));
+}
+
+#define RdZ80 OpZ80 // Nothing unique about a memory read - same as an OpZ80 opcode fetch
+
+// -------------------------------------------------------------------------------------------
+// The only extra protection we have in writes is to ensure we don't write into the ROM area.
+// -------------------------------------------------------------------------------------------
+inline void WrZ80(word A, byte value)   {if (A & 0xC000) *(MemoryMap[(A)>>13] + ((A)&0x1FFF))=value;}
+
+// -------------------------------------------------------------------
+// And these two macros will give us access to the Z80 I/O ports...
+// -------------------------------------------------------------------
+#define OutZ80(P,V)     cpu_writeport_speccy(P,V)
+#define InZ80(P)        cpu_readport_speccy(P)
+
+
 
 /** Macros for use through the CPU subsystem */
 #define S(Fl)        CPU.AF.B.l|=Fl
@@ -317,14 +343,6 @@ enum CodesED
 
 extern void Trap_Bad_Ops(char *, byte, word);
 
-inline byte OpZ80(word A)               {return *(MemoryMap[(A)>>13] + ((A)&0x1FFF));}
-inline byte RdZ80(word A)               {return *(MemoryMap[(A)>>13] + ((A)&0x1FFF));}
-inline void WrZ80(word A, byte value)   {if (A & 0xC000) *(MemoryMap[(A)>>13] + ((A)&0x1FFF))=value;}
-
-#define OutZ80(P,V)     cpu_writeport_speccy(P,V)
-#define InZ80(P)        cpu_readport_speccy(P)
-
-
 /** ResetZ80() ***********************************************/
 /** This function can be used to reset the register struct  **/
 /** before starting execution with Z80(). It sets the       **/
@@ -586,13 +604,10 @@ ITCM_CODE void ExecZ80_Speccy(u32 RunToCycles)
 {
   register byte I;
   register pair J;
-  const u8 render = zx_ScreenRendering;
+  u8 render = zx_ScreenRendering;
 
   while (CPU.TStates < RunToCycles)
   {
-      I=OpZ80(CPU.PC.W++);
-      CPU.TStates += Cycles_NoM1Wait[I];
-
       // ----------------------------------------------------------------------------------------
       // If we are in contended memory - add penalty. This is not cycle accurate but we want to
       // at least make an attempt to get closer on the cycle timing. So we simply use an 'average'
@@ -601,8 +616,11 @@ ITCM_CODE void ExecZ80_Speccy(u32 RunToCycles)
       // ----------------------------------------------------------------------------------------
       if (render)
       {
-         if ((CPU.PC.W & 0xC000) == 0x4000) {CPU.TStates += zx_contend_delay;}
+        if ((CPU.PC.W & 0xC000) == 0x4000) CPU.TStates += zx_contend_delay; 
       }
+
+      I=OpZ80(CPU.PC.W++);
+      CPU.TStates += Cycles_NoM1Wait[I];
 
       /* R register incremented on each M1 cycle */
       INCR(1);
