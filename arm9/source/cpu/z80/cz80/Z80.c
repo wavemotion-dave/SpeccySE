@@ -44,7 +44,7 @@ extern void EI_Enable(void);
 extern u8 *MemoryMap[4];
 
 typedef u8 (*patchFunc)(void);
-extern patchFunc *PatchLookup;
+#define PatchLookup ((patchFunc*)0x06860000)
 
 // ------------------------------------------------------
 // These defines and inline functions are to map maximum
@@ -52,8 +52,6 @@ extern patchFunc *PatchLookup;
 // ------------------------------------------------------
 extern unsigned char cpu_readport_speccy(register unsigned short Port);
 extern void cpu_writeport_speccy(register unsigned short Port,register unsigned char Value);
-extern u8 speccy_mode;
-
 
 // ------------------------------------------------------------------------------
 // This is how we access the Z80 memory. We indirect through the MemoryMap[] to 

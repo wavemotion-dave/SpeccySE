@@ -39,15 +39,6 @@ u32 last_file_size       __attribute__((section(".dtcm"))) = 0;
 u8  isCompressed         __attribute__((section(".dtcm"))) = 1;
 u8  tape_play_skip_frame __attribute__((section(".dtcm"))) = 0;
 
-// -------------------------------------------------------------------------
-// This massive patch table consumes 256K (64 x 4 byte function pointers) 
-// to allow us faster access to patch routines for tape edge detection.
-// We put it in LCD VRAM as this is slightly faster access on the DS/DSi.
-// 99% of this massive array will be zeroes but we don't have another use
-// for it and it does help speed up the patch lookup - so why not?!
-// -------------------------------------------------------------------------
-patchFunc *PatchLookup = (patchFunc*)0x06860000;
-
 ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
 {
     static u8 bNonSpecialKeyWasPressed = 0;
@@ -281,7 +272,7 @@ u16 zx_border_colors[8] __attribute__((section(".dtcm"))) =
   (u16)RGB15(0x00,0xD8,0x00),   // Green
   (u16)RGB15(0x00,0xD8,0xD8),   // Cyan
   (u16)RGB15(0xD8,0xD8,0x00),   // Yellow
-  (u16)RGB15(0xD8,0xD8,0xD8),   // White
+  (u16)RGB15(0xFD,0xFD,0xFD),   // White
 };
 
 
@@ -743,8 +734,8 @@ void speccy_reset(void)
     if (speccy_mode != MODE_BIOS)
     {
         // Load the correct BIOS into place... either 48K Spectrum or 128K
-        if (zx_128k_mode)   memcpy(RAM_Memory, SpectrumBios128+0x4000, 0x4000);   // Load ZX 128K BIOS into place
-        else                memcpy(RAM_Memory, SpectrumBios, 0x4000);             // Load ZX 48K BIOS into place
+        if (zx_128k_mode)   memcpy(RAM_Memory, SpectrumBios128, 0x4000);   // Load ZX 128K BIOS into place
+        else                memcpy(RAM_Memory, SpectrumBios, 0x4000);      // Load ZX 48K BIOS into place
     }
 }
 
