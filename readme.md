@@ -162,6 +162,14 @@ handling is disabled to gain maximum speed - so if you find that the
 auto tape stop isn't working, press the Cassette Icon and manually stop
 the tape.
 
+Lastly - when you look for tape files on the internet, you will often 
+find several tape images for the same game. Some tape dumps are dubious
+and some tape dumps don't load properly with all emulators. Often times
+an alternate "[a]" version will load. Usually one tape image dump is 
+as good as any other - but keep searching and put yourself together a 
+library of known good working images for Speccy-SE.
+
+
 ROM Support :
 -----------------------
 The emulator allows you to load a .ROM file directly into the same memory

@@ -107,7 +107,6 @@ u32 next_edge2                  __attribute__((section(".dtcm"))) = 0;
 
 u8 give_up_counter = 0;
 char *loader_type = "STANDARD";
-extern patchFunc *PatchLookup;
 u8 tape_sample_standard(void);
 u8 tape_pre_edge_accel(void);
 
@@ -491,18 +490,39 @@ u8 show_tape_counter = 0;
 void tape_frame(void)
 {
     char tmp[5];
+    
+    if (show_tape_counter) show_tape_counter--;
+    
     if (tape_state)
     {
-        sprintf(tmp, "%03d", (tape_bytes_processed/1000) % 1000);
-        DSPrint(2, 20, 0, tmp);
-        show_tape_counter = 60;
-    }
-    else if (show_tape_counter)
-    {
-        if (--show_tape_counter == 0)
+        if (bottom_screen == 2)
         {
-            DSPrint(2, 20, 0, "   ");
+            sprintf(tmp, "%03d", (tape_bytes_processed/1000) % 1000);
+            DSPrint(2, 20, 0, tmp);
+            show_tape_counter = 30; // Keep showing the counter for a half second
+            
+            // Show the tape icon lit in green
+            if (myGlobalConfig.debugger <= 2)
+            {
+                DSPrint(2, 21, 2, "$%&");
+                DSPrint(2, 22, 2, "DEF");
+            }
         }
+    }
+    
+    
+    if (show_tape_counter == 0)
+    {
+        // Clear cassette counter
+        DSPrint(2, 20, 0, "   ");
+        // Put the Cassette Icon back to normal...
+        if ((bottom_screen == 2) && (myGlobalConfig.debugger <= 2))
+        {
+            DSPrint(2, 21, 2, "!\"#");
+            DSPrint(2, 22, 2, "ABC");
+        }        
+        
+        show_tape_counter = 30;
     }
 }
 
@@ -580,7 +600,7 @@ ITCM_CODE u8 tape_pulse(void)
                 {
                     tape_state = TAPE_STOP; // Stop the playback
                     current_block = 0;      // Wrap back around
-                    break;                  // And move DIRECTORYly to the STOP state
+                    break;                  // And move directly to the STOP state
                 }
 
                 // ----------------------------------------------------------------
@@ -602,16 +622,16 @@ ITCM_CODE u8 tape_pulse(void)
                         tape_state = BLOCK_PILOT_TONE;
                         break;
 
-                    case BLOCK_ID_PULSE_SEQ:    // Custom pulse sequence
+                    case BLOCK_ID_PULSE_SEQ:      // Custom pulse sequence
                         custom_pulse_idx = 0;
                         tape_state = CUSTOM_PULSE_SEQ;
                         break;
 
-                    case BLOCK_ID_PURE_DATA: // Pure Data Block
-                        tape_state = SYNC_PULSE;    // We've set the sync1/sync2 both to zero so this will immediately go into data send
+                    case BLOCK_ID_PURE_DATA:      // Pure Data Block
+                        tape_state = SYNC_PULSE;  // We've set the sync1/sync2 both to zero so this will immediately go into data send
                         break;
 
-                    case BLOCK_ID_PAUSE_STOP: // Delay/Pause/Stop the Tape
+                    case BLOCK_ID_PAUSE_STOP:     // Delay/Pause/Stop the Tape
                         last_edge = CPU.TStates;
                         tape_state = TAPE_DELAY_AFTER;
                         break;

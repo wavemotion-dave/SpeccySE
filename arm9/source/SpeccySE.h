@@ -109,7 +109,15 @@ extern u32 DX, DY;
 
 #define WAITVBL swiWaitForVBlank(); swiWaitForVBlank(); swiWaitForVBlank(); swiWaitForVBlank(); swiWaitForVBlank();
 
+// -------------------------------------------------------------------------
+// This massive patch table consumes 256K (64 x 4 byte function pointers) 
+// to allow us faster access to patch routines for tape edge detection.
+// We put it in LCD VRAM as this is slightly faster access on the DS/DSi.
+// 99% of this massive array will be zeroes but we don't have another use
+// for it and it does help speed up the patch lookup - so why not?!
+// -------------------------------------------------------------------------
 typedef u8 (*patchFunc)(void);
+#define PatchLookup ((patchFunc*)0x06860000)
 
 extern u8 speccy_mode;
 extern u8 kbd_keys_pressed;
@@ -146,6 +154,7 @@ extern u32 next_edge1;
 extern u32 next_edge2;
 extern u8 give_up_counter;
 extern u32 last_edge;
+extern u8 bottom_screen;
 extern char *loader_type;
 
 extern void BottomScreenOptions(void);

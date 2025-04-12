@@ -459,23 +459,6 @@ void DisplayStatusLine(bool bForce)
         if ((zx_special_key == 1) || (kbd_key == KBD_KEY_SHIFT)  || (kbd_key == KBD_KEY_SFTDIR)) DSPrint(3,0,6, "@");
         if ((zx_special_key == 2) || (kbd_key == KBD_KEY_SYMBOL) || (kbd_key == KBD_KEY_SYMDIR)) DSPrint(3,0,2, "@");
     } else DSPrint(3,0,6, " ");
-    
-    if (tape_is_playing())
-    {
-        if (myGlobalConfig.debugger <= 2)
-        {
-            DSPrint(2, 21, 2, "$%&");
-            DSPrint(2, 22, 2, "DEF");
-        }
-    }
-    else 
-    {
-        if (myGlobalConfig.debugger <= 2)
-        {
-            DSPrint(2, 21, 2, "!\"#");
-            DSPrint(2, 22, 2, "ABC");
-        }        
-    }
 }
 
 // ------------------------------------------------------------------------
@@ -523,8 +506,7 @@ typedef struct
 
 CassetteDiskMenu_t generic_cassette_menu =
 {
-    "CASSETTE MENU",
-    3,
+    "CASSETTE MENU", 3,
     {
         {" PLAY CASSETTE    ",      MENU_ACTION_PLAY},
         {" STOP CASSETTE    ",      MENU_ACTION_STOP},        
@@ -549,9 +531,9 @@ void CassetteMenuShow(bool bClearScreen, u8 sel)
     
     if (bClearScreen)
     {
-      // ---------------------------------------------------
-      // Put up a generic background for this mini-menu...
-      // ---------------------------------------------------
+      // -------------------------------------
+      // Put up the Cassette menu background 
+      // -------------------------------------
       BottomScreenCassette();
     }
     
@@ -577,7 +559,7 @@ void CassetteMenuShow(bool bClearScreen, u8 sel)
 }
 
 // ------------------------------------------------------------------------
-// Handle Cassette/Disk mini-menu interface...
+// Handle Cassette mini-menu interface... Allows rewind, swap tape, etc.
 // ------------------------------------------------------------------------
 void CassetteMenu(void)
 {
@@ -586,9 +568,9 @@ void CassetteMenu(void)
   SoundPause();
   while ((keysCurrent() & (KEY_TOUCH | KEY_LEFT | KEY_RIGHT | KEY_A ))!=0);
 
-  // --------------------------------------------------------------------------------------------
-  // Otherwise we are showing the cassette menu based on the current machine being emulated...
-  // --------------------------------------------------------------------------------------------
+  // ------------------------------------------------------------------
+  //Show the cassette menu background - we'll draw text on top of this
+  // ------------------------------------------------------------------
   CassetteMenuShow(true, menuSelection);
 
   u8 bExitMenu = false;
@@ -679,7 +661,6 @@ void CassetteMenu(void)
 
   SoundUnPause();
 }
-
 
 
 // ------------------------------------------------------------------------
@@ -1044,6 +1025,10 @@ u8 speccyTapePosition(void)
     return sel+offset;
 }
 
+// ----------------------------------------------------------------------------
+// Chuckie-Style d-pad keeps moving in the last known direction for a few more
+// frames to help make those hairpin turns up and off ladders much easier... 
+// ----------------------------------------------------------------------------
 u8 chuckie_key_up = 0;
 u8 chuckie_key_down = 0;
 u8 chuckie_key_left = 0;
@@ -1144,8 +1129,15 @@ void SpeccySE_main(void)
                     {
                         if (myConfig.autoLoad)
                         {
-                            BufferKey('J'); BufferKey(KBD_KEY_SYMBOL); BufferKey('P'); BufferKey(KBD_KEY_SYMBOL); BufferKey('P'); BufferKey(KBD_KEY_RET);
-                            if (myConfig.autoLoad && (myConfig.tapeSpeed == 0)) bStartIn = 2;
+                            if (zx_128k_mode)
+                            {
+                                BufferKey(KBD_KEY_RET);
+                            }
+                            else
+                            {
+                                BufferKey('J'); BufferKey(KBD_KEY_SYMBOL); BufferKey('P'); BufferKey(KBD_KEY_SYMBOL); BufferKey('P'); BufferKey(KBD_KEY_RET);
+                            }
+                            if (myConfig.autoLoad && (myConfig.tapeSpeed == 0)) bStartIn = 2; // Start tape in 2 frames...
                         }
                     }
                 }
