@@ -52,10 +52,9 @@ const u32 crc32_table[256] = {
     0xB3667A2E, 0xC4614AB8, 0x5D681B02, 0x2A6F2B94, 0xB40BBE37, 0xC30C8EA1, 0x5A05DF1B, 0x2D02EF8D,  // 248 [0xF8 .. 0xFF]
 };
 
-// -----------------------------------------------------------------------------------------------------------------
-// For disk and data pack games which may write back data, we don't want to base the CRC on the actual contents of
-// the media... so instead we'll just hash the filename as a CRC which is good enough to identify it in the future.
-// -----------------------------------------------------------------------------------------------------------------
+// --------------------------------------------------
+// Compute the CRC of a memory buffer of any size...
+// --------------------------------------------------
 u32 getCRC32(u8 *buf, u32 size)
 {
     u32 crc = 0xFFFFFFFF;

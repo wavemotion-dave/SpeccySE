@@ -54,13 +54,11 @@ bool screenshotbmp(const char* filename) {
 
     // ---------------------------------------------------------
     // The screenshot requires a bit less than 100K of memory...
-    // We steal this from the back end of the big read-only 
-    // memory block. If we have a tape that is huge, we would
-    // run into problems but it would be astronomically rare
-    // and it's better than wasting another 100K bytes that is
-    // mostly underutilized.
+    // We steal this from the compression buffer which is not
+    // otherwise used except when save/loading save states.
     // ---------------------------------------------------------
-    u8 *temp = (u8*)ROM_Memory + (sizeof(ROM_Memory) - (100*1024));
+    extern u8 CompressBuffer[];
+    u8 *temp = (u8*)CompressBuffer;
 
     HEADER *header= (HEADER*)temp;
     INFOHEADER *infoheader = (INFOHEADER*)(temp + sizeof(HEADER));

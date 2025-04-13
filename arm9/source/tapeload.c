@@ -24,6 +24,13 @@
 #include "SpeccyUtils.h"
 #include "printf.h"
 
+// -------------------------------------------------------------------
+// From a look around a massive number of .TZX files, I haven't seen
+// any that had more than about 1400 blocks which is pretty huge...
+// So as to not soak up too much NDS memory, we're capping the number
+// of blocks defined in a TZX file at 2048 which should handle just
+// about anything...
+// -------------------------------------------------------------------
 #define MAX_TAPE_BLOCKS                 2048
 
 #define BLOCK_ID_STANDARD               0x10
@@ -52,9 +59,11 @@
 // Yes, this is special. It happens frequently enough we trap on the high bit here...
 #define SEND_DATA_BITS                  0x80
 
-
-// Some defaults mostly for the .TAP files as the .TZX
-// will override some/many of these...
+// ---------------------------------------------------------
+// Some defaults mostly for the .TAP files and
+// standard load blocks for the .TZX format.
+// Custom/turbo blocks will override some/many of these...
+// ---------------------------------------------------------
 #define DEFAULT_PILOT_LENGTH            2168
 #define DEFAULT_DATA_ZERO_PULSE_WIDTH    855
 #define DEFAULT_DATA_ONE_PULSE_WIDTH    1710
@@ -115,6 +124,10 @@ inline byte OpZ80(word A)  {return *(MemoryMap[(A)>>14] + ((A)&0x3FFF));}
 TapePositionTable_t TapePositionTable[255];
 extern char strcasestr (const char *big, const char *little);
 
+// --------------------------------------------------------
+// Look for headers and blocks with descriptions and use
+// those as index position for our cassette manager.
+// --------------------------------------------------------
 u8 tape_find_positions(void)
 {
     memset(TapePositionTable, 0x00, sizeof(TapePositionTable));
@@ -132,7 +145,7 @@ u8 tape_find_positions(void)
         {
             strcpy(TapePositionTable[pos_idx].description, TapeBlocks[i].description);
             TapePositionTable[pos_idx].block_id = i;
-            pos_idx++;
+            if (++pos_idx == 255) break; // That's all we can handle
         }
         else if (strlen(TapeBlocks[i].block_filename) > 2)
         {
@@ -145,14 +158,17 @@ u8 tape_find_positions(void)
             {
                 strcpy(TapePositionTable[pos_idx].description, TapeBlocks[i].block_filename);
                 TapePositionTable[pos_idx].block_id = i;
-                pos_idx++;
+                if (++pos_idx == 255) break; // That's all we can handle
             }
         }
     }
     return pos_idx;
 }
 
-// Used in the pre-loader in the standard ROM... speeds up a ~1 second loop
+// --------------------------------------------------------
+// Used in the pre-loader in the standard ROM... speeds up
+// a roughly ~1 second loop and every little bit helps.
+// --------------------------------------------------------
 u8 tape_preloader_delay(void)
 {
     u8 B = (CPU.BC.B.h-1) & 0xFF;
@@ -442,14 +458,19 @@ void tape_parse_blocks(int tapeSize)
                     break;
             }
         }
-
-        // -----------------------------------------------------------------------------------------
-        // Sometimes the final block will have a long gap - but it's not needed as the tape is done
-        // playing at that point... so we cut this short which helps the emulator stop the tape.
-        // -----------------------------------------------------------------------------------------
-        TapeBlocks[num_blocks_available-1].gap_delay_after = 0;
     }
+    
+    // -----------------------------------------------------------------------------------------
+    // Sometimes the final block will have a long gap - but it's not needed as the tape is done
+    // playing at that point... so we cut this short which helps the emulator stop the tape.
+    // -----------------------------------------------------------------------------------------
+    TapeBlocks[num_blocks_available-1].gap_delay_after = 0;
 }
+
+// --------------------------------------------------------
+// Some utility functions to know when the tape is playing
+// and also to reset or play the current tape.
+// --------------------------------------------------------
 
 u8 tape_is_playing(void)
 {
@@ -485,14 +506,23 @@ void tape_position(u8 newPos)
     current_block = TapePositionTable[newPos].block_id;
 }
 
-// Called every frame
+// --------------------------------------------------------
+// Called every frame - we use this to display a rough
+// tape counter that is really just the number of 1K
+// chunks that have been moved from the virtual tape into
+// the Spectrum memory.
+// --------------------------------------------------------
 u8 show_tape_counter = 0;
 void tape_frame(void)
 {
     char tmp[5];
-    
+
     if (show_tape_counter) show_tape_counter--;
-    
+
+    // ----------------------------------------------
+    // If the tape is playing, show the counter and
+    // show the cassette icon in a green color.
+    // ----------------------------------------------
     if (tape_state)
     {
         if (bottom_screen == 2)
@@ -500,7 +530,7 @@ void tape_frame(void)
             sprintf(tmp, "%03d", (tape_bytes_processed/1000) % 1000);
             DSPrint(2, 20, 0, tmp);
             show_tape_counter = 30; // Keep showing the counter for a half second
-            
+
             // Show the tape icon lit in green
             if (myGlobalConfig.debugger <= 2)
             {
@@ -509,9 +539,9 @@ void tape_frame(void)
             }
         }
     }
-    
+
     // -----------------------------------------
-    // If we are done showing the counter, show 
+    // If we are done showing the counter, show
     // the stock cassette icon and no counter.
     // -----------------------------------------
     if (show_tape_counter == 0)
@@ -523,8 +553,8 @@ void tape_frame(void)
         {
             DSPrint(2, 21, 2, "!\"#");
             DSPrint(2, 22, 2, "ABC");
-        }        
-        
+        }
+
         show_tape_counter = 30;
     }
 }
@@ -984,7 +1014,7 @@ ld_sample:
             B-=3;                       // Reduce counter by 3
             goto ld_sample;             // Take another sample.
         }
-        
+
         CPU.TStates += 54;              // It takes 54 total cycles when we take another pass around the loop
         if (--B) goto ld_sample;        // If no time-out... take another sample.
 

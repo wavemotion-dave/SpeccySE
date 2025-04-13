@@ -25,9 +25,9 @@
 #include "printf.h"
 
 // ----------------------------------------------------------------------------------
-// I've seen a few rare POKEs that are massive - e.g. Jet Set Willy has a near 
-// re-write of a routine to change the jumping ... We don't support those large 
-// POKEs here. Too much wasted memory and for now, we're keeping this very simple. 
+// I've seen a few rare POKEs that are massive - e.g. Jet Set Willy has a near
+// re-write of a routine to change the jumping ... We don't support those large
+// POKEs here. Too much wasted memory and for now, we're keeping this very simple.
 // This should handle about 99% of all POKEs out there. Most games use it to
 // produce extra lives, invulnerability or weapon upgrades.
 // ----------------------------------------------------------------------------------
@@ -66,7 +66,7 @@ void pok_apply(u8 sel)
         {
             u8 bank = Pokes[sel].pok_bank[j];
             u16 value = Pokes[sel].pok_val[j];
-            
+
             if (value == 256) // Must ask user for value...
             {
                 value = 0;
@@ -81,7 +81,7 @@ void pok_apply(u8 sel)
                     DSPrint(28,22,2,tmp);
                     WAITVBL;
                 }
-                
+
                 while ((keysCurrent() & (KEY_UP | KEY_DOWN | KEY_A ))!=0); // Wait for release
                 DSPrint(0,22,0,"                                ");
             }
@@ -102,13 +102,13 @@ u8 num_pokes = 0;
 u8 pok_readfile(void)
 {
     if (last_file_crc_poke_read == file_crc) return num_pokes;
-    
+
     last_file_crc_poke_read = file_crc;
-    
+
     // Zero out all pokes before reading file
     memset(Pokes, 0x00, sizeof(Pokes));
     num_pokes = 0;
-    
+
     // POK files must be in a ./pok subdirectory
     sprintf(szLoadFile,"pok/%s", initial_file);
 
@@ -128,7 +128,7 @@ u8 pok_readfile(void)
             fgets(szLine, 255, infile);
 
             char *ptr = szLine;
-            
+
             if (szLine[0] == 'N')
             {
                 memcpy(Pokes[num_pokes].pok_name, szLine+1, 30);
@@ -142,28 +142,28 @@ u8 pok_readfile(void)
                 while (*ptr != ' ') ptr++; while (*ptr == ' ') ptr++; // Skip to next field
                 Pokes[num_pokes].pok_mem[mem_idx] = atoi(ptr);
                 while (*ptr != ' ') ptr++; while (*ptr == ' ') ptr++; // Skip to next field
-                Pokes[num_pokes].pok_val[mem_idx] = atoi(ptr);                
+                Pokes[num_pokes].pok_val[mem_idx] = atoi(ptr);
                 if (mem_idx < (MAX_POK_MEM-1)) mem_idx++;
                 if (szLine[0] == 'Z')
-                { 
+                {
                     if (mem_idx < MAX_POK_MEM) num_pokes++;
                     else memset(Pokes[num_pokes].pok_mem, 0x00, sizeof(Pokes[num_pokes].pok_mem));
                     if (num_pokes >= MAX_POKES) break;
                 }
             }
-            
+
             if (szLine[0] == 'Y') break;
         } while (!feof(infile));
 
         fclose(infile);
     }
-    
+
     return num_pokes;
 }
 
 #define POKES_PER_SCREEN  16
 
-// Show tape blocks with filenames/descriptions... 
+// Show tape blocks with filenames/descriptions...
 void pok_select(void)
 {
     char tmp[33];
@@ -174,7 +174,7 @@ void pok_select(void)
     BottomScreenOptions();
 
     u8 max = pok_readfile();
-    
+
     if (max == 0) // No POKEs found...
     {
         DSPrint(0,8,0, "    NO .POK FILE WAS FOUND      ");
@@ -188,7 +188,7 @@ void pok_select(void)
     else
     {
         DSPrint(0,23,0,"PRESS A TO APPLY POKE, B TO EXIT");
-        
+
         u8 screen_max = (max < POKES_PER_SCREEN ? max:POKES_PER_SCREEN);
         u8 offset = 0;
         for (u8 i=0; i < screen_max; i++)
@@ -197,7 +197,7 @@ void pok_select(void)
             DSPrint(1,4+i,(i==sel) ? 2:0,tmp);
             if (Pokes[offset+i].pok_applied) DSPrint(0,4+i,2,"@"); else DSPrint(0,4+i,0," ");
         }
-        
+
         while (1)
         {
             u16 keys = keysCurrent();
@@ -212,7 +212,7 @@ void pok_select(void)
             }
             
             if (keys & KEY_B) {break;}
-            
+
             if (keys & KEY_DOWN)
             {
                 if (sel < (screen_max-1))
@@ -226,7 +226,7 @@ void pok_select(void)
                 }
                 else
                 {
-                    if ((offset + screen_max) < max) 
+                    if ((offset + screen_max) < max)
                     {
                         offset += POKES_PER_SCREEN;
                         screen_max = ((max-offset) < POKES_PER_SCREEN ? (max-offset):POKES_PER_SCREEN);
@@ -245,7 +245,7 @@ void pok_select(void)
                                 DSPrint(0,4+i,0," ");
                             }
                         }
-                        WAITVBL;WAITVBL;WAITVBL;WAITVBL;
+                        WAITVBL;WAITVBL;WAITVBL;
                     }
                 }
             }
@@ -266,7 +266,7 @@ void pok_select(void)
                     {
                         offset -= POKES_PER_SCREEN;
                         screen_max = ((max-offset) < POKES_PER_SCREEN ? (max-offset):POKES_PER_SCREEN);
-                        sel = 0;
+                        sel = POKES_PER_SCREEN-1;
                         for (u8 i=0; i < POKES_PER_SCREEN; i++)
                         {
                             if (i < screen_max)
@@ -281,17 +281,17 @@ void pok_select(void)
                                 DSPrint(0,4+i,0," ");
                             }
                         }
-                        WAITVBL;WAITVBL;WAITVBL;WAITVBL;
+                        WAITVBL;WAITVBL;WAITVBL;
                     }
                 }
             }
         }
     }
-    
+
     while (keysCurrent())
     {
         WAITVBL;WAITVBL;
     }
-    
+
     return;
 }

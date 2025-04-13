@@ -44,7 +44,19 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
     static u8 bNonSpecialKeyWasPressed = 0;
 
     if ((Port & 1) == 0) // Any Even Address will cause the ULA to respond
-    {
+    {        
+          // ----------------------------------------------------------------------------------------
+          // If we are rendering the screen, a read from the ULA supplied port will produce
+          // a cycle penalty. This is not cycle accurate but we simply use an 'average'
+          // penalty of 4 cycles if we are in contended memory while the screen is rendering. It's
+          // rough but gets us close enough to play games. We can improve this later...
+          // ----------------------------------------------------------------------------------------
+          if (zx_ScreenRendering)
+          {
+              CPU.TStates += zx_contend_delay; 
+          }
+
+        
         // --------------------------------------------------------
         // If we are not playing the tape but we got a hit on the 
         // loader we can start the tape in motion - auto play...
@@ -78,7 +90,7 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
         // -----------------------------
         u8 key = (portFE & 0x18) ? 0x00 : 0x40;
         
-        for (u8 i=0; i< (kbd_keys_pressed ? kbd_keys_pressed:1); i++) // Always one pass at least for joysticks...
+        for (u8 i=0; i< kbd_keys_pressed; i++) // We may have more than one key pressed...
         {
             kbd_key = kbd_keys[i];
             word inv = ~Port;
@@ -315,7 +327,9 @@ u32 zx_colors_extend32[16] __attribute__((section(".dtcm"))) =
 };
 
 // ----------------------------------------------------------------------------
-// Render one screen line of pixels. This is called on every visible scanline.
+// Render one screen line of pixels. This is called on every visible scanline
+// and is heavily optimized to draw as fast as possible. Since the screen is
+// often drawing background (paper vs ink), that's handled via look-up table.
 // ----------------------------------------------------------------------------
 ITCM_CODE void speccy_render_screen_line(u8 line)
 {
@@ -338,15 +352,17 @@ ITCM_CODE void speccy_render_screen_line(u8 line)
         if (tape_play_skip_frame & 0x1F) return; 
     }
     
-    if (!isDSiMode() && (flash_timer & 1)) return; // For DS-Lite/Phat, we draw every other frame...
+    // -----------------------------------------------------------
+    // For DS-Lite/Phat, we draw every other frame to gain speed.
+    // -----------------------------------------------------------
+    if (!isDSiMode() && (flash_timer & 1)) return;
 
-    // For the ZX 128K, we might be using page 7 for video display... it's rare, but possible...
+    // -----------------------------------------------------------------------
+    // Render the current line into our NDS video memory. For the ZX 128K, we 
+    // might be using page 7 for video display... it's rare, but possible...
+    // -----------------------------------------------------------------------
     if (zx_128k_mode) zx_ScreenPage = RAM_Memory128 + ((portFD & 0x08) ? 7:5) * 0x4000;
     else zx_ScreenPage = RAM_Memory + 0x4000;
-
-    // --------------------------------------------------
-    // Render the current line into our NDS video memory
-    // --------------------------------------------------
 
     // ----------------------------------------------------------------
     // The color attribute is stored independently from the pixel data
@@ -377,12 +393,17 @@ ITCM_CODE void speccy_render_screen_line(u8 line)
             u8 ink   = (attr & 0x07);       // Ink Color is the foreground
             if (attr & 0x40) ink |= 0x08;   // Brightness
 
+            // ------------------------------------------------------------------------------------------------------------------------
+            // I've tried look-up tables here, but nothing was as fast as checking the bit and shifting ink/paper to the right spot...
+            // ------------------------------------------------------------------------------------------------------------------------
             *vidBuf++ = (((pixel & 0x80) ? ink:paper)) | (((pixel & 0x40) ? ink:paper) << 8) | (((pixel & 0x20) ? ink:paper) << 16) | (((pixel & 0x10) ? ink:paper) << 24);
             *vidBuf++ = (((pixel & 0x08) ? ink:paper)) | (((pixel & 0x04) ? ink:paper) << 8) | (((pixel & 0x02) ? ink:paper) << 16) | (((pixel & 0x01) ? ink:paper) << 24);
         }
         else // Just drawing all background which is common...
         {
-            // Draw background directly to the screen
+            // ------------------------------------------------------------------
+            // Draw background directly to the screen via extended look-up table
+            // ------------------------------------------------------------------
             *vidBuf++ = zx_colors_extend32[paper];
             *vidBuf++ = zx_colors_extend32[paper];
         }
@@ -567,9 +588,11 @@ void speccy_reset(void)
     static const u8 contend_delay[3] = {4,3,5};
     zx_contend_delay = contend_delay[myConfig.contention];
     
-    // A bit wasteful to decompress again... but 
-    // we want to ensure that the memory is exactly
+    // ----------------------------------------------
+    // Decompress the Z80/SNA snapshot here...
+    // We want to ensure that the memory is exactly
     // as it should be when we reset the system.
+    // ----------------------------------------------
     if (speccy_mode < MODE_SNA)
     {
         tape_parse_blocks(last_file_size);
@@ -580,7 +603,10 @@ void speccy_reset(void)
     {
         speccy_decompress_z80(last_file_size);
     }
-    // else must be a diagnostic/ROM cart of some kind... 
+
+    // -------------------------------------------------------------
+    // Handle the various snapshot formats... Z80 and SNA supported
+    // -------------------------------------------------------------
     
     if (speccy_mode == MODE_SNA) // SNA snapshot
     {
@@ -756,12 +782,12 @@ void speccy_reset(void)
 ITCM_CODE u32 speccy_run(void)
 {
     ++zx_current_line;  // This is the pixel line we're working on...
-
+    
     // ----------------------------------------------
     // Execute 1 scanline worth of CPU instructions.
     //
-    // We break this up into four pieces in order
-    // to get more chances to render the audio beeper
+    // We break this up into pieces in order to
+    // get more chances to render the audio beeper
     // which requires a fairly high sample rate...
     // -----------------------------------------------
     if (tape_state)
@@ -817,8 +843,8 @@ ITCM_CODE u32 speccy_run(void)
         zx_current_line = 0;
         zx_ScreenRendering = 0;
         CPU.IRequest = INT_RST38;
-        IntZ80(&CPU, CPU.IRequest);
         CPU.TStates_IRequest = CPU.TStates;
+        IntZ80(&CPU, CPU.IRequest);
         return 0; // End of frame
     }
         

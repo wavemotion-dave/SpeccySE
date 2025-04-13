@@ -591,19 +591,7 @@ void ExecOneInstruction(void)
 {
   register byte I;
   register pair J;
-  u8 render = zx_ScreenRendering;
   u32 RunToCycles = CPU.TStates+1;   
-
-  // ----------------------------------------------------------------------------------------
-  // If we are in contended memory - add penalty. This is not cycle accurate but we want to
-  // at least make an attempt to get closer on the cycle timing. So we simply use an 'average'
-  // penalty of 4 cycles if we are in contended memory while the screen is rendering. It's
-  // rough but gets us close enough to play games. We can improve this later...
-  // ----------------------------------------------------------------------------------------
-  if (render)
-  {
-    if ((CPU.PC.W & 0xC000) == 0x4000) CPU.TStates += zx_contend_delay; 
-  }
 
   I=OpZ80(CPU.PC.W++);
   CPU.TStates += Cycles_NoM1Wait[I];
@@ -646,7 +634,8 @@ ITCM_CODE void ExecZ80_Speccy(u32 RunToCycles)
 {
   register byte I;
   register pair J;
-  u8 render = zx_ScreenRendering;
+  u8 render = zx_ScreenRendering;   // Slightly faster access from stack
+  u8 delay = zx_contend_delay;      // Slightly faster access from stack
 
   while (CPU.TStates < RunToCycles)
   {
@@ -658,7 +647,18 @@ ITCM_CODE void ExecZ80_Speccy(u32 RunToCycles)
       // ----------------------------------------------------------------------------------------
       if (render)
       {
-        if ((CPU.PC.W & 0xC000) == 0x4000) CPU.TStates += zx_contend_delay; 
+          if (CPU.PC.W & 0x4000) // Either 0x4000 or 0xC000
+          {
+              if (CPU.PC.W & 0x8000) // Must be 0xC000
+              {
+                  // For the ZX 128K bank, we contend if the bank is odd (1,3,5,7)
+                  if (zx_128k_mode && (portFD & 1)) CPU.TStates += delay;
+              }
+              else // Must be 0x4000 - we contend on any video access (both 48K and 128K)
+              {
+                  CPU.TStates += delay;
+              }              
+          }
       }
 
       I=OpZ80(CPU.PC.W++);

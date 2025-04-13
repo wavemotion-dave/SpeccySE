@@ -36,7 +36,7 @@ extern void mmInstall( int fifo_channel );
 //---------------------------------------------------------------------------------
 void VblankHandler(void) {
 //---------------------------------------------------------------------------------
-	Wifi_Update();
+	//Wifi_Update();
 }
 
 
@@ -71,7 +71,7 @@ int main() {
 
 	SetYtrigger(80);
 
-	installWifiFIFO();
+	//installWifiFIFO();
 	installSoundFIFO();
 
 	installSystemFIFO();

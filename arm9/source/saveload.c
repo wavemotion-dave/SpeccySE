@@ -55,7 +55,8 @@ u8  spare[512] = {0x00};            // We keep some spare bytes so we can use th
 static char szLoadFile[256];        // We build the filename out of the base filename and tack on .sav, .ee, etc.
 static char tmpStr[32];
 
-static u8 CompressBuffer[150*1024];
+u8 CompressBuffer[150*1024];        // Big enough to handle compression of even full 128K games - we also steal this memory for screen snapshot use
+
 void spectrumSaveState()
 {
   u32 spare = 0;
@@ -167,7 +168,7 @@ void spectrumSaveState()
         ptr = RAM_Memory128;
         mem_size = 0x20000;
     }
-    
+
     // -------------------------------------------------------------------
     // Compress the RAM data using 'high' compression ratio... it's
     // still quite fast for such small memory buffers and often shrinks
@@ -226,7 +227,7 @@ void spectrumLoadState()
             // Read Last Directory Path / Tape File
             if (retVal) retVal = fread(&last_path, sizeof(last_path), 1, handle);
             if (retVal) retVal = fread(&last_file, sizeof(last_file), 1, handle);
-            
+
             // ----------------------------------------------------------------
             // If the last known file was a tap file (.tap or .tzx) we want to
             // reload that as the user might have swapped tapes to side 2, etc.
@@ -236,7 +237,7 @@ void spectrumLoadState()
                 chdir(last_path);
                 CassetteInsert(last_file);
             }
-            
+
             // Load CZ80 CPU
             if (retVal) retVal = fread(&CPU, sizeof(CPU), 1, handle);
 
@@ -320,7 +321,7 @@ void spectrumLoadState()
         // Decompress the previously compressed RAM and put it back into the
         // right memory location... this is quite fast all things considered.
         // ------------------------------------------------------------------
-        (void)lzav_decompress( CompressBuffer, dest_memory, comp_len, mem_size );        
+        (void)lzav_decompress( CompressBuffer, dest_memory, comp_len, mem_size );
 
         strcpy(tmpStr, (retVal ? "OK ":"ERR"));
         DSPrint(13,0,0,tmpStr);

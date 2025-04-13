@@ -227,3 +227,8 @@ the benefit of running directly from SD card via TWL++ or Unlaunch or similar. B
 really if you're looking for world-class ZX emulation for your DS/DSi handheld, 
 you're likely going to want ZXDS.
 
+Version History :
+-----------------------
+Version 1.0 - 14-Apr-2025 by wavemotion-dave
+* First official release of Speccy-SE!
+

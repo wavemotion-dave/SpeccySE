@@ -291,7 +291,7 @@ void dsDisplayFiles(u16 NoDebGame, u8 ucSel)
 
 
 // -------------------------------------------------------------------------
-// Standard qsort routine for the games - we sort all DIRECTORYory
+// Standard qsort routine for the games - we sort all directory
 // listings first and then a case-insenstive sort of all games.
 // -------------------------------------------------------------------------
 int Filescmp (const void *c1, const void *c2)
@@ -1652,7 +1652,7 @@ void spectrumRun(void)
   BottomScreenKeyboard();                 // Show the game-related screen with keypad / keyboard
 }
 
-u8 ZX_Spectrum_palette[16*3]   = {
+u8 ZX_Spectrum_palette[16*3] = {
   0x00,0x00,0x00,   // Black
   0x00,0x00,0xD8,   // Blue
   0xD8,0x00,0x00,   // Red
@@ -1718,9 +1718,9 @@ u8 loadgame(const char *filename)
     // Save the initial filename and file - we need it for save/restore of state
     strcpy(initial_file, filename);
     getcwd(initial_path, MAX_FILENAME_LEN);
-    
+
     // -----------------------------------------------------------------------
-    // See if we are loading a file from a directory different than our 
+    // See if we are loading a file from a directory different than our
     // last saved directory... if so, we save this new directory as default.
     // -----------------------------------------------------------------------
     if (myGlobalConfig.lastDir)
@@ -1730,7 +1730,7 @@ u8 loadgame(const char *filename)
             SaveConfig(FALSE);
         }
     }
-    
+
     // Get file size the 'fast' way - use fstat() instead of fseek() or ftell()
     struct stat stbuf;
     (void)fstat(fileno(handle), &stbuf);

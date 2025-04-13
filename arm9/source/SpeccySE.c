@@ -3,7 +3,7 @@
 //
 // Copying and distribution of this emulator, its source code and associated
 // readme files, with or without modification, are permitted in any medium without
-// royalty provided this copyright notice is used and wavemotion-dave and Marat 
+// royalty provided this copyright notice is used and wavemotion-dave and Marat
 // Fayzullin (Z80 core) are thanked profusely.
 //
 // The SpeccySE emulator is offered as-is, without any warranty. Please see readme.md
@@ -35,6 +35,12 @@
 
 #include "printf.h"
 
+// -----------------------------------------------------------------
+// Most handy for development of the emulator is a set of 16 R/W
+// registers and a couple of index vars... we show this when 
+// global settings is set to show the 'Debugger'. It's amazing
+// how handy these general registers are for emulation development.
+// -----------------------------------------------------------------
 u32 debug[0x10]={0};
 u32 DX = 0;
 u32 DY = 0;
@@ -44,19 +50,26 @@ u32 DY = 0;
 //    0x0000-0x3FFF  Spectrum BIOS. Either 48.rom or 128.rom (bank 0 or 1)
 //    0x4000-0xFFFF  Spectrum 48K of RAM / Memory
 // --------------------------------------------------------------------------
-u8 RAM_Memory[0x10000]    ALIGN(32) = {0};  // The Z80 Memory is 64K 
+u8 RAM_Memory[0x10000]    ALIGN(32) = {0};  // The Z80 Memory is 64K
 u8 RAM_Memory128[0x20000] ALIGN(32) = {0};  // The Z80 Memory is 64K but we expand this for a 128K model
 u8 SpectrumBios[0x4000]             = {0};  // We keep the 16k ZX Spectrum 48K BIOS around
 u8 SpectrumBios128[0x8000]          = {0};  // We keep the 32k ZX Spectrum 128K BIOS around
 
 u8 ROM_Memory[MAX_TAPE_SIZE];               // This is where we keep the raw untouched file as read from the SD card (.TAP, .TZX, .Z80, etc)
 
+// ----------------------------------------------------------------------------
+// We track the most recent directory and file loaded... both the initial one
+// (for the CRC32) and subsequent additional tape loads (Side 2, Side B, etc)
+// ----------------------------------------------------------------------------
 static char cmd_line_file[256];
 char initial_file[MAX_FILENAME_LEN] = "";
 char initial_path[MAX_FILENAME_LEN] = "";
-char last_path[MAX_FILENAME_LEN] = "";
-char last_file[MAX_FILENAME_LEN] = "";
+char last_path[MAX_FILENAME_LEN]    = "";
+char last_file[MAX_FILENAME_LEN]    = "";
 
+// --------------------------------------------------
+// A few housekeeping vars to help with emulation...
+// --------------------------------------------------
 u8 last_speccy_mode  = 99;
 u8 bFirstTime        = 3;
 u8 bottom_screen     = 0;
@@ -77,9 +90,9 @@ u8 bSpeccyBiosFound   = false;
 u8 soundEmuPause     __attribute__((section(".dtcm"))) = 1;       // Set to 1 to pause (mute) sound, 0 is sound unmuted (sound channels active)
 
 // -----------------------------------------------------------------------------------------------
-// This set of critical vars is what determines the machine type - 
+// This set of critical vars is what determines the machine type -
 // -----------------------------------------------------------------------------------------------
-u8 speccy_mode       __attribute__((section(".dtcm"))) = 0;       // See defines for the various modes... 
+u8 speccy_mode       __attribute__((section(".dtcm"))) = 0;       // See defines for the various modes...
 u8 kbd_key           __attribute__((section(".dtcm"))) = 0;       // 0 if no key pressed, othewise the ASCII key (e.g. 'A', 'B', '3', etc)
 u16 nds_key          __attribute__((section(".dtcm"))) = 0;       // 0 if no key pressed, othewise the NDS keys from keysCurrent() or similar
 u8 last_mapped_key   __attribute__((section(".dtcm"))) = 0;       // The last mapped key which has been pressed - used for key click feedback
@@ -95,16 +108,18 @@ u8 key_debounce = 0;           // A bit of key debounce
 // The DS/DSi has 12 keys that can be mapped
 u16 NDS_keyMap[12] __attribute__((section(".dtcm"))) = {KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_A, KEY_B, KEY_X, KEY_Y, KEY_R, KEY_L, KEY_START, KEY_SELECT};
 
-// --------------------------------------------------------------------
+// ----------------------------------------------------------------------
 // The key map for the ZX Spectrum... mapped into the NDS controller
-// --------------------------------------------------------------------
+// We allow mapping of the 5 joystick 'presses' (up, down, left, right
+// and fire) along with all 40 of the possible ZX Spectrum keyboard keys.
+// ----------------------------------------------------------------------
 u16 keyCoresp[MAX_KEY_OPTIONS] __attribute__((section(".dtcm"))) = {
     JST_UP,     //0
     JST_DOWN,
     JST_LEFT,
     JST_RIGHT,
     JST_FIRE,
-    
+
     META_KBD_A, //5
     META_KBD_B,
     META_KBD_C,
@@ -117,7 +132,7 @@ u16 keyCoresp[MAX_KEY_OPTIONS] __attribute__((section(".dtcm"))) = {
     META_KBD_J,
     META_KBD_K, //15
     META_KBD_L,
-    META_KBD_M, 
+    META_KBD_M,
     META_KBD_N,
     META_KBD_O,
     META_KBD_P, //20
@@ -142,7 +157,7 @@ u16 keyCoresp[MAX_KEY_OPTIONS] __attribute__((section(".dtcm"))) = {
     META_KBD_8,
     META_KBD_9,
     META_KBD_0, //40
-    
+
     META_KBD_SHIFT,
     META_KBD_SYMBOL,
     META_KBD_SPACE,
@@ -217,7 +232,7 @@ ITCM_CODE mm_word OurSoundMixer(mm_word len, mm_addr dest, mm_stream_formats for
         }
         if (breather) {breather -= (len*2); if (breather < 0) breather = 0;}
     }
-    
+
     return  len;
 }
 
@@ -232,20 +247,20 @@ s16 beeper_vol[4] __attribute__((section(".dtcm"))) = { 0x000, 0x200, 0x600, 0xA
 u32 vol __attribute__((section(".dtcm"))) = 0;
 ITCM_CODE void processDirectAudio(void)
 {
-    if (zx_AY_enabled) 
+    if (zx_AY_enabled)
     {
         ay38910Mixer(2, mixbufAY, &myAY);
     }
-    
+
     for (u8 i=0; i<2; i++)
     {
         // Smooth edges of beeper slightly...
         if (portFE & 0x10) {if (vol < 3) vol++;}
         else {if (vol) vol--;}
-        
+
         if (breather) {return;}
         s16 sample = mixbufAY[i];
-        if (beeper_vol[vol]) 
+        if (beeper_vol[vol])
         {
             sample += beeper_vol[vol] + (8 - (int)(rand() & 0xF)); // Sample plus a bit of white noise to break up aliasing
         }
@@ -269,7 +284,7 @@ void setupStream(void)
   mmLoadEffect(SFX_CLICKNOQUIT);
   mmLoadEffect(SFX_KEYCLICK);
   mmLoadEffect(SFX_MUS_INTRO);
-  
+
   //----------------------------------------------------------------
   //  open stream
   //----------------------------------------------------------------
@@ -300,7 +315,7 @@ void sound_chip_reset()
   memset(mixer,   0x00, sizeof(mixer));
   mixer_read=0;
   mixer_write=0;
-  
+
   //  --------------------------------------------------------------------
   //  The AY sound chip is for the ZX Spectrum 128K
   //  --------------------------------------------------------------------
@@ -308,7 +323,7 @@ void sound_chip_reset()
   ay38910IndexW(0x07, &myAY);      // Register 7 is ENABLE
   ay38910DataW(0x3F, &myAY);       // All OFF (negative logic)
   ay38910Mixer(4, mixbufAY, &myAY);// Do an initial mix conversion to clear the output
-  
+
   memset(mixbufAY, 0x00, sizeof(mixbufAY));
 }
 
@@ -317,8 +332,8 @@ void sound_chip_reset()
 // -----------------------------------------------------------------------
 void dsInstallSoundEmuFIFO(void)
 {
-  SoundPause();             // Pause any sound output  
-  sound_chip_reset();       // Reset the SN, AY and SCC chips 
+  SoundPause();             // Pause any sound output
+  sound_chip_reset();       // Reset the SN, AY and SCC chips
   setupStream();            // Setup maxmod stream...
   bStartSoundEngine = 5;    // Volume will 'unpause' after 5 frames in the main loop.
 }
@@ -332,7 +347,7 @@ void dsInstallSoundEmuFIFO(void)
 // the RESET button on the touch-screen...
 // --------------------------------------------------------------
 void ResetSpectrum(void)
-{    
+{
   JoyState = 0x00000000;                // Nothing pressed to start
 
   sound_chip_reset();                   // Reset the AY chip
@@ -354,7 +369,7 @@ void ResetSpectrum(void)
   TIMER2_CR=TIMER_ENABLE  | TIMER_DIV_1024;
   timingFrames  = 0;
   emuFps=0;
-  
+
   bFirstTime = 2;
   bStartIn = 0;
   bottom_screen = 0;
@@ -385,7 +400,7 @@ int getMemFree() { // returns the amount of free memory in bytes
 void ShowDebugZ80(void)
 {
     u8 idx=2;
-    
+
     if (myGlobalConfig.debugger == 3)
     {
         sprintf(tmp, "PC %04X  SP %04X", CPU.PC.W, CPU.SP.W);
@@ -408,7 +423,7 @@ void ShowDebugZ80(void)
         DSPrint(0,idx++,7, tmp);
 
         idx++;
-        
+
         sprintf(tmp, "AY %02X %02X %02X %02X", myAY.ayRegs[0], myAY.ayRegs[1], myAY.ayRegs[2], myAY.ayRegs[3]);
         DSPrint(0,idx++,7, tmp);
         sprintf(tmp, "AY %02X %02X %02X %02X", myAY.ayRegs[4], myAY.ayRegs[5], myAY.ayRegs[6], myAY.ayRegs[7]);
@@ -417,13 +432,13 @@ void ShowDebugZ80(void)
         DSPrint(0,idx++,7, tmp);
         sprintf(tmp, "AY %02X %02X %02X %02X", myAY.ayRegs[12], myAY.ayRegs[13], myAY.ayRegs[14], myAY.ayRegs[15]);
         DSPrint(0,idx++,7, tmp);
-        
-        idx++;            
+
+        idx++;
 
         sprintf(tmp, "LOAD: %-9s", loader_type); DSPrint(0,idx++, 7, tmp);
         sprintf(tmp, "MEM Used %dK", getMemUsed()/1024); DSPrint(0,idx++,7, tmp);
         sprintf(tmp, "MEM Free %dK", getMemFree()/1024); DSPrint(0,idx++,7, tmp);
-        
+
         // CPU Disassembly!
 
         // Put out the debug registers...
@@ -440,7 +455,7 @@ void ShowDebugZ80(void)
         idx = 1;
         for (u8 i=0; i<4; i++)
         {
-            sprintf(tmp, "D%d %-7ld %04lX  D%d %-7ld %04lX", i, (s32)debug[i], (debug[i] < 0xFFFF ? debug[i]:0xFFFF), 4+i, (s32)debug[4+i], (debug[4+i] < 0xFFFF ? debug[4+i]:0xFFFF)); 
+            sprintf(tmp, "D%d %-7ld %04lX  D%d %-7ld %04lX", i, (s32)debug[i], (debug[i] < 0xFFFF ? debug[i]:0xFFFF), 4+i, (s32)debug[4+i], (debug[4+i] < 0xFFFF ? debug[4+i]:0xFFFF));
             DSPrint(0,idx++,0, tmp);
         }
     }
@@ -483,12 +498,17 @@ void CassetteInsert(char *filename)
         fclose(inFile);
         tape_parse_blocks(last_file_size);
         tape_reset();
-        
+
         strcpy(last_file, filename);
         getcwd(last_path, MAX_FILENAME_LEN);
     }
 }
 
+
+// ----------------------------------------------------------------------
+// The Cassette Menu can be called up directly from the keyboard graphic
+// and allows the user to rewind the tape, swap in a new tape, etc.
+// ----------------------------------------------------------------------
 #define MENU_ACTION_END             255 // Always the last sentinal value
 #define MENU_ACTION_EXIT            0   // Exit the menu
 #define MENU_ACTION_PLAY            1   // Play Cassette
@@ -500,13 +520,13 @@ void CassetteInsert(char *filename)
 #define MENU_ACTION_RESET           98  // Reset the machine
 #define MENU_ACTION_SKIP            99  // Skip this MENU choice
 
-typedef struct 
+typedef struct
 {
     char *menu_string;
     u8    menu_action;
 } MenuItem_t;
 
-typedef struct 
+typedef struct
 {
     char *title;
     u8   start_row;
@@ -517,13 +537,13 @@ CassetteDiskMenu_t generic_cassette_menu =
 {
     "CASSETTE MENU", 3,
     {
-        {" PLAY CASSETTE    ",      MENU_ACTION_PLAY},
-        {" STOP CASSETTE    ",      MENU_ACTION_STOP},        
-        {" SWAP CASSETTE    ",      MENU_ACTION_SWAP},
-        {" REWIND CASSETTE  ",      MENU_ACTION_REWIND},
-        {" POSITION CASSETTE",      MENU_ACTION_POSITION},
-        {" EXIT MENU        ",      MENU_ACTION_EXIT},
-        {" NULL             ",      MENU_ACTION_END},
+        {" PLAY     CASSETTE  ",      MENU_ACTION_PLAY},
+        {" STOP     CASSETTE  ",      MENU_ACTION_STOP},
+        {" SWAP     CASSETTE  ",      MENU_ACTION_SWAP},
+        {" REWIND   CASSETTE  ",      MENU_ACTION_REWIND},
+        {" POSITION CASSETTE  ",      MENU_ACTION_POSITION},
+        {" EXIT     MENU      ",      MENU_ACTION_EXIT},
+        {" NULL               ",      MENU_ACTION_END},
     },
 };
 
@@ -537,30 +557,30 @@ u8 cassette_menu_items = 0;
 void CassetteMenuShow(bool bClearScreen, u8 sel)
 {
     cassette_menu_items = 0;
-    
+
     if (bClearScreen)
     {
-      // -------------------------------------
-      // Put up the Cassette menu background 
-      // -------------------------------------
-      BottomScreenCassette();
+        // -------------------------------------
+        // Put up the Cassette menu background
+        // -------------------------------------
+        BottomScreenCassette();
     }
-    
+
     // ---------------------------------------------------
     // Pick the right context menu based on the machine
     // ---------------------------------------------------
     menu = &generic_cassette_menu;
-    
+
     // Display the menu title
-    DSPrint(16-(strlen(menu->title)/2), menu->start_row, 6, menu->title);
-    
+    DSPrint(15-(strlen(menu->title)/2), menu->start_row, 6, menu->title);
+
     // And display all of the menu items
     while (menu->menulist[cassette_menu_items].menu_action != MENU_ACTION_END)
     {
         DSPrint(16-(strlen(menu->menulist[cassette_menu_items].menu_string)/2), menu->start_row+2+cassette_menu_items, (cassette_menu_items == sel) ? 7:6, menu->menulist[cassette_menu_items].menu_string);
-        cassette_menu_items++;   
+        cassette_menu_items++;
     }
-    
+
     // ----------------------------------------------------------------------------------------------
     // And near the bottom, display the file/rom/disk/cassette that is currently loaded into memory.
     // ----------------------------------------------------------------------------------------------
@@ -613,12 +633,12 @@ void CassetteMenu(void)
                 case MENU_ACTION_EXIT:
                     bExitMenu = true;
                     break;
-                    
+
                 case MENU_ACTION_PLAY:
                     tape_play();
                     bExitMenu = true;
                     break;
-                    
+
                 case MENU_ACTION_STOP:
                     tape_stop();
                     bExitMenu = true;
@@ -673,7 +693,9 @@ void CassetteMenu(void)
 
 
 // ------------------------------------------------------------------------
-// Show the Mini Menu - highlight the selected row.
+// Show the Mini Menu - highlight the selected row. This can be called
+// up directly from the ZX Keyboard Graphic - allows the user to quit 
+// the current game, set high scores, save/load game state, etc.
 // ------------------------------------------------------------------------
 u8 mini_menu_items = 0;
 void MiniMenuShow(bool bClearScreen, u8 sel)
@@ -764,6 +786,12 @@ u8 MiniMenu(void)
 }
 
 
+// -------------------------------------------------------------------------
+// Keyboard handler - mapping DS touch screen virtual keys to keyboard keys
+// that we can feed into the key processing handler in spectrum.c when the
+// IO port is read.
+// -------------------------------------------------------------------------
+
 u8 last_special_key = 0;
 u8 last_special_key_dampen = 0;
 u8 last_kbd_key = 0;
@@ -828,12 +856,15 @@ u8 handle_spectrum_keyboard_press(u16 iTx, u16 iTy)  // ZX Spectrum keyboard
         else if ((iTx >= 54)  && (iTx < 202))  kbd_key = ' ';
         else if ((iTx >= 202) && (iTx < 255))  return MENU_CHOICE_MENU;
     }
-    
+
     DisplayStatusLine(false);
-    
+
     return MENU_CHOICE_NONE;
 }
 
+// -----------------------------------------------------------------------------------
+// Special version of the debugger overlay... handling just a small subset of keys...
+// -----------------------------------------------------------------------------------
 u8 handle_debugger_overlay(u16 iTx, u16 iTy)
 {
     if ((iTy >= 165) && (iTy < 192)) // Bottom row is where the debugger keys are...
@@ -848,7 +879,7 @@ u8 handle_debugger_overlay(u16 iTx, u16 iTy)
         if      ((iTx >= 156) && (iTx < 187))  kbd_key = KBD_KEY_RET;
         if      ((iTx >= 187) && (iTx < 222))  return MENU_CHOICE_MENU;
         else if ((iTx >= 222) && (iTx < 255))  return MENU_CHOICE_CASSETTE;
-        
+
         DisplayStatusLine(false);
     }
     else {kbd_key = 0; last_kbd_key = 0;}
@@ -865,7 +896,7 @@ u8 __attribute__((noinline)) handle_meta_key(u8 meta_key)
             // Ask for verification
             if (showMessage("DO YOU REALLY WANT TO", "RESET THE CURRENT GAME ?") == ID_SHM_YES)
             {
-                ResetSpectrum();                            
+                ResetSpectrum();
             }
             BottomScreenKeyboard();
             SoundUnPause();
@@ -910,14 +941,14 @@ u8 __attribute__((noinline)) handle_meta_key(u8 meta_key)
             BottomScreenKeyboard();
             SoundUnPause();
             break;
-            
+
         case MENU_CHOICE_DEFINE_KEYS:
             SoundPause();
             SpeccySEChangeKeymap();
             BottomScreenKeyboard();
             SoundUnPause();
             break;
-            
+
         case MENU_CHOICE_POKE_MEMORY:
             SoundPause();
             pok_select();
@@ -936,7 +967,7 @@ u8 __attribute__((noinline)) handle_meta_key(u8 meta_key)
     return 0;
 }
 
-// Show tape blocks with filenames/descriptions... 
+// Show tape blocks with filenames/descriptions...
 u8 speccyTapePosition(void)
 {
     u8 sel = 0;
@@ -947,7 +978,7 @@ u8 speccyTapePosition(void)
     DisplayFileNameCassette();
 
     DSPrint(1,1,0,"         TAPE POSITIONS         ");
-    
+
     u8 max = tape_find_positions();
     u8 screen_max = (max < 10 ? max:10);
     u8 offset = 0;
@@ -956,7 +987,7 @@ u8 speccyTapePosition(void)
         sprintf(tmp, "%03d %-26s", TapePositionTable[offset+i].block_id, TapePositionTable[offset+i].description);
         DSPrint(1,3+i,(i==sel) ? 2:0,tmp);
     }
-    
+
     while (1)
     {
         u16 keys = keysCurrent();
@@ -975,7 +1006,7 @@ u8 speccyTapePosition(void)
             }
             else
             {
-                if ((offset + screen_max) < max) 
+                if ((offset + screen_max) < max)
                 {
                     offset += 10;
                     screen_max = ((max-offset) < 10 ? (max-offset):10);
@@ -1031,16 +1062,16 @@ u8 speccyTapePosition(void)
             }
         }
     }
-    
+
     while ((keysCurrent() & (KEY_UP | KEY_DOWN | KEY_A ))!=0);
     WAITVBL;WAITVBL;
-    
+
     return sel+offset;
 }
 
 // ----------------------------------------------------------------------------
 // Chuckie-Style d-pad keeps moving in the last known direction for a few more
-// frames to help make those hairpin turns up and off ladders much easier... 
+// frames to help make those hairpin turns up and off ladders much easier...
 // ----------------------------------------------------------------------------
 u8 chuckie_key_up = 0;
 u8 chuckie_key_down = 0;
@@ -1060,13 +1091,13 @@ void SpeccySE_main(void)
 
   // Setup the debug buffer for DSi use
   debug_init();
-  
+
   // Get the ZX Spectrum Emulator ready
   spectrumInit(gpFic[ucGameAct].szName);
 
   spectrumSetPalette();
   spectrumRun();
-  
+
   // Frame-to-frame timing...
   TIMER1_CR = 0;
   TIMER1_DATA=0;
@@ -1081,9 +1112,9 @@ void SpeccySE_main(void)
 
   // Force the sound engine to turn on when we start emulation
   bStartSoundEngine = 10;
-  
+
   bFirstTime = 2;
-    
+
   // -------------------------------------------------------------------
   // Stay in this loop running the Spectrum game until the user exits...
   // -------------------------------------------------------------------
@@ -1124,7 +1155,7 @@ void SpeccySE_main(void)
             }
             DisplayStatusLine(false);
             emuActFrames = 0;
-            
+
             if (bStartIn)
             {
                 if (--bStartIn == 0)
@@ -1132,12 +1163,12 @@ void SpeccySE_main(void)
                     tape_play();
                 }
             }
-            
+
             if (bFirstTime)
             {
                 if (--bFirstTime == 0)
                 {
-                    // Tape Loader - Put the LOAD "" into the keyboard buffer 
+                    // Tape Loader - Put the LOAD "" into the keyboard buffer
                     if (speccy_mode < MODE_SNA)
                     {
                         if (myConfig.autoLoad)
@@ -1178,7 +1209,7 @@ void SpeccySE_main(void)
         while (TIMER2_DATA < 655*(timingFrames+1))
         {
             if (myGlobalConfig.showFPS == 2) break;   // If Full Speed, break out...
-            if (tape_is_playing()) 
+            if (tape_is_playing())
             {
                 mixer_read = mixer_write = 0;
                 bStartSoundEngine = 5;  // Unpause sound after 5 frames
@@ -1197,7 +1228,7 @@ void SpeccySE_main(void)
       }
 
       // --------------------------------------------------------------
-      // Hold the key press for a brief instant... To allow the 
+      // Hold the key press for a brief instant... To allow the
       // emulated ZX Spectrum to 'see' the key briefly... Good enough.
       // --------------------------------------------------------------
       if (key_debounce > 0) key_debounce--;
@@ -1230,12 +1261,12 @@ void SpeccySE_main(void)
                     meta_key = handle_debugger_overlay(iTx, iTy);
                 }
                 // ------------------------------------------------------------
-                // Test the touchscreen for various full keyboard handlers... 
+                // Test the touchscreen for various full keyboard handlers...
                 // ------------------------------------------------------------
                 else
                 {
                     meta_key = handle_spectrum_keyboard_press(iTx, iTy);
-                }                  
+                }
 
                 if (kbd_key != 0)
                 {
@@ -1277,9 +1308,9 @@ void SpeccySE_main(void)
       // ------------------------------------------------------------------------
       ucDEUX  = 0;
       nds_key  = keysCurrent();     // Get any current keys pressed on the NDS
-        
+
       // -----------------------------------------
-      // Check various key combinations first... 
+      // Check various key combinations first...
       // -----------------------------------------
       if ((nds_key & KEY_L) && (nds_key & KEY_R) && (nds_key & KEY_X))
       {
@@ -1307,29 +1338,29 @@ void SpeccySE_main(void)
                 {
                     chuckie_key_up    = 12;
                     chuckie_key_down  = 0;
-                }                
+                }
                 if (nds_key & KEY_DOWN)
                 {
                     chuckie_key_down  = 12;
                     chuckie_key_up    = 0;
-                }                
+                }
                 if (nds_key & KEY_LEFT)
                 {
                     chuckie_key_left  = 12;
                     chuckie_key_right = 0;
-                }                
+                }
                 if (nds_key & KEY_RIGHT)
                 {
                     chuckie_key_right = 12;
                     chuckie_key_left  = 0;
                 }
-                
+
                 if (chuckie_key_up)
                 {
                     chuckie_key_up--;
                     nds_key |= KEY_UP;
                 }
-                
+
                 if (chuckie_key_down)
                 {
                     chuckie_key_down--;
@@ -1348,7 +1379,7 @@ void SpeccySE_main(void)
                     nds_key |= KEY_RIGHT;
                 }
           }
-          
+
           // --------------------------------------------------------------------------------------------------
           // There are 12 NDS buttons (D-Pad, XYAB, L/R and Start+Select) - we allow mapping of any of these.
           // --------------------------------------------------------------------------------------------------
@@ -1385,7 +1416,7 @@ void SpeccySE_main(void)
           if (chuckie_key_right) chuckie_key_right--;
           last_mapped_key = 0;
       }
-      
+
       // ------------------------------------------------------------------------------------------
       // Finally, check if there are any buffered keys that need to go into the keyboard handling.
       // ------------------------------------------------------------------------------------------
@@ -1395,7 +1426,7 @@ void SpeccySE_main(void)
       // Accumulate all bits above into the Joystick State var...
       // ---------------------------------------------------------
       JoyState = ucDEUX;
-      
+
       // --------------------------------------------------
       // Handle Auto-Fire if enabled in configuration...
       // --------------------------------------------------
@@ -1447,7 +1478,7 @@ void speccySEInit(void)
   unsigned  short dmaVal =*(bgGetMapPtr(bg0)+51*32);
   dmaFillWords(dmaVal | (dmaVal<<16),(void*)  bgGetMapPtr(bg1),32*24*2);
 
-  // Put up the options screen 
+  // Put up the options screen
   BottomScreenOptions();
 
   //  Find the files
@@ -1457,7 +1488,7 @@ void speccySEInit(void)
 void BottomScreenOptions(void)
 {
     swiWaitForVBlank();
-    
+
     if (bottom_screen != 1)
     {
         // ---------------------------------------------------
@@ -1466,11 +1497,11 @@ void BottomScreenOptions(void)
         bg0b = bgInitSub(0, BgType_Text8bpp, BgSize_T_256x256, 31,0);
         bg1b = bgInitSub(1, BgType_Text8bpp, BgSize_T_256x256, 29,0);
         bgSetPriority(bg0b,1);bgSetPriority(bg1b,0);
-        
+
         decompress(mainmenuTiles, bgGetGfxPtr(bg0b), LZ77Vram);
         decompress(mainmenuMap, (void*) bgGetMapPtr(bg0b), LZ77Vram);
         dmaCopy((void*) mainmenuPal,(void*) BG_PALETTE_SUB,256*2);
-        
+
         unsigned short dmaVal = *(bgGetMapPtr(bg1b)+24*32);
         dmaFillWords(dmaVal | (dmaVal<<16),(void*) bgGetMapPtr(bg1b),32*24*2);
     }
@@ -1478,7 +1509,7 @@ void BottomScreenOptions(void)
     {
         for (u8 i=0; i<23; i++)  DSPrint(0,i,0,"                                ");
     }
-    
+
     bottom_screen = 1;
 }
 
@@ -1488,7 +1519,7 @@ void BottomScreenOptions(void)
 void BottomScreenKeyboard(void)
 {
     swiWaitForVBlank();
-    
+
     if (myGlobalConfig.debugger == 3)  // Full Z80 Debug overrides things... put up the debugger overlay
     {
       //  Init bottom screen
@@ -1505,10 +1536,10 @@ void BottomScreenKeyboard(void)
       dmaCopy((void*) bgGetMapPtr(bg0b)+32*30*2,(void*) bgGetMapPtr(bg1b),32*24*2);
       dmaCopy((void*) speccy_kbdPal,(void*) BG_PALETTE_SUB,256*2);
     }
-    
+
     unsigned  short dmaVal = *(bgGetMapPtr(bg1b)+24*32);
     dmaFillWords(dmaVal | (dmaVal<<16),(void*)  bgGetMapPtr(bg1b),32*24*2);
-    
+
     bottom_screen = 2;
 
     show_tape_counter = 0;
@@ -1520,21 +1551,21 @@ void BottomScreenKeyboard(void)
 void BottomScreenCassette(void)
 {
     swiWaitForVBlank();
-    
+
     // ---------------------------------------------------
     // Put up the cassette screen background...
     // ---------------------------------------------------
     bg0b = bgInitSub(0, BgType_Text8bpp, BgSize_T_256x256, 31,0);
     bg1b = bgInitSub(1, BgType_Text8bpp, BgSize_T_256x256, 29,0);
     bgSetPriority(bg0b,1);bgSetPriority(bg1b,0);
-    
+
     decompress(cassetteTiles, bgGetGfxPtr(bg0b), LZ77Vram);
     decompress(cassetteMap, (void*) bgGetMapPtr(bg0b), LZ77Vram);
     dmaCopy((void*) cassettePal,(void*) BG_PALETTE_SUB,256*2);
-    
+
     unsigned short dmaVal = *(bgGetMapPtr(bg1b)+24*32);
     dmaFillWords(dmaVal | (dmaVal<<16),(void*) bgGetMapPtr(bg1b),32*24*2);
-    
+
     bottom_screen = 3;
 }
 
@@ -1544,16 +1575,16 @@ void BottomScreenCassette(void)
  ********************************************************************************/
 void speccySEInitCPU(void)
 {
-  //  -----------------------------------------
-  //  Init Main Memory and VDP Video Memory
-  //  -----------------------------------------
-  memset(RAM_Memory,    0x00, sizeof(RAM_Memory));
-  memset(RAM_Memory128, 0x00, sizeof(RAM_Memory128));
+    //  -----------------------------------------
+    //  Init Main Memory for the Spectrum
+    //  -----------------------------------------
+    memset(RAM_Memory,    0x00, sizeof(RAM_Memory));
+    memset(RAM_Memory128, 0x00, sizeof(RAM_Memory128));
 
-  // -----------------------------------------------
-  // Init bottom screen do display the ZX Keyboard
-  // -----------------------------------------------
-  BottomScreenKeyboard();
+    // -----------------------------------------------
+    // Init bottom screen do display the ZX Keyboard
+    // -----------------------------------------------
+    BottomScreenKeyboard();
 }
 
 // -------------------------------------------------------------
@@ -1561,8 +1592,8 @@ void speccySEInitCPU(void)
 // -------------------------------------------------------------
 void irqVBlank(void)
 {
- // Manage time
-  vusCptVBL++;
+   // Manage time
+    vusCptVBL++;
 }
 
 // ----------------------------------------------------------------------
@@ -1583,7 +1614,7 @@ void LoadBIOSFiles(void)
     size = ReadFileCarefully("48.rom", SpectrumBios, 0x4000, 0);
     if (!size) size = ReadFileCarefully("/roms/bios/48.rom", SpectrumBios, 0x4000, 0);
     if (!size) size = ReadFileCarefully("/data/bios/48.rom", SpectrumBios, 0x4000, 0);
-    
+
     if (!size) size = ReadFileCarefully("48k.rom", SpectrumBios, 0x4000, 0);
     if (!size) size = ReadFileCarefully("/roms/bios/48k.rom", SpectrumBios, 0x4000, 0);
     if (!size) size = ReadFileCarefully("/data/bios/48k.rom", SpectrumBios, 0x4000, 0);
@@ -1591,35 +1622,35 @@ void LoadBIOSFiles(void)
     if (!size) size = ReadFileCarefully("speccy.rom", SpectrumBios, 0x4000, 0);
     if (!size) size = ReadFileCarefully("/roms/bios/speccy.rom", SpectrumBios, 0x4000, 0);
     if (!size) size = ReadFileCarefully("/data/bios/speccy.rom", SpectrumBios, 0x4000, 0);
-    
+
     if (!size) size = ReadFileCarefully("zxs48.rom", SpectrumBios, 0x4000, 0);
     if (!size) size = ReadFileCarefully("/roms/bios/zxs48.rom", SpectrumBios, 0x4000, 0);
     if (!size) size = ReadFileCarefully("/data/bios/zxs48.rom", SpectrumBios, 0x4000, 0);
-    
+
     if (!size) size = ReadFileCarefully("spec48.rom", SpectrumBios, 0x4000, 0);
     if (!size) size = ReadFileCarefully("/roms/bios/spec48.rom", SpectrumBios, 0x4000, 0);
     if (!size) size = ReadFileCarefully("/data/bios/spec48.rom", SpectrumBios, 0x4000, 0);
-    
+
     if (size) bSpeccyBiosFound = true; else memset(SpectrumBios, 0xFF, 0x4000);
 
     size = ReadFileCarefully("128.rom", SpectrumBios128, 0x8000, 0);
     if (!size) size = ReadFileCarefully("/roms/bios/128.rom", SpectrumBios128, 0x8000, 0);
     if (!size) size = ReadFileCarefully("/data/bios/128.rom", SpectrumBios128, 0x8000, 0);
-    
+
     if (!size) size = ReadFileCarefully("128k.rom", SpectrumBios128, 0x8000, 0);
     if (!size) size = ReadFileCarefully("/roms/bios/128k.rom", SpectrumBios128, 0x8000, 0);
     if (!size) size = ReadFileCarefully("/data/bios/128k.rom", SpectrumBios128, 0x8000, 0);
-    
+
     if (!size) size = ReadFileCarefully("zxs128.rom", SpectrumBios128, 0x8000, 0);
     if (!size) size = ReadFileCarefully("/roms/bios/zxs128.rom", SpectrumBios128, 0x8000, 0);
     if (!size) size = ReadFileCarefully("/data/bios/zxs128.rom", SpectrumBios128, 0x8000, 0);
-    
+
     if (size) bSpeccyBiosFound = true; else memset(SpectrumBios128, 0xFF, 0x8000);
 }
 
-/*********************************************************************************
+/************************************************************************************
  * Program entry point - check if an argument has been passed in probably from TWL++
- ********************************************************************************/
+ ***********************************************************************************/
 int main(int argc, char **argv)
 {
   //  Init sound
@@ -1648,11 +1679,11 @@ int main(int argc, char **argv)
   irqEnable(IRQ_VBLANK);
 
   // -----------------------------------------------------------------
-  // Grab the BIOS before we try to switch any DIRECTORYories around...
+  // Grab the BIOS before we try to switch any directories around...
   // -----------------------------------------------------------------
   useVRAM();
   LoadBIOSFiles();
-  
+
   // -----------------------------------------------------------------
   // And do an initial load of configuration... We'll match it up
   // with the game that was selected later...
@@ -1662,7 +1693,7 @@ int main(int argc, char **argv)
   //  Handle command line argument... mostly for TWL++
   if  (argc > 1)
   {
-      //  We want to start in the DIRECTORYory where the file is being launched...
+      //  We want to start in the directory where the file is being launched...
       if  (strchr(argv[1], '/') != NULL)
       {
           static char  path[128];
@@ -1682,7 +1713,7 @@ int main(int argc, char **argv)
   else
   {
       cmd_line_file[0]=0; // No file passed on command line...
-      
+
       if (myGlobalConfig.lastDir && (strlen(myGlobalConfig.szLastPath) > 2))
       {
           chdir(myGlobalConfig.szLastPath);  // Try to start back where we last were...
@@ -1699,7 +1730,7 @@ int main(int argc, char **argv)
   }
 
   SoundPause();
-  
+
   srand(time(NULL));
 
   //  ------------------------------------------------------------
@@ -1749,7 +1780,7 @@ int main(int argc, char **argv)
 
 
 // -----------------------------------------------------------------------
-// The code below is a handy set of debug tools that allows us to 
+// The code below is a handy set of debug tools that allows us to
 // write printf() like strings out to a file. Basically we accumulate
 // the strings into a large RAM buffer and then when the L+R shoulder
 // buttons are pressed and held, we will snapshot out the debug.log file.
@@ -1767,7 +1798,7 @@ void debug_init()
 {
     if (!debug_buffer)
     {
-        if (isDSiMode()) 
+        if (isDSiMode())
         {
             MAX_DEBUG_BUF_SIZE = (1024*1024*2); // 2MB!!
             debug_buffer = malloc(MAX_DEBUG_BUF_SIZE);

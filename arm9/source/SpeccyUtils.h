@@ -3,7 +3,7 @@
 //
 // Copying and distribution of this emulator, its source code and associated
 // readme files, with or without modification, are permitted in any medium without
-// royalty provided this copyright notice is used and wavemotion-dave and Marat 
+// royalty provided this copyright notice is used and wavemotion-dave and Marat
 // Fayzullin (ColEM core) are thanked profusely.
 //
 // The SpeccySE emulator is offered as-is, without any warranty. Please see readme.md
@@ -17,18 +17,18 @@
 
 #define MAX_FILES                   2048
 #define MAX_FILENAME_LEN            160
-#define MAX_TAPE_SIZE               (640*1024) // 640K is big enough for any .TAP/.TZX or Snapshot 
-            
+#define MAX_TAPE_SIZE               (640*1024) // 640K is big enough for any .TAP/.TZX or Snapshot
+
 #define MAX_CONFIGS                 1000
 #define CONFIG_VERSION              0x0004
-            
+
 #define SPECCY_FILE                 0x01
 #define DIRECTORY                   0x02
-            
+
 #define ID_SHM_CANCEL               0x00
 #define ID_SHM_YES                  0x01
 #define ID_SHM_NO                   0x02
-            
+
 #define DPAD_NORMAL                 0
 #define DPAD_DIAGONALS              1
 #define DPAD_CHUCKIE                2
@@ -137,7 +137,7 @@ extern u8 RAM_Memory128[0x20000];
 extern u8 *MemoryMap[4];
 extern AY38910 myAY;
 
-extern FISpeccy gpFic[MAX_FILES];  
+extern FISpeccy gpFic[MAX_FILES];
 extern int uNbRoms;
 extern int ucGameAct;
 extern int ucGameChoice;

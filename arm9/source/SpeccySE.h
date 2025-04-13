@@ -3,7 +3,7 @@
 //
 // Copying and distribution of this emulator, its source code and associated
 // readme files, with or without modification, are permitted in any medium without
-// royalty provided this copyright notice is used and wavemotion-dave and Marat 
+// royalty provided this copyright notice is used and wavemotion-dave and Marat
 // Fayzullin (ColEM core) are thanked profusely.
 //
 // The SpeccySE emulator is offered as-is, without any warranty. Please see readme.md
@@ -27,7 +27,7 @@ extern u32 DX, DY;
 #define MENU_CHOICE_DEFINE_KEYS 0x06
 #define MENU_CHOICE_POKE_MEMORY 0x07
 #define MENU_CHOICE_CASSETTE    0x08
-#define MENU_CHOICE_MENU        0xFF        // Special brings up a menu of choices
+#define MENU_CHOICE_MENU        0xFF        // Special brings up a mini-menu of choices
 
 // ------------------------------------------------------------------------------
 // Joystick UP, RIGHT, LEFT, DOWN and the FIRE button for the Kempston Joystick.
@@ -110,7 +110,7 @@ extern u32 DX, DY;
 #define WAITVBL swiWaitForVBlank(); swiWaitForVBlank(); swiWaitForVBlank(); swiWaitForVBlank(); swiWaitForVBlank();
 
 // -------------------------------------------------------------------------
-// This massive patch table consumes 256K (64 x 4 byte function pointers) 
+// This massive patch table consumes 256K (64 x 4 byte function pointers)
 // to allow us faster access to patch routines for tape edge detection.
 // We put it in LCD VRAM as this is slightly faster access on the DS/DSi.
 // 99% of this massive array will be zeroes but we don't have another use
@@ -129,8 +129,8 @@ extern char initial_file[];
 extern char initial_path[];
 extern u16 nds_key;
 extern u8  kbd_key;
-extern u16 vusCptVBL;                   // Video Management
-extern u16 *pVidFlipBuf;                // Video flipping buffer
+extern u16 vusCptVBL;
+extern u16 *pVidFlipBuf;
 extern u16 keyCoresp[MAX_KEY_OPTIONS];
 extern u16 NDS_keyMap[];
 extern u8 soundEmuPause;
