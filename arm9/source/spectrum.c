@@ -570,8 +570,16 @@ void speccy_reset(void)
     // A bit wasteful to decompress again... but 
     // we want to ensure that the memory is exactly
     // as it should be when we reset the system.
-    if (speccy_mode < MODE_SNA) tape_parse_blocks(last_file_size);
-    else if (speccy_mode < MODE_BIOS) speccy_decompress_z80(last_file_size);
+    if (speccy_mode < MODE_SNA)
+    {
+        tape_parse_blocks(last_file_size);
+        strcpy(last_file, initial_file);
+        strcpy(last_path, initial_path);
+    }
+    else if (speccy_mode < MODE_BIOS) 
+    {
+        speccy_decompress_z80(last_file_size);
+    }
     // else must be a diagnostic/ROM cart of some kind... 
     
     if (speccy_mode == MODE_SNA) // SNA snapshot

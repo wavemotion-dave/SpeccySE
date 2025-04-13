@@ -52,8 +52,10 @@ u8 SpectrumBios128[0x8000]          = {0};  // We keep the 32k ZX Spectrum 128K 
 u8 ROM_Memory[MAX_TAPE_SIZE];               // This is where we keep the raw untouched file as read from the SD card (.TAP, .TZX, .Z80, etc)
 
 static char cmd_line_file[256];
-char initial_file[MAX_ROM_NAME] = "";
-char initial_path[MAX_ROM_NAME] = "";
+char initial_file[MAX_FILENAME_LEN] = "";
+char initial_path[MAX_FILENAME_LEN] = "";
+char last_path[MAX_FILENAME_LEN] = "";
+char last_file[MAX_FILENAME_LEN] = "";
 
 u8 last_speccy_mode  = 99;
 u8 bFirstTime        = 3;
@@ -226,7 +228,7 @@ ITCM_CODE mm_word OurSoundMixer(mm_word len, mm_addr dest, mm_stream_formats for
 // over-sampled and smoothed someday to make it really shine... good enough for now.
 // --------------------------------------------------------------------------------------------
 s16 mixbufAY[4]  __attribute__((section(".dtcm")));
-const s16 beeper_vol[4] ={ 0x000, 0x200, 0x600, 0xA00 };
+s16 beeper_vol[4] __attribute__((section(".dtcm"))) = { 0x000, 0x200, 0x600, 0xA00 };
 u32 vol __attribute__((section(".dtcm"))) = 0;
 ITCM_CODE void processDirectAudio(void)
 {
@@ -242,7 +244,11 @@ ITCM_CODE void processDirectAudio(void)
         else {if (vol) vol--;}
         
         if (breather) {return;}
-        s16 sample = mixbufAY[i] + beeper_vol[vol];
+        s16 sample = mixbufAY[i];
+        if (beeper_vol[vol]) 
+        {
+            sample += beeper_vol[vol] + (8 - (int)(rand() & 0xF)); // Sample plus a bit of white noise to break up aliasing
+        }
         mixer[mixer_write] = sample;
         mixer_write++; mixer_write &= WAVE_DIRECT_BUF_SIZE;
         if (((mixer_write+1)&WAVE_DIRECT_BUF_SIZE) == mixer_read) {breather = 2048;}
@@ -477,6 +483,9 @@ void CassetteInsert(char *filename)
         fclose(inFile);
         tape_parse_blocks(last_file_size);
         tape_reset();
+        
+        strcpy(last_file, filename);
+        getcwd(last_path, MAX_FILENAME_LEN);
     }
 }
 
@@ -829,15 +838,16 @@ u8 handle_debugger_overlay(u16 iTx, u16 iTy)
 {
     if ((iTy >= 165) && (iTy < 192)) // Bottom row is where the debugger keys are...
     {
-        if      ((iTx >= 0)   && (iTx <  26))  kbd_key = '0';
-        if      ((iTx >= 26)  && (iTx <  47))  kbd_key = 'J';
-        if      ((iTx >= 47)  && (iTx <  73))  kbd_key = 'P';
-        if      ((iTx >= 73)  && (iTx <  97))  kbd_key = KBD_KEY_SYMBOL;
-        if      ((iTx >= 97)  && (iTx < 125))  kbd_key = KBD_KEY_RET;
-        
-        if      ((iTx >= 125) && (iTx < 158))  return MENU_CHOICE_MENU;
-        else if ((iTx >= 158) && (iTx < 192))  return MENU_CHOICE_MENU;
-        else if ((iTx >= 192) && (iTx < 255))  return MENU_CHOICE_CASSETTE;
+        if      ((iTx >= 0)   && (iTx <  24))  kbd_key = '0';
+        if      ((iTx >= 24)  && (iTx <  45))  kbd_key = '1';
+        if      ((iTx >= 45)  && (iTx <  68))  kbd_key = '2';
+        if      ((iTx >= 68)  && (iTx <  90))  kbd_key = '3';
+        if      ((iTx >= 90)  && (iTx < 112))  kbd_key = '4';
+        if      ((iTx >= 112) && (iTx < 134))  kbd_key = '5';
+        if      ((iTx >= 134) && (iTx < 156))  kbd_key = 'S';
+        if      ((iTx >= 156) && (iTx < 187))  kbd_key = KBD_KEY_RET;
+        if      ((iTx >= 187) && (iTx < 222))  return MENU_CHOICE_MENU;
+        else if ((iTx >= 222) && (iTx < 255))  return MENU_CHOICE_CASSETTE;
         
         DisplayStatusLine(false);
     }
@@ -916,7 +926,10 @@ u8 __attribute__((noinline)) handle_meta_key(u8 meta_key)
             break;
 
         case MENU_CHOICE_CASSETTE:
-            CassetteMenu();
+            if (speccy_mode <= MODE_SNA) // Only show if we have a tape loaded
+            {
+                CassetteMenu();
+            }
             break;
     }
 
@@ -1498,6 +1511,7 @@ void BottomScreenKeyboard(void)
     
     bottom_screen = 2;
 
+    show_tape_counter = 0;
     DisplayStatusLine(true);
 }
 
@@ -1668,10 +1682,20 @@ int main(int argc, char **argv)
   else
   {
       cmd_line_file[0]=0; // No file passed on command line...
-      chdir("/roms");     // Try to start in roms area... doesn't matter if it fails
-      chdir("speccy");    // And try to start in the subdir /speccy... doesn't matter if it fails.
-      chdir("zx");        // And try to start in the subdir /zx... doesn't matter if it fails.
-      chdir("spectrum");  // And try to start in the subdir /spectrum... doesn't matter if it fails.
+      
+      if (myGlobalConfig.lastDir && (strlen(myGlobalConfig.szLastPath) > 2))
+      {
+          chdir(myGlobalConfig.szLastPath);  // Try to start back where we last were...
+      }
+      else
+      {
+          chdir("/roms");       // Try to start in roms area... doesn't matter if it fails
+          chdir("speccy");      // And try to start in the subdir /speccy... doesn't matter if it fails.
+          chdir("zx");          // And try to start in the subdir /zx... doesn't matter if it fails.
+          chdir("spectrum");    // And try to start in the subdir /spectrum... doesn't matter if it fails.
+          chdir("zxspectrum");  // And try to start in the subdir /zxspectrum... doesn't matter if it fails.
+          chdir("zx-spectrum"); // And try to start in the subdir /zx-spectrum... doesn't matter if it fails.
+      }
   }
 
   SoundPause();

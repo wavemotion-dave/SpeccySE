@@ -39,6 +39,9 @@ and those copyrights remain his.
 
 Royalty Free Music for the opening jingle provided by Anvish Parker
 
+lzav compression (for save states) is Copyright (c) 2023-2025 Aleksey 
+Vaneev and used by permission of the generous MIT license.
+
 The Sinclair logo is used without permission but with the maximum
 of respect and love.
 
@@ -136,6 +139,26 @@ is made. This allows for buttery smooth (relatively speaking) transitions
 on the ladders. It's likely other games will benefit from this mode - but
 Chuckie Egg is the reason I put it into the emulator and so that's the
 name it gets.
+
+Game Options / Global Options :
+-----------------------
+There are a number of options you can tweak on a per-game basis as well
+as a few global options that apply to the emulator in general. The most
+useful of the global options is to select your starting directory. The
+default is to start in /roms/speccy - you can have as many subdirectories
+under that as you wish. The emulator can support a file listing of up 
+to 2000 files with names no longer than 160 characters (so please keep
+your filenames on the shorter side... although the emulator can scroll
+the filename, there only about 30 characters can be shown on the screen
+at a time). 
+
+As for the per-game options, you can set things like the auto fire 
+for the joystick and the aforementioned CHUCKIE mode of joystick d-pad
+handling. One of the more useful per-game options is to decide how you
+want to load the game - using a 48K Spectrum or the upgraded 128K Spectrum.
+You can also force a load as 128K spectrum by pressing the NDS Y-Button
+when loading. If you don't understand an option - don't touch it. You
+have been duly warned!
 
 
 Tape Support :

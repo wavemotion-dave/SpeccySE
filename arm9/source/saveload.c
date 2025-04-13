@@ -23,7 +23,9 @@
 #include "SpeccyUtils.h"
 #include "printf.h"
 
-#define SPECCY_SAVE_VER   0x0004       // Change this if the basic format of the .SAV file changes. Invalidates older .sav files.
+#include "lzav.h"
+
+#define SPECCY_SAVE_VER   0x0005       // Change this if the basic format of the .SAV file changes. Invalidates older .sav files.
 
 // -----------------------------------------------------------------------------------------------------
 // Since the main MemoryMap[] can point to differt things (RAM, ROM, BIOS, etc) and since we can't rely
@@ -53,8 +55,10 @@ u8  spare[512] = {0x00};            // We keep some spare bytes so we can use th
 static char szLoadFile[256];        // We build the filename out of the base filename and tack on .sav, .ee, etc.
 static char tmpStr[32];
 
+static u8 CompressBuffer[150*1024];
 void spectrumSaveState()
 {
+  u32 spare = 0;
   size_t retVal;
 
   // Return to the original path
@@ -80,6 +84,10 @@ void spectrumSaveState()
     // Write Version
     u16 save_ver = SPECCY_SAVE_VER;
     retVal = fwrite(&save_ver, sizeof(u16), 1, handle);
+
+    // Write Last Directory Path / Tape File
+    retVal = fwrite(&last_path, sizeof(last_path), 1, handle);
+    retVal = fwrite(&last_file, sizeof(last_file), 1, handle);
 
     // Write CZ80 CPU
     retVal = fwrite(&CPU, sizeof(CPU), 1, handle);
@@ -145,6 +153,10 @@ void spectrumSaveState()
     if (retVal) retVal = fwrite(&give_up_counter,           sizeof(give_up_counter),            1, handle);
     if (retVal) retVal = fwrite(&next_edge1,                sizeof(next_edge1),                 1, handle);
     if (retVal) retVal = fwrite(&next_edge2,                sizeof(next_edge2),                 1, handle);
+    if (retVal) retVal = fwrite(&spare,                     sizeof(spare),                      1, handle);
+    if (retVal) retVal = fwrite(&spare,                     sizeof(spare),                      1, handle);
+    if (retVal) retVal = fwrite(&spare,                     sizeof(spare),                      1, handle);
+    if (retVal) retVal = fwrite(&spare,                     sizeof(spare),                      1, handle);
 
 
     // Save Z80 Memory Map... either 48K for 128K
@@ -155,28 +167,17 @@ void spectrumSaveState()
         ptr = RAM_Memory128;
         mem_size = 0x20000;
     }
+    
+    // -------------------------------------------------------------------
+    // Compress the RAM data using 'high' compression ratio... it's
+    // still quite fast for such small memory buffers and often shrinks
+    // 48K games down under 32K and 128K games down closer to 64K.
+    // -------------------------------------------------------------------
+    int max_len = lzav_compress_bound_hi( mem_size );
+    int comp_len = lzav_compress_hi( ptr, CompressBuffer, mem_size, max_len );
 
-    // Simple Run-Length-Encoding saves us on lots of zeroed memory...
-    for (u32 i=0; i<mem_size; i++)
-    {
-        u8 count = 0;
-        while (ptr[i] == 0x00)
-        {
-            i++;
-            if (++count == 255) break;
-        }
-        if (count)
-        {
-            i--;
-            u8 zero = 0x00;
-            if (retVal) retVal = fwrite(&zero,  1, 1, handle);
-            if (retVal) retVal = fwrite(&count, 1, 1, handle);
-        }
-        else
-        {
-            if (retVal) retVal = fwrite(&ptr[i], 1, 1, handle);
-        }
-    }
+    if (retVal) retVal = fwrite(&comp_len,          sizeof(comp_len), 1, handle);
+    if (retVal) retVal = fwrite(&CompressBuffer,    comp_len,         1, handle);
 
     strcpy(tmpStr, (retVal ? "OK ":"ERR"));
     DSPrint(13,0,0,tmpStr);
@@ -196,6 +197,7 @@ void spectrumSaveState()
  ********************************************************************************/
 void spectrumLoadState()
 {
+    u32 spare = 0;
     size_t retVal;
 
     // Return to the original path
@@ -221,8 +223,22 @@ void spectrumLoadState()
 
         if (save_ver == SPECCY_SAVE_VER)
         {
+            // Read Last Directory Path / Tape File
+            if (retVal) retVal = fread(&last_path, sizeof(last_path), 1, handle);
+            if (retVal) retVal = fread(&last_file, sizeof(last_file), 1, handle);
+            
+            // ----------------------------------------------------------------
+            // If the last known file was a tap file (.tap or .tzx) we want to
+            // reload that as the user might have swapped tapes to side 2, etc.
+            // ----------------------------------------------------------------
+            if ( (strcasecmp(strrchr(last_file, '.'), ".tap") == 0) || (strcasecmp(strrchr(last_file, '.'), ".tzx") == 0) )
+            {
+                chdir(last_path);
+                CassetteInsert(last_file);
+            }
+            
             // Load CZ80 CPU
-            retVal = fread(&CPU, sizeof(CPU), 1, handle);
+            if (retVal) retVal = fread(&CPU, sizeof(CPU), 1, handle);
 
             // Load AY Chip info
             if (retVal) retVal = fread(&myAY, sizeof(myAY), 1, handle);
@@ -282,34 +298,29 @@ void spectrumLoadState()
         if (retVal) retVal = fread(&give_up_counter,           sizeof(give_up_counter),            1, handle);
         if (retVal) retVal = fread(&next_edge1,                sizeof(next_edge1),                 1, handle);
         if (retVal) retVal = fread(&next_edge2,                sizeof(next_edge2),                 1, handle);
-
+        if (retVal) retVal = fread(&spare,                     sizeof(spare),                      1, handle);
+        if (retVal) retVal = fread(&spare,                     sizeof(spare),                      1, handle);
+        if (retVal) retVal = fread(&spare,                     sizeof(spare),                      1, handle);
+        if (retVal) retVal = fread(&spare,                     sizeof(spare),                      1, handle);
 
         // Load Z80 Memory Map... either 48K for 128K
-        u8 *ptr = RAM_Memory+0x4000;
+        int comp_len = 0;
+        if (retVal) retVal = fread(&comp_len,          sizeof(comp_len), 1, handle);
+        if (retVal) retVal = fread(&CompressBuffer,    comp_len,         1, handle);
+
+        u8 *dest_memory = RAM_Memory+0x4000;
         u32 mem_size = 0xC000;
         if (zx_128k_mode)
         {
-            ptr = RAM_Memory128;
+            dest_memory = RAM_Memory128;
             mem_size = 0x20000;
         }
 
-        // Simple Run-Length-Encoding saves us on lots of zeroed memory...
-        for (u32 i=0; i<mem_size; i++)
-        {
-            u8 count;
-            if (retVal)
-            {
-                retVal = fread(&ptr[i], 1, 1, handle);
-                if (ptr[i] == 0x00) // RLE
-                {
-                    fread(&count, 1, 1, handle);
-                    while (--count)
-                    {
-                        ptr[++i] = 0x00;
-                    }
-                }
-            }
-        }
+        // ------------------------------------------------------------------
+        // Decompress the previously compressed RAM and put it back into the
+        // right memory location... this is quite fast all things considered.
+        // ------------------------------------------------------------------
+        (void)lzav_decompress( CompressBuffer, dest_memory, comp_len, mem_size );        
 
         strcpy(tmpStr, (retVal ? "OK ":"ERR"));
         DSPrint(13,0,0,tmpStr);

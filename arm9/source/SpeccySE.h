@@ -165,6 +165,7 @@ extern void UnPauseSound(void);
 extern void ResetStatusFlags(void);
 extern void ReadFileCRCAndConfig(void);
 extern void DisplayStatusLine(bool bForce);
+extern void CassetteInsert(char *filename);
 extern void ResetSpectrum(void);
 extern void processDirectAudio(void);
 extern u8   speccyTapePosition(void);

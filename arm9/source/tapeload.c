@@ -363,8 +363,8 @@ void tape_parse_blocks(int tapeSize)
                     TapeBlocks[num_blocks_available].block_data_idx  = idx+10;
                     TapeBlocks[num_blocks_available].block_data_len  = block_len;
                     TapeBlocks[num_blocks_available].block_flag      = block_flag;
-                    TapeBlocks[num_blocks_available].sync1_width = 0;
-                    TapeBlocks[num_blocks_available].sync2_width = 0;
+                    TapeBlocks[num_blocks_available].sync1_width     = 0;   // Must be zero so we skip the sync
+                    TapeBlocks[num_blocks_available].sync2_width     = 0;   // Must be zero so we skip the sync
                     // Precompute the X2 values of the one/zero pulse width to speed up edge detection
                     TapeBlocks[num_blocks_available].data_one_widthX2  = TapeBlocks[num_blocks_available].data_one_width << 1;
                     TapeBlocks[num_blocks_available].data_zero_widthX2 = TapeBlocks[num_blocks_available].data_zero_width << 1;
@@ -510,7 +510,10 @@ void tape_frame(void)
         }
     }
     
-    
+    // -----------------------------------------
+    // If we are done showing the counter, show 
+    // the stock cassette icon and no counter.
+    // -----------------------------------------
     if (show_tape_counter == 0)
     {
         // Clear cassette counter
@@ -832,7 +835,7 @@ ITCM_CODE u8 tape_pulse(void)
                     else
                     {
                         current_block++;
-                        tape_state = TAPE_NEXT_BLOCK;    // And back to play if we have more tape
+                        tape_state = TAPE_NEXT_BLOCK;    // And off to the next block
                     }
                 }
                 break;

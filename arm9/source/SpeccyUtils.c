@@ -32,7 +32,7 @@
 int         countZX=0;
 int         ucGameAct=0;
 int         ucGameChoice = -1;
-FISpeccy    gpFic[MAX_ROMS];
+FISpeccy    gpFic[MAX_FILES];
 char        szName[256];
 char        szFile[256];
 u32         file_size = 0;
@@ -323,7 +323,7 @@ void speccySEFindFiles(u8 bTapeOnly)
   countZX=0;
 
   dir = opendir(".");
-  while (((pent=readdir(dir))!=NULL) && (uNbFile<MAX_ROMS))
+  while (((pent=readdir(dir))!=NULL) && (uNbFile<MAX_FILES))
   {
     strcpy(szFile,pent->d_name);
 
@@ -342,7 +342,7 @@ void speccySEFindFiles(u8 bTapeOnly)
       }
     }
     else {
-      if ((strlen(szFile)>4) && (strlen(szFile)<(MAX_ROM_NAME-4)) && (szFile[0] != '.') && (szFile[0] != '_'))  // For MAC don't allow files starting with an underscore
+      if ((strlen(szFile)>4) && (strlen(szFile)<(MAX_FILENAME_LEN-4)) && (szFile[0] != '.') && (szFile[0] != '_'))  // For MAC don't allow files starting with an underscore
       {
         if (!bTapeOnly) // If we're loading tape files only, exclude .z80 and .sna snapshots
         {
@@ -640,7 +640,7 @@ void SaveConfig(bool bShow)
     if (bShow) DSPrint(6,23,0, (char*)"SAVING CONFIGURATION");
 
     // Set the global configuration version number...
-    myGlobalConfig.config_ver = CONFIG_VER;
+    myGlobalConfig.config_ver = CONFIG_VERSION;
 
     // If there is a game loaded, save that into a slot... re-use the same slot if it exists
     myConfig.game_crc = file_crc;
@@ -666,13 +666,16 @@ void SaveConfig(bool bShow)
         memcpy(&AllConfigs[slot], &myConfig, sizeof(struct Config_t));
     }
 
+    // Grab the directory we are currently in so we can restore it
+    getcwd(myGlobalConfig.szLastPath, MAX_FILENAME_LEN);
+
     // --------------------------------------------------
     // Now save the config file out o the SD card...
     // --------------------------------------------------
     DIR* dir = opendir("/data");
     if (dir)
     {
-        closedir(dir);  // DIRECTORYory exists.
+        closedir(dir);  // directory exists.
     }
     else
     {
@@ -784,7 +787,7 @@ void SetDefaultGlobalConfig(void)
     // A few global defaults...
     memset(&myGlobalConfig, 0x00, sizeof(myGlobalConfig));
     myGlobalConfig.showFPS        = 0;    // Don't show FPS counter by default
-    myGlobalConfig.emuText        = 1;    // Default is to show Emulator Text
+    myGlobalConfig.lastDir        = 0;    // Default is to start in /roms/speccy
     myGlobalConfig.debugger       = 0;    // Debugger is not shown by default
 }
 
@@ -826,7 +829,7 @@ void LoadConfig(void)
     {
         ReadFileCarefully("/data/SpeccySE.DAT", (u8*)&AllConfigs, sizeof(AllConfigs), sizeof(myGlobalConfig)); // Read the full game array of configs
 
-        if (myGlobalConfig.config_ver != CONFIG_VER)
+        if (myGlobalConfig.config_ver != CONFIG_VERSION)
         {
             memset(&AllConfigs, 0x00, sizeof(AllConfigs));
             SetDefaultGameConfig();
@@ -895,7 +898,7 @@ const struct options_t Option_Table[2][20] =
     // Global Options
     {
         {"FPS",            {"OFF", "ON", "ON FULLSPEED"},                              &myGlobalConfig.showFPS,     3},
-        {"EMU TEXT",       {"OFF",  "ON"},                                             &myGlobalConfig.emuText,     2},
+        {"START DIR",      {"/ROMS/SPECCY",  "LAST USED DIR"},                         &myGlobalConfig.lastDir,     2},
         {"DEBUGGER",       {"OFF", "BAD OPS", "DEBUG", "FULL DEBUG"},                  &myGlobalConfig.debugger,    4},
         {NULL,             {"",      ""},                                              NULL,                        1},
     }
@@ -1229,19 +1232,19 @@ void DisplayFileName(void)
 
 void DisplayFileNameCassette(void)
 {
-    sprintf(szName,"%s",gpFic[ucGameChoice].szName);
+    sprintf(szName,"%s",last_file);
     for (u8 i=strlen(szName)-1; i>0; i--) if (szName[i] == '.') {szName[i]=0;break;}
     if (strlen(szName)>28) szName[28]='\0';
     DSPrint((16 - (strlen(szName)/2)),16,0,szName);
-    if (strlen(gpFic[ucGameChoice].szName) >= 33)   // If there is more than a few characters left, show it on the 2nd line
+    if (strlen(last_file) >= 33)   // If there is more than a few characters left, show it on the 2nd line
     {
-        if (strlen(gpFic[ucGameChoice].szName) <= 58)
+        if (strlen(last_file) <= 58)
         {
-            sprintf(szName,"%s",gpFic[ucGameChoice].szName+28);
+            sprintf(szName,"%s",last_file+28);
         }
         else
         {
-            sprintf(szName,"%s",gpFic[ucGameChoice].szName+strlen(gpFic[ucGameChoice].szName)-30);
+            sprintf(szName,"%s",last_file+strlen(last_file)-30);
         }
 
         if (strlen(szName)>28) szName[28]='\0';
@@ -1631,7 +1634,7 @@ u8 spectrumInit(char *szGame)
      dmaFillWords(uVide | (uVide<<16),pVidFlipBuf+uBcl*128,256);
   }
 
-  RetFct = loadrom(szGame);      // Load up the Spectrum game/tap/tzx
+  RetFct = loadgame(szGame);      // Load up the Spectrum game/tap/tzx
 
   ResetSpectrum();
 
@@ -1701,10 +1704,10 @@ void getfile_crc(const char *filename)
 }
 
 
-/** loadrom() ******************************************************************/
-/* Open a rom file from file system and load it into the ROM_Memory[] buffer   */
-/*******************************************************************************/
-u8 loadrom(const char *filename)
+/** loadgame() ******************************************************************/
+/* Open a rom file from file system and load it into the ROM_Memory[] buffer    */
+/********************************************************************************/
+u8 loadgame(const char *filename)
 {
   u8 bOK = 0;
   int romSize = 0;
@@ -1714,8 +1717,20 @@ u8 loadrom(const char *filename)
   {
     // Save the initial filename and file - we need it for save/restore of state
     strcpy(initial_file, filename);
-    getcwd(initial_path, MAX_ROM_NAME);
-
+    getcwd(initial_path, MAX_FILENAME_LEN);
+    
+    // -----------------------------------------------------------------------
+    // See if we are loading a file from a directory different than our 
+    // last saved directory... if so, we save this new directory as default.
+    // -----------------------------------------------------------------------
+    if (myGlobalConfig.lastDir)
+    {
+        if (strcmp(initial_path, myGlobalConfig.szLastPath) != 0)
+        {
+            SaveConfig(FALSE);
+        }
+    }
+    
     // Get file size the 'fast' way - use fstat() instead of fseek() or ftell()
     struct stat stbuf;
     (void)fstat(fileno(handle), &stbuf);

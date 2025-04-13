@@ -15,12 +15,12 @@
 #include "cpu/z80/Z80_interface.h"
 #include "cpu/ay38910/AY38910.h"
 
-#define MAX_ROMS                    2048
-#define MAX_ROM_NAME                160
+#define MAX_FILES                   2048
+#define MAX_FILENAME_LEN            160
 #define MAX_TAPE_SIZE               (640*1024) // 640K is big enough for any .TAP/.TZX or Snapshot 
             
 #define MAX_CONFIGS                 1000
-#define CONFIG_VER                  0x0002
+#define CONFIG_VERSION              0x0004
             
 #define SPECCY_FILE                 0x01
 #define DIRECTORY                   0x02
@@ -33,9 +33,11 @@
 #define DPAD_DIAGONALS              1
 #define DPAD_CHUCKIE                2
 
+extern char last_path[MAX_FILENAME_LEN];
+extern char last_file[MAX_FILENAME_LEN];
 
 typedef struct {
-  char szName[MAX_ROM_NAME+1];
+  char szName[MAX_FILENAME_LEN+1];
   u8 uType;
   u32 uCrc;
 } FISpeccy;
@@ -55,12 +57,12 @@ struct __attribute__((__packed__)) GlobalConfig_t
 {
     u16 config_ver;
     u32 bios_checksums;
-    char szLastRom[MAX_ROM_NAME+1];
-    char szLastPath[MAX_ROM_NAME+1];
-    char reserved1[MAX_ROM_NAME+1];
-    char reserved2[MAX_ROM_NAME+1];
+    char szLastFile[MAX_FILENAME_LEN+1];
+    char szLastPath[MAX_FILENAME_LEN+1];
+    char reserved1[MAX_FILENAME_LEN+1];
+    char reserved2[MAX_FILENAME_LEN+1];
     u8  showFPS;
-    u8  emuText;
+    u8  lastDir;
     u8  global_01;
     u8  global_02;
     u8  global_03;
@@ -109,6 +111,7 @@ extern u16 JoyState;                    // Joystick / Paddle management
 
 extern u32 file_crc;
 extern u8 bFirstTime;
+extern u8 show_tape_counter;
 
 extern u8 BufferedKeys[32];
 extern u8 BufferedKeysWriteIdx;
@@ -134,7 +137,7 @@ extern u8 RAM_Memory128[0x20000];
 extern u8 *MemoryMap[4];
 extern AY38910 myAY;
 
-extern FISpeccy gpFic[MAX_ROMS];  
+extern FISpeccy gpFic[MAX_FILES];  
 extern int uNbRoms;
 extern int ucGameAct;
 extern int ucGameChoice;
@@ -150,7 +153,7 @@ extern u8   speccySELoadFile(u8 bTapeOnly);
 extern void DisplayFileName(void);
 extern void DisplayFileNameCassette(void);
 extern u32  ReadFileCarefully(char *filename, u8 *buf, u32 buf_size, u32 buf_offset);
-extern u8  loadrom(const char *path);
+extern u8   loadgame(const char *path);
 extern u8   spectrumInit(char *szGame);
 extern void spectrumSetPalette(void);
 extern void spectrumRun(void);
