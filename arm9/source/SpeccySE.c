@@ -1321,7 +1321,7 @@ void SpeccySE_main(void)
                 if (kbd_key != 0)
                 {
                     kbd_keys[kbd_keys_pressed++] = kbd_key;
-                    key_debounce = 2;
+                    key_debounce = 3;
                 }
 
                 // If the special menu key indicates we should show the choice menu, do so here...
