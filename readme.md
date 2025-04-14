@@ -223,7 +223,7 @@ So let's say you want to play the original ZX81 Mazogs. Obtain the mazogs.p file
 aforementioned ZX81 emulator ROM and do the following:
 ```
 Linux:   cat S128_ZX81_ED2_ROM.bin mazogs.p > mazogs.z81
-Windows: copy /b S128_ZX81_ED2_ROM.bin mazogs.p mazogs.z81
+Windows: copy /b S128_ZX81_ED2_ROM.bin + mazogs.p mazogs.z81
 ```
 
 This will produce a .z81 file that is roughly 25K in size... it contains the emulator + the game .p file 
