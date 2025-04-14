@@ -13,6 +13,7 @@ Features :
 * Loads .TZX files up to 640K total length (can swap tapes mid-game)
 * Loads .SNA snapshots (48K only)
 * Loads .Z80 snapshots (V1, V2 and V3 formats, 48K or 128K)
+* Loads .Z81 files for ZX81 emulation (see below)
 * Loads .ROM files up to 16K in place of standard BIOS (diagnostics, etc)
 * Supports .POK files (same name as base game and stored in POK subdir)
 * Kempston and Sinclair joystick support
@@ -150,7 +151,16 @@ under that as you wish. The emulator can support a file listing of up
 to 2000 files with names no longer than 160 characters (so please keep
 your filenames on the shorter side... although the emulator can scroll
 the filename, there only about 30 characters can be shown on the screen
-at a time). 
+at a time).
+
+One option that is of particular note is the ability to run the game
+at a speed other than normal 100%. Some games were designed to run
+a bit too fast to be enjoyable. Other games were a bit too slow. Using
+this optional adjustment, you can run a game anywhere from 80% of full
+speed (slower than normal) to 120% (faster than normal). The sound driver
+should auto-adjust and while the music / sounds will sound faster/slower,
+it should match the core emulation speed perfectly. This can be adjusted
+on a per-game basis.
 
 As for the per-game options, you can set things like the auto fire 
 for the joystick and the aforementioned CHUCKIE mode of joystick d-pad
@@ -192,13 +202,34 @@ an alternate "[a]" version will load. Usually one tape image dump is
 as good as any other - but keep searching and put yourself together a 
 library of known good working images for Speccy-SE.
 
-
 ROM Support :
 -----------------------
 The emulator allows you to load a .ROM file directly into the same memory
 location as the BIOS (+0000 to +4000). Only up to 16K can be loaded in this
 way. This is mainly used to load diagnostic test programs such as the
 amazing RETROLEUM DIAGROM.
+
+ZX81 Support :
+-----------------------
+The emulator supports the Paul Farrow ZX81 emulator for the ZX 128k machines.
+
+http://www.fruitcake.plus.com/Sinclair/Interface2/Cartridges/Interface2_RC_New_ZX81.htm
+
+To make this work, download the 16K Interface 2 ROM for the emulator - either Edition 2
+or Edition 3 (do not use Edition 1 or the 'bugfix version').  Take this ROM file
+and concatenate it with a ZX81 .p file for the game you want to play.
+
+So let's say you want to play the original ZX81 Mazogs. Obtain the mazogs.p file and the 
+aforementioned ZX81 emulator ROM and do the following:
+
+Linux:   cat S128_ZX81_ED2_ROM.bin mazogs.p > mazogs.z81
+Windows: copy /b S128_ZX81_ED2_ROM.bin mazogs.p mazogs.z81
+
+
+This will produce a .z81 file that is roughly 25K in size... it contains the emulator + the game .p file 
+in one binary image. This .z81 file is now loadable directly into Speccy-SE - when you pick the game, it 
+will automatically insert the keystrokes needed to get the emulator running. This takes about 10 seconds...
+don't touch any virtual keys until the ZX81 game is fully loaded.
 
 POK Support :
 -----------------------

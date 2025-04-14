@@ -344,38 +344,56 @@ void speccySEFindFiles(u8 bTapeOnly)
     else {
       if ((strlen(szFile)>4) && (strlen(szFile)<(MAX_FILENAME_LEN-4)) && (szFile[0] != '.') && (szFile[0] != '_'))  // For MAC don't allow files starting with an underscore
       {
-        if (!bTapeOnly) // If we're loading tape files only, exclude .z80 and .sna snapshots
-        {
-            if ( (strcasecmp(strrchr(szFile, '.'), ".z80") == 0) )  {
+          if (bTapeOnly == 2) // Load P files only
+          {
+            if ( (strcasecmp(strrchr(szFile, '.'), ".p") == 0) )  {
               strcpy(gpFic[uNbFile].szName,szFile);
               gpFic[uNbFile].uType = SPECCY_FILE;
               uNbFile++;
               countZX++;
             }
-            if ( (strcasecmp(strrchr(szFile, '.'), ".sna") == 0) )  {
+          }
+          else
+          {
+            if (!bTapeOnly) // If we're loading tape files only, exclude .z80 and .sna snapshots
+            {
+                if ( (strcasecmp(strrchr(szFile, '.'), ".z80") == 0) )  {
+                  strcpy(gpFic[uNbFile].szName,szFile);
+                  gpFic[uNbFile].uType = SPECCY_FILE;
+                  uNbFile++;
+                  countZX++;
+                }
+                if ( (strcasecmp(strrchr(szFile, '.'), ".sna") == 0) )  {
+                  strcpy(gpFic[uNbFile].szName,szFile);
+                  gpFic[uNbFile].uType = SPECCY_FILE;
+                  uNbFile++;
+                  countZX++;
+                }
+                if ( (strcasecmp(strrchr(szFile, '.'), ".rom") == 0) )  {
+                  strcpy(gpFic[uNbFile].szName,szFile);
+                  gpFic[uNbFile].uType = SPECCY_FILE;
+                  uNbFile++;
+                  countZX++;
+                }
+                if ( (strcasecmp(strrchr(szFile, '.'), ".z81") == 0) )  {
+                  strcpy(gpFic[uNbFile].szName,szFile);
+                  gpFic[uNbFile].uType = SPECCY_FILE;
+                  uNbFile++;
+                  countZX++;
+                }
+            }
+            if ( (strcasecmp(strrchr(szFile, '.'), ".tap") == 0) )  {
               strcpy(gpFic[uNbFile].szName,szFile);
               gpFic[uNbFile].uType = SPECCY_FILE;
               uNbFile++;
               countZX++;
             }
-            if ( (strcasecmp(strrchr(szFile, '.'), ".rom") == 0) )  {
+            if ( (strcasecmp(strrchr(szFile, '.'), ".tzx") == 0) )  {
               strcpy(gpFic[uNbFile].szName,szFile);
               gpFic[uNbFile].uType = SPECCY_FILE;
               uNbFile++;
               countZX++;
             }
-        }
-        if ( (strcasecmp(strrchr(szFile, '.'), ".tap") == 0) )  {
-          strcpy(gpFic[uNbFile].szName,szFile);
-          gpFic[uNbFile].uType = SPECCY_FILE;
-          uNbFile++;
-          countZX++;
-        }
-        if ( (strcasecmp(strrchr(szFile, '.'), ".tzx") == 0) )  {
-          strcpy(gpFic[uNbFile].szName,szFile);
-          gpFic[uNbFile].uType = SPECCY_FILE;
-          uNbFile++;
-          countZX++;
         }
       }
     }
@@ -781,6 +799,23 @@ void Sinclair1(void)
     myConfig.keymap[11]  = 31;   // NDS SELECT mapped to '1'
 }
 
+// 5 (left), 6 (down), 7 (up), 8 (right)
+void Cursors(void)
+{
+    myConfig.keymap[0]   = 37;   // UP
+    myConfig.keymap[1]   = 36;   // DOWN
+    myConfig.keymap[2]   = 35;   // LEFT
+    myConfig.keymap[3]   = 38;   // RIGHT
+    myConfig.keymap[4]   = 44;   // Return
+    myConfig.keymap[5]   = 43;   // Space
+    myConfig.keymap[6]   = 43;   // Space
+    myConfig.keymap[7]   = 43;   // Space
+    myConfig.keymap[8]   = 41;   // NDS R Button mapped to SHIFT
+    myConfig.keymap[9]   = 42;   // NDS L Button mapped to SYMBOL
+    myConfig.keymap[10]  = 40;   // NDS START mapped to '0'
+    myConfig.keymap[11]  = 31;   // NDS SELECT mapped to '1'
+}
+
 
 void SetDefaultGlobalConfig(void)
 {
@@ -803,7 +838,7 @@ void SetDefaultGameConfig(void)
     myConfig.dpad        = DPAD_NORMAL;                 // Normal DPAD use - mapped to joystick
     myConfig.autoLoad    = 1;                           // Default is to to auto-load TAP and TZX games
     myConfig.loadAs      = 0;                           // Default load is 48K
-    myConfig.reserved2   = 0;
+    myConfig.gameSpeed   = 0;                           // Default is 100% game speed
     myConfig.reserved3   = 0;
     myConfig.reserved4   = 0;
     myConfig.reserved5   = 0;
@@ -891,8 +926,10 @@ const struct options_t Option_Table[2][20] =
         {"AUTO STOP",      {"NO", "YES"},                                              &myConfig.autoStop,          2},
         {"AUTO FIRE",      {"OFF", "ON"},                                              &myConfig.autoFire,          2},
         {"TAPE SPEED",     {"NORMAL", "ACCELERATED"},                                  &myConfig.tapeSpeed,         2},
+        {"GAME SPEED",     {"100%", "110%", "120%", "90%", "80%"},                     &myConfig.gameSpeed,         5},
         {"BUS CONTEND",    {"NORMAL", "LIGHT", "HEAVY"},                               &myConfig.contention,        3},
         {"NDS D-PAD",      {"NORMAL", "DIAGONALS", "CHUCKIE"},                         &myConfig.dpad,              3},
+        
         {NULL,             {"",      ""},                                              NULL,                        1},
     },
     // Global Options
@@ -1058,14 +1095,15 @@ void DisplayKeymapName(u32 uY)
 u8 keyMapType = 0;
 void SwapKeymap(void)
 {
-    keyMapType = (keyMapType+1) % 5;
+    keyMapType = (keyMapType+1) % 6;
     switch (keyMapType)
     {
         case 0: MapPlayer1();  DSPrint(10,3,0,("KEMPSTON P1")); break;
         case 1: Sinclair1();   DSPrint(10,3,0,("SINCLAIR P1")); break;
-        case 2: MapQAOP();     DSPrint(10,3,0,("   QAOP    ")); break;
-        case 3: MapWASD();     DSPrint(10,3,0,("   WASD    ")); break;
-        case 4: MapZXSpace();  DSPrint(10,3,0,(" ZX SPACE  ")); break;
+        case 2: Cursors();     DSPrint(10,3,0,("  CURSORS  ")); break;
+        case 3: MapQAOP();     DSPrint(10,3,0,("   QAOP    ")); break;
+        case 4: MapWASD();     DSPrint(10,3,0,("   WASD    ")); break;
+        case 5: MapZXSpace();  DSPrint(10,3,0,(" ZX SPACE  ")); break;
     }
     WAITVBL;WAITVBL;WAITVBL;WAITVBL;
     DSPrint(10,3,0,("           "));
@@ -1306,6 +1344,8 @@ void ReadFileCRCAndConfig(void)
     if (strstr(gpFic[ucGameChoice].szName, ".TZX") != 0) speccy_mode = MODE_TZX;
     if (strstr(gpFic[ucGameChoice].szName, ".rom") != 0) speccy_mode = MODE_BIOS;
     if (strstr(gpFic[ucGameChoice].szName, ".ROM") != 0) speccy_mode = MODE_BIOS;
+    if (strstr(gpFic[ucGameChoice].szName, ".z81") != 0) speccy_mode = MODE_ZX81;
+    if (strstr(gpFic[ucGameChoice].szName, ".Z81") != 0) speccy_mode = MODE_ZX81;
 
     FindConfig();    // Try to find keymap and config for this file...
 }
@@ -1589,7 +1629,9 @@ void ProcessBufferedKeys(void)
         {
             buf_held = BufferedKeys[BufferedKeysReadIdx];
             BufferedKeysReadIdx = (BufferedKeysReadIdx+1) % 32;
-            if (buf_held == 255) {buf_held = 0; next_dampen_time=60;} else next_dampen_time = 10;
+            if (buf_held == 255) {buf_held = 0; next_dampen_time=30;}
+            else if (buf_held == 254) {buf_held = 0; next_dampen_time=20;} 
+            else next_dampen_time = 10;
         } else buf_held = 0;
         dampen = 0;
     }

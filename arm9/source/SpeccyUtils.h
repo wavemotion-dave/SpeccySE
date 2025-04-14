@@ -90,7 +90,7 @@ struct __attribute__((__packed__)) Config_t
     u8  dpad;
     u8  autoLoad;
     u8  loadAs;
-    u8  reserved2;
+    u8  gameSpeed;
     u8  reserved3;
     u8  reserved4;
     u8  reserved5;

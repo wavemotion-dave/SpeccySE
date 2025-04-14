@@ -263,7 +263,7 @@ void zx_bank(u8 new_bank)
     if (portFD & 0x20) return; // Lock out - no more bank swaps allowed
 
     // Map in the correct bios segment... make sure this isn't a diagnostic ROM
-    if (speccy_mode != MODE_BIOS)
+    if ((speccy_mode != MODE_BIOS) && (speccy_mode != MODE_ZX81))
     {
         MemoryMap[0] = SpectrumBios128 + ((new_bank & 0x10) ? 0x4000 : 0x0000);
     }
@@ -670,6 +670,20 @@ void speccy_reset(void)
             MemoryMap[3] = RAM_Memory128 + (0 * 0x4000) + 0x0000; // Bank 0
         }
     }
+    else if (speccy_mode == MODE_ZX81)
+    {
+        // Move the BIOS/Diagnostic ROM into memory...
+        memcpy(RAM_Memory, ROM_Memory, 0x4000);   // Load diagnostics ROM into place - the rest of the file is the P-File
+
+        // And force 128K mode needed for ZX81 emulation
+        zx_128k_mode = 1;
+        myConfig.loadAs = 1;
+            
+        // Now set the memory map to point to the right banks...
+        MemoryMap[1] = RAM_Memory128 + (5 * 0x4000) + 0x0000; // Bank 5
+        MemoryMap[2] = RAM_Memory128 + (2 * 0x4000) + 0x0000; // Bank 2
+        MemoryMap[3] = RAM_Memory128 + (0 * 0x4000) + 0x0000; // Bank 0
+    }
     else if (speccy_mode < MODE_SNA) // TAP or TZX file - 48K or 128K
     {
         // BIOS will be loaded further below...
@@ -765,7 +779,7 @@ void speccy_reset(void)
         }
     }
 
-    if (speccy_mode != MODE_BIOS)
+    if ((speccy_mode != MODE_BIOS) && (speccy_mode != MODE_ZX81))
     {
         // Load the correct BIOS into place... either 48K Spectrum or 128K
         if (zx_128k_mode)   memcpy(RAM_Memory, SpectrumBios128, 0x4000);   // Load ZX 128K BIOS into place

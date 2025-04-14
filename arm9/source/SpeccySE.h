@@ -106,6 +106,7 @@ extern u32 DX, DY;
 #define MODE_SNA            5
 #define MODE_Z80            6
 #define MODE_BIOS           7
+#define MODE_ZX81           8
 
 #define WAITVBL swiWaitForVBlank(); swiWaitForVBlank(); swiWaitForVBlank(); swiWaitForVBlank(); swiWaitForVBlank();
 

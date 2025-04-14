@@ -198,6 +198,10 @@ u16 mixer_read      __attribute__((section(".dtcm"))) = 0;
 u16 mixer_write     __attribute__((section(".dtcm"))) = 0;
 s16 mixer[WAVE_DIRECT_BUF_SIZE+1];
 
+
+// The games normally run at the proper 100% speed, but user can override from 80% to 120%
+u16 GAME_SPEED_PAL[]  __attribute__((section(".dtcm"))) = {655, 596, 547, 728, 818 };
+
 // -------------------------------------------------------------------------------------------
 // maxmod will call this routine when the buffer is half-empty and requests that
 // we fill the sound buffer with more samples. They will request 'len' samples and
@@ -267,6 +271,32 @@ ITCM_CODE void processDirectAudio(void)
         mixer[mixer_write] = sample;
         mixer_write++; mixer_write &= WAVE_DIRECT_BUF_SIZE;
         if (((mixer_write+1)&WAVE_DIRECT_BUF_SIZE) == mixer_read) {breather = 2048;}
+    }
+}
+
+// -----------------------------------------------------------------------------------------------
+// The user can override the core emulation speed from 80% to 120% to make games play faster/slow 
+// than normal. We must adjust the MaxMode sample frequency to match or else we will not have the
+// proper number of samples in our sound buffer... this isn't perfect but it's reasonably good!
+// -----------------------------------------------------------------------------------------------
+static u8 last_game_speed = 0;
+static u32 sample_rate_adjust[] = {100, 110, 120, 90, 80};
+void newStreamSampleRate(void)
+{
+    if (last_game_speed != myConfig.gameSpeed)
+    {
+        last_game_speed = myConfig.gameSpeed;
+        mmStreamClose();
+
+        // Adjust the sample rate to match the core emulation speed... user can override from 80% to 120%
+        int new_sample_rate     = (sample_rate * sample_rate_adjust[myConfig.gameSpeed]) / 100;
+        myStream.sampling_rate  = new_sample_rate;        // sample_rate for the ZX to match the AY/Beeper drivers
+        myStream.buffer_length  = buffer_size;            // buffer length = (512+16)
+        myStream.callback       = OurSoundMixer;          // set callback function
+        myStream.format         = MM_STREAM_16BIT_STEREO; // format = stereo 16-bit
+        myStream.timer          = MM_TIMER0;              // use hardware timer 0
+        myStream.manual         = false;                  // use automatic filling
+        mmStreamOpen(&myStream);
     }
 }
 
@@ -957,7 +987,7 @@ u8 __attribute__((noinline)) handle_meta_key(u8 meta_key)
             break;
 
         case MENU_CHOICE_CASSETTE:
-            if (speccy_mode <= MODE_SNA) // Only show if we have a tape loaded
+            if ((speccy_mode <= MODE_SNA) || (speccy_mode == MODE_BIOS)) // Only show if we have a tape loaded
             {
                 CassetteMenu();
             }
@@ -1110,6 +1140,8 @@ void SpeccySE_main(void)
   timingFrames  = 0;
   emuFps=0;
 
+  newStreamSampleRate();
+  
   // Force the sound engine to turn on when we start emulation
   bStartSoundEngine = 10;
 
@@ -1160,7 +1192,19 @@ void SpeccySE_main(void)
             {
                 if (--bStartIn == 0)
                 {
-                    tape_play();
+                    // ---------------------------------------------------------
+                    // If we are running in ZX81 mode, we now copy the .P file 
+                    // into memory and the ZX81 emulation will take over...
+                    // ---------------------------------------------------------
+                    if (speccy_mode == MODE_ZX81)
+                    {
+                        u8 *ptr = MemoryMap[16393>>14] +  (16393&0x3FFF);
+                        memcpy(ptr, ROM_Memory+0x4000, last_file_size-0x4000);
+                    }
+                    else // Otherwise, play the ZX Spectrum tape!
+                    {
+                        tape_play();
+                    }
                 }
             }
 
@@ -1181,8 +1225,14 @@ void SpeccySE_main(void)
                             {
                                 BufferKey('J'); BufferKey(KBD_KEY_SYMBOL); BufferKey('P'); BufferKey(KBD_KEY_SYMBOL); BufferKey('P'); BufferKey(KBD_KEY_RET);
                             }
-                            if (myConfig.autoLoad && (myConfig.tapeSpeed == 0)) bStartIn = 2; // Start tape in 2 frames...
+                            if (myConfig.autoLoad && (myConfig.tapeSpeed == 0)) bStartIn = 2; // Start tape in 2 seconds...
                         }
+                    }
+                    else if (speccy_mode == MODE_ZX81)
+                    {
+                        BufferKey('6'); BufferKey(254); BufferKey('6'); BufferKey(254); BufferKey('6'); BufferKey(254); BufferKey(KBD_KEY_RET); BufferKey(255); BufferKey(255); BufferKey(255); BufferKey(255); BufferKey(255); 
+                        BufferKey('M'); BufferKey(255); BufferKey('5'); BufferKey(254); BufferKey('0'); BufferKey(254); BufferKey('0'); BufferKey(254); BufferKey('0'); BufferKey(254); BufferKey(KBD_KEY_RET); BufferKey(255); 
+                        bStartIn = 10; // Start P-File in 10 seconds... (it takes 6-7 seconds to process those keys above... slow processing on the ZX81 emulation)
                     }
                 }
             }
@@ -1206,7 +1256,7 @@ void SpeccySE_main(void)
         //
         // This is how we time frame-to frame to keep the game running at 50FPS
         // ----------------------------------------------------------------------
-        while (TIMER2_DATA < 655*(timingFrames+1))
+        while (TIMER2_DATA < GAME_SPEED_PAL[myConfig.gameSpeed]*(timingFrames+1))
         {
             if (myGlobalConfig.showFPS == 2) break;   // If Full Speed, break out...
             if (tape_is_playing())
