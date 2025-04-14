@@ -11,8 +11,8 @@ Features :
 -----------------------
 * Loads .TAP files up to 640K total length (can swap tapes mid-game)
 * Loads .TZX files up to 640K total length (can swap tapes mid-game)
-* Loads .SNA snapshots (48K only)
 * Loads .Z80 snapshots (V1, V2 and V3 formats, 48K or 128K)
+* Loads .SNA snapshots (48K only)
 * Loads .Z81 files for ZX81 emulation (see below)
 * Loads .ROM files up to 16K in place of standard BIOS (diagnostics, etc)
 * Supports .POK files (same name as base game and stored in POK subdir)
