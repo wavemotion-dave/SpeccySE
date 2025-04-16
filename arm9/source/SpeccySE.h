@@ -132,6 +132,7 @@ extern u16 nds_key;
 extern u8  kbd_key;
 extern u16 vusCptVBL;
 extern u16 *pVidFlipBuf;
+extern u16 *pVidDrawBuf;
 extern u16 keyCoresp[MAX_KEY_OPTIONS];
 extern u16 NDS_keyMap[];
 extern u8 soundEmuPause;

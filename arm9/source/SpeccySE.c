@@ -103,7 +103,7 @@ u8 bStartSoundEngine = 0;      // Set to true to unmute sound after 1 frame of r
 int bg0, bg1, bg0b, bg1b;      // Some vars for NDS background screen handling
 u16 vusCptVBL = 0;             // We use this as a basic timer for the Mario sprite... could be removed if another timer can be utilized
 u8 touch_debounce = 0;         // A bit of touch-screen debounce
-u8 key_debounce = 0;           // A bit of key debounce
+u8 key_debounce = 0;           // A bit of key debounce to ensure the key is held pressed for a minimum amount of time
 
 // The DS/DSi has 12 keys that can be mapped
 u16 NDS_keyMap[12] __attribute__((section(".dtcm"))) = {KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_A, KEY_B, KEY_X, KEY_Y, KEY_R, KEY_L, KEY_START, KEY_SELECT};
@@ -1115,7 +1115,6 @@ void SpeccySE_main(void)
 {
   u16 iTx,  iTy;
   u32 ucDEUX;
-  static u32 lastUN = 0;
   static u8 dampenClick = 0;
   u8 meta_key = 0;
 
@@ -1318,12 +1317,6 @@ void SpeccySE_main(void)
                     meta_key = handle_spectrum_keyboard_press(iTx, iTy);
                 }
 
-                if (kbd_key != 0)
-                {
-                    kbd_keys[kbd_keys_pressed++] = kbd_key;
-                    key_debounce = 3;
-                }
-
                 // If the special menu key indicates we should show the choice menu, do so here...
                 if (meta_key == MENU_CHOICE_MENU)
                 {
@@ -1337,18 +1330,23 @@ void SpeccySE_main(void)
 
                 if (++dampenClick > 0)  // Make sure the key is pressed for an appreciable amount of time...
                 {
-                    if ((kbd_key != 0) && (lastUN == 0))
+                    if (kbd_key != 0)
                     {
-                         mmEffect(SFX_KEYCLICK);  // Play short key click for feedback...
+                        kbd_keys[kbd_keys_pressed++] = kbd_key;
+                        key_debounce = 5;
+                        if (last_kbd_key == 0)
+                        {
+                             mmEffect(SFX_KEYCLICK);  // Play short key click for feedback...
+                        }
+                        last_kbd_key = kbd_key;
                     }
-                    lastUN = kbd_key;
                 }
               }
           } //  SCR_TOUCH
           else
           {
             touch_debounce = 0;
-            lastUN = 0;  dampenClick = 0;
+            dampenClick = 0;
             last_kbd_key = 0;
           }
       }
@@ -1495,12 +1493,13 @@ void SpeccySE_main(void)
 // ----------------------------------------------------------------------------------------
 void useVRAM(void)
 {
-  vramSetBankD(VRAM_D_LCD );        // Not using this for video but 128K of faster RAM always useful!  Mapped at 0x06860000 -   256K Used for tape patch look-up
-  vramSetBankE(VRAM_E_LCD );        // Not using this for video but 64K of faster RAM always useful!   Mapped at 0x06880000 -   ..
-  vramSetBankF(VRAM_F_LCD );        // Not using this for video but 16K of faster RAM always useful!   Mapped at 0x06890000 -   ..
-  vramSetBankG(VRAM_G_LCD );        // Not using this for video but 16K of faster RAM always useful!   Mapped at 0x06894000 -   ..
-  vramSetBankH(VRAM_H_LCD );        // Not using this for video but 32K of faster RAM always useful!   Mapped at 0x06898000 -   ..
-  vramSetBankI(VRAM_I_LCD );        // Not using this for video but 16K of faster RAM always useful!   Mapped at 0x068A0000 -   Unused - reserved for future use
+  vramSetBankB(VRAM_B_LCD);        // 128K VRAM used for snapshot DCAP buffer - but could be repurposed during emulation ...
+  vramSetBankD(VRAM_D_LCD);        // Not using this for video but 128K of faster RAM always useful!  Mapped at 0x06860000 -   256K Used for tape patch look-up
+  vramSetBankE(VRAM_E_LCD);        // Not using this for video but 64K of faster RAM always useful!   Mapped at 0x06880000 -   ..
+  vramSetBankF(VRAM_F_LCD);        // Not using this for video but 16K of faster RAM always useful!   Mapped at 0x06890000 -   ..
+  vramSetBankG(VRAM_G_LCD);        // Not using this for video but 16K of faster RAM always useful!   Mapped at 0x06894000 -   ..
+  vramSetBankH(VRAM_H_LCD);        // Not using this for video but 32K of faster RAM always useful!   Mapped at 0x06898000 -   ..
+  vramSetBankI(VRAM_I_LCD);        // Not using this for video but 16K of faster RAM always useful!   Mapped at 0x068A0000 -   Unused - reserved for future use
 }
 
 /*********************************************************************************
@@ -1509,10 +1508,9 @@ void useVRAM(void)
 void speccySEInit(void)
 {
   //  Init graphic mode (bitmap mode)
-  videoSetMode(MODE_0_2D  | DISPLAY_BG0_ACTIVE | DISPLAY_BG1_ACTIVE | DISPLAY_SPR_1D_LAYOUT | DISPLAY_SPR_ACTIVE);
+  videoSetMode(MODE_0_2D | DISPLAY_BG0_ACTIVE);
   videoSetModeSub(MODE_0_2D | DISPLAY_BG0_ACTIVE  | DISPLAY_BG1_ACTIVE | DISPLAY_SPR_1D_LAYOUT | DISPLAY_SPR_ACTIVE);
   vramSetBankA(VRAM_A_MAIN_BG);
-  vramSetBankB(VRAM_B_MAIN_SPRITE);          // Once emulation of game starts, we steal this back for an additional 128K of VRAM at 0x6820000 which we will use as a snapshot buffer for taking screen pics
   vramSetBankC(VRAM_C_SUB_BG);
 
   //  Stop blending effect of intro
@@ -1642,8 +1640,15 @@ void speccySEInitCPU(void)
 // -------------------------------------------------------------
 void irqVBlank(void)
 {
-   // Manage time
+    extern u8 backgroundRenderScreen;
+    
+    // Manage time
     vusCptVBL++;
+    if (backgroundRenderScreen) // Only set for DSi mode... double buffer
+    {
+        dmaCopyWordsAsynch(3, (u16*)(backgroundRenderScreen & 1 ? 0x06820000:0x06830000), (u16*)0x06000000, 64*1024);
+        backgroundRenderScreen = 0;
+    }
 }
 
 // ----------------------------------------------------------------------

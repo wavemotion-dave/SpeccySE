@@ -38,6 +38,7 @@ u8  zx_special_key       __attribute__((section(".dtcm"))) = 0;
 u32 last_file_size       __attribute__((section(".dtcm"))) = 0;
 u8  isCompressed         __attribute__((section(".dtcm"))) = 1;
 u8  tape_play_skip_frame __attribute__((section(".dtcm"))) = 0;
+u8  backgroundRenderScreen = 0;
 
 ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
 {
@@ -331,15 +332,31 @@ u32 zx_colors_extend32[16] __attribute__((section(".dtcm"))) =
 // and is heavily optimized to draw as fast as possible. Since the screen is
 // often drawing background (paper vs ink), that's handled via look-up table.
 // ----------------------------------------------------------------------------
+u8 bRenderSkipOnce = 1;
 ITCM_CODE void speccy_render_screen_line(u8 line)
 {
+    u32 *vidBuf;
     u8 *zx_ScreenPage = 0;
-    u32 *vidBuf = (u32*) (0x06000000 + (line << 8));    // Video buffer... write 32-bits at a time for maximum speed
 
     if (line == 0) // At start of each new frame, handle the flashing 'timer'
     {
+        if (isDSiMode() && !tape_is_playing()) // For the DSi we can double-buffer and draw the screen in the background
+        {
+            if (bRenderSkipOnce) bRenderSkipOnce=0;
+            else backgroundRenderScreen = 0x80 | (flash_timer & 1);
+        }
         tape_play_skip_frame++;
         if (++flash_timer & 0x10) {flash_timer=0; bFlash ^= 1;} // Same timing as real ULA - 16 frames on and 16 frames off
+    }
+    
+    if (isDSiMode() && !tape_is_playing())
+    {
+        vidBuf = (u32*) ((flash_timer & 1 ? 0x06820000:0x06830000) + (line << 8));    // Video buffer... write 32-bits at a time for maximum speed
+    }
+    else // For the DS-Lite/Phat we direct render for speed - also when tape is loading...
+    {
+        vidBuf = (u32*)(0x06000000 + (line << 8));    // Video buffer... write 32-bits at a time for maximum speed
+        bRenderSkipOnce = 1; // When we stop the tape, we want to allow the first frame to re-draw before rendering
     }
     
     // -----------------------------------------------------------------------------
@@ -583,6 +600,8 @@ void speccy_reset(void)
     zx_special_key      = 0;
     
     zx_128k_mode        = 0;   // Assume 48K until told otherwise
+    
+    backgroundRenderScreen = 0;
     
     // Set the 'average' contention delay... 
     static const u8 contend_delay[3] = {4,3,5};

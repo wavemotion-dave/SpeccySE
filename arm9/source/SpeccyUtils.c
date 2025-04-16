@@ -229,26 +229,6 @@ u8 showMessage(char *szCh1, char *szCh2)
   return uRet;
 }
 
-void SpeccySEModeNormal(void) {
-  REG_BG3CNT = BG_BMP8_256x256;
-  REG_BG3PA = (1<<8);
-  REG_BG3PB = 0;
-  REG_BG3PC = 0;
-  REG_BG3PD = (1<<8);
-  REG_BG3X = 0;
-  REG_BG3Y = 0;
-}
-
-//*****************************************************************************
-// Put the top screen in refocused bitmap mode
-//*****************************************************************************
-void SpeccySEInitScreenUp(void) {
-  videoSetMode(MODE_5_2D | DISPLAY_BG3_ACTIVE);
-  vramSetBankA(VRAM_A_MAIN_BG_0x06000000);
-  vramSetBankB(VRAM_B_MAIN_SPRITE);
-  SpeccySEModeNormal();
-}
-
 /*********************************************************************************
  * Show The 14 games on the list to allow the user to choose a new game.
  ********************************************************************************/
@@ -1401,9 +1381,8 @@ void speccySEChangeOptions(void)
   u16 ucHaut=0x00, ucBas=0x00,ucA=0x00,ucY= 5, bOK=0;
 
   // Upper Screen Background
-  videoSetMode(MODE_0_2D | DISPLAY_BG0_ACTIVE | DISPLAY_BG1_ACTIVE | DISPLAY_SPR_1D_LAYOUT | DISPLAY_SPR_ACTIVE);
+  videoSetMode(MODE_0_2D | DISPLAY_BG0_ACTIVE);
   vramSetBankA(VRAM_A_MAIN_BG);
-  vramSetBankB(VRAM_B_MAIN_SPRITE_0x06400000);
   bg0 = bgInit(0, BgType_Text8bpp, BgSize_T_256x512, 31,0);
   bg1 = bgInit(1, BgType_Text8bpp, BgSize_T_256x512, 29,0);
   bgSetPriority(bg0,1);bgSetPriority(bg1,0);
@@ -1661,6 +1640,7 @@ u8 spectrumInit(char *szGame)
   videoSetMode(MODE_5_2D | DISPLAY_BG3_ACTIVE);
   vramSetBankA(VRAM_A_MAIN_BG_0x06000000);      // This is our top emulation screen (where the game is played)
   vramSetBankB(VRAM_B_LCD);
+  
   REG_BG3CNT = BG_BMP8_256x256;
   REG_BG3PA = (1<<8);
   REG_BG3PB = 0;
