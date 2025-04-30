@@ -31,7 +31,7 @@
 
 #define DPAD_NORMAL                 0
 #define DPAD_DIAGONALS              1
-#define DPAD_CHUCKIE                2
+#define DPAD_SLIDE_N_GLIDE          2
 
 extern char last_path[MAX_FILENAME_LEN];
 extern char last_file[MAX_FILENAME_LEN];

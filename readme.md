@@ -19,7 +19,7 @@ Features :
 * Kempston and Sinclair joystick support
 * Fully configurable keys for the 12 NDS keys to any combination of joystick/keyboard
 * Save and Restore states so you can pick up where you left off
-* Chuckie-Egg style Joystick configuration to make climing ladders more forgiving (try it - you'll like it!)
+* Slide-n-Glide style Joystick configuration to make climbing ladders in games like Chuckie-Egg more forgiving (try it - you'll like it!)
 * High Score saving for 10 scores with initials, date/time.
 * Solid Z80 core that passes the ZEXDOC test suite (covering everything but not undocumented flags).
 * Minimal design asthetic - pick game, play game. Runs unpached from your SD card via TWL++ or similar.
@@ -130,16 +130,15 @@ the 'REDEFINE KEYS' menu, you can press the NDS 'X' button to toggle between
 a number of commonly used preset keys for various ZX games (QAOP, ZXM, etc).
 By default, the configuration for any game is set to use the Kempston joystick.
 
-Also be aware that there is a D-PAD option that can be set to 'CHUCKIE' for
-games that are often unforgiving using a joystick. If you've ever played 
+Also be aware that there is a D-PAD option that can be set to 'SLIDE-N-GLIDE'
+for games that are often unforgiving using a joystick. If you've ever played 
 Chuckie Egg on a keybaord you know that it's pinpoint percise... but with 
 a joystick, it can be a bit frustrating trying to find the exact spot to 
-transition from Left/Right to Up/Down to climb a ladder. The 'CHUCKIE' mode
+transition from Left/Right to Up/Down to climb a ladder. This new joy mode
 will hold the L/R or U/D for a fraction of a frame while the transition 
 is made. This allows for buttery smooth (relatively speaking) transitions
 on the ladders. It's likely other games will benefit from this mode - but
-Chuckie Egg is the reason I put it into the emulator and so that's the
-name it gets.
+Chuckie Egg is the reason I put it into the emulator.
 
 Game Options / Global Options :
 -----------------------
@@ -260,6 +259,12 @@ you're likely going to want ZXDS.
 
 Version History :
 -----------------------
+
+Version 1.1 - 30-Apr-2025 by wavemotion-dave
+* Double buffer video on DSi/XL/LL for reduced tearing
+* Rebranded 'Chuckie Egg-Style' joystick handling to 'Slide-n-Glide'
+* Minor cleanups as time permitted
+
 Version 1.0 - 14-Apr-2025 by wavemotion-dave
 * First official release of Speccy-SE!
 

@@ -908,7 +908,7 @@ const struct options_t Option_Table[2][20] =
         {"TAPE SPEED",     {"NORMAL", "ACCELERATED"},                                  &myConfig.tapeSpeed,         2},
         {"GAME SPEED",     {"100%", "110%", "120%", "90%", "80%"},                     &myConfig.gameSpeed,         5},
         {"BUS CONTEND",    {"NORMAL", "LIGHT", "HEAVY"},                               &myConfig.contention,        3},
-        {"NDS D-PAD",      {"NORMAL", "DIAGONALS", "CHUCKIE"},                         &myConfig.dpad,              3},
+        {"NDS D-PAD",      {"NORMAL", "DIAGONALS", "SLIDE-N-GLIDE"},                   &myConfig.dpad,              3},
         
         {NULL,             {"",      ""},                                              NULL,                        1},
     },

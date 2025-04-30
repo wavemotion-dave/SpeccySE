@@ -1100,13 +1100,13 @@ u8 speccyTapePosition(void)
 }
 
 // ----------------------------------------------------------------------------
-// Chuckie-Style d-pad keeps moving in the last known direction for a few more
+// Slide-n-Glide D-pad keeps moving in the last known direction for a few more
 // frames to help make those hairpin turns up and off ladders much easier...
 // ----------------------------------------------------------------------------
-u8 chuckie_key_up = 0;
-u8 chuckie_key_down = 0;
-u8 chuckie_key_left = 0;
-u8 chuckie_key_right = 0;
+u8 slide_n_glide_key_up = 0;
+u8 slide_n_glide_key_down = 0;
+u8 slide_n_glide_key_left = 0;
+u8 slide_n_glide_key_right = 0;
 
 // ------------------------------------------------------------------------
 // The main emulation loop is here... call into the Z80 and render frame
@@ -1380,50 +1380,50 @@ void SpeccySE_main(void)
               // TODO: add diagonal dpad support... not sure how often this is needed
           }
 
-          if (myConfig.dpad == DPAD_CHUCKIE) // CHUCKIE-EGG Style... hold left/right or up/down for a few frames
+          if (myConfig.dpad == DPAD_SLIDE_N_GLIDE) // CHUCKIE-EGG Style... hold left/right or up/down for a few frames
           {
                 if (nds_key & KEY_UP)
                 {
-                    chuckie_key_up    = 12;
-                    chuckie_key_down  = 0;
+                    slide_n_glide_key_up    = 12;
+                    slide_n_glide_key_down  = 0;
                 }
                 if (nds_key & KEY_DOWN)
                 {
-                    chuckie_key_down  = 12;
-                    chuckie_key_up    = 0;
+                    slide_n_glide_key_down  = 12;
+                    slide_n_glide_key_up    = 0;
                 }
                 if (nds_key & KEY_LEFT)
                 {
-                    chuckie_key_left  = 12;
-                    chuckie_key_right = 0;
+                    slide_n_glide_key_left  = 12;
+                    slide_n_glide_key_right = 0;
                 }
                 if (nds_key & KEY_RIGHT)
                 {
-                    chuckie_key_right = 12;
-                    chuckie_key_left  = 0;
+                    slide_n_glide_key_right = 12;
+                    slide_n_glide_key_left  = 0;
                 }
 
-                if (chuckie_key_up)
+                if (slide_n_glide_key_up)
                 {
-                    chuckie_key_up--;
+                    slide_n_glide_key_up--;
                     nds_key |= KEY_UP;
                 }
 
-                if (chuckie_key_down)
+                if (slide_n_glide_key_down)
                 {
-                    chuckie_key_down--;
+                    slide_n_glide_key_down--;
                     nds_key |= KEY_DOWN;
                 }
 
-                if (chuckie_key_left)
+                if (slide_n_glide_key_left)
                 {
-                    chuckie_key_left--;
+                    slide_n_glide_key_left--;
                     nds_key |= KEY_LEFT;
                 }
 
-                if (chuckie_key_right)
+                if (slide_n_glide_key_right)
                 {
-                    chuckie_key_right--;
+                    slide_n_glide_key_right--;
                     nds_key |= KEY_RIGHT;
                 }
           }
@@ -1458,10 +1458,10 @@ void SpeccySE_main(void)
       }
       else // No NDS keys pressed...
       {
-          if (chuckie_key_up)    chuckie_key_up--;
-          if (chuckie_key_down)  chuckie_key_down--;
-          if (chuckie_key_left)  chuckie_key_left--;
-          if (chuckie_key_right) chuckie_key_right--;
+          if (slide_n_glide_key_up)    slide_n_glide_key_up--;
+          if (slide_n_glide_key_down)  slide_n_glide_key_down--;
+          if (slide_n_glide_key_left)  slide_n_glide_key_left--;
+          if (slide_n_glide_key_right) slide_n_glide_key_right--;
           last_mapped_key = 0;
       }
 
