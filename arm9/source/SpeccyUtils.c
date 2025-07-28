@@ -804,6 +804,7 @@ void SetDefaultGlobalConfig(void)
     myGlobalConfig.showFPS        = 0;    // Don't show FPS counter by default
     myGlobalConfig.lastDir        = 0;    // Default is to start in /roms/speccy
     myGlobalConfig.debugger       = 0;    // Debugger is not shown by default
+    myGlobalConfig.defMachine     = 0;    // Default machine is 48K Spectrum
 }
 
 void SetDefaultGameConfig(void)
@@ -817,7 +818,7 @@ void SetDefaultGameConfig(void)
     myConfig.autoFire    = 0;                           // Default to no auto-fire on either button
     myConfig.dpad        = DPAD_NORMAL;                 // Normal DPAD use - mapped to joystick
     myConfig.autoLoad    = 1;                           // Default is to to auto-load TAP and TZX games
-    myConfig.loadAs      = 0;                           // Default load is 48K
+    myConfig.machine     = myGlobalConfig.defMachine;   // Default machine is 48K but can be changed globally
     myConfig.gameSpeed   = 0;                           // Default is 100% game speed
     myConfig.reserved3   = 0;
     myConfig.reserved4   = 0;
@@ -901,7 +902,7 @@ const struct options_t Option_Table[2][20] =
 {
     // Game Specific Configuration
     {
-        {"LOAD AS",        {"48K SPECTRUM", "128K SPECTRUM"},                          &myConfig.loadAs,            2},
+        {"MACHINE",        {"48K SPECTRUM", "128K SPECTRUM"},                          &myConfig.machine,           2},
         {"AUTO PLAY",      {"NO", "YES"},                                              &myConfig.autoLoad,          2},
         {"AUTO STOP",      {"NO", "YES"},                                              &myConfig.autoStop,          2},
         {"AUTO FIRE",      {"OFF", "ON"},                                              &myConfig.autoFire,          2},
@@ -914,6 +915,7 @@ const struct options_t Option_Table[2][20] =
     },
     // Global Options
     {
+        {"DEF MACHINE",    {"48K SPECTRUM",  "128K SPECTRUM"},                         &myGlobalConfig.defMachine,  2},
         {"FPS",            {"OFF", "ON", "ON FULLSPEED"},                              &myGlobalConfig.showFPS,     3},
         {"START DIR",      {"/ROMS/SPECCY",  "LAST USED DIR"},                         &myGlobalConfig.lastDir,     2},
         {"DEBUGGER",       {"OFF", "BAD OPS", "DEBUG", "FULL DEBUG"},                  &myGlobalConfig.debugger,    4},

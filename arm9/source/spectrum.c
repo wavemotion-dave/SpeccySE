@@ -678,10 +678,10 @@ void speccy_reset(void)
         // Move the BIOS/Diagnostic ROM into memory...
         memcpy(RAM_Memory, ROM_Memory, last_file_size);   // Load diagnostics ROM into place
 
-        if (zx_force_128k_mode || myConfig.loadAs)
+        if (zx_force_128k_mode || myConfig.machine)
         {
             zx_128k_mode = 1;
-            myConfig.loadAs = 1;
+            myConfig.machine = 1;
             
             // Now set the memory map to point to the right banks...
             MemoryMap[1] = RAM_Memory128 + (5 * 0x4000) + 0x0000; // Bank 5
@@ -696,7 +696,7 @@ void speccy_reset(void)
 
         // And force 128K mode needed for ZX81 emulation
         zx_128k_mode = 1;
-        myConfig.loadAs = 1;
+        myConfig.machine = 1;
             
         // Now set the memory map to point to the right banks...
         MemoryMap[1] = RAM_Memory128 + (5 * 0x4000) + 0x0000; // Bank 5
@@ -706,10 +706,10 @@ void speccy_reset(void)
     else if (speccy_mode < MODE_SNA) // TAP or TZX file - 48K or 128K
     {
         // BIOS will be loaded further below...
-        if (zx_force_128k_mode || myConfig.loadAs)
+        if (zx_force_128k_mode || myConfig.machine)
         {
             zx_128k_mode = 1;
-            myConfig.loadAs = 1;
+            myConfig.machine = 1;
             
             // Now set the memory map to point to the right banks...
             MemoryMap[1] = RAM_Memory128 + (5 * 0x4000) + 0x0000; // Bank 5

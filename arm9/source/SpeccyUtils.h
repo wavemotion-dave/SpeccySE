@@ -63,7 +63,7 @@ struct __attribute__((__packed__)) GlobalConfig_t
     char reserved2[MAX_FILENAME_LEN+1];
     u8  showFPS;
     u8  lastDir;
-    u8  global_01;
+    u8  defMachine;
     u8  global_02;
     u8  global_03;
     u8  global_04;
@@ -89,7 +89,7 @@ struct __attribute__((__packed__)) Config_t
     u8  tapeSpeed;
     u8  dpad;
     u8  autoLoad;
-    u8  loadAs;
+    u8  machine;
     u8  gameSpeed;
     u8  reserved3;
     u8  reserved4;
