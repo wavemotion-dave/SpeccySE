@@ -13,7 +13,7 @@ Features :
 * Loads .TZX files up to 640K total length (can swap tapes mid-game)
 * Loads .Z80 snapshots (V1, V2 and V3 formats, 48K or 128K)
 * Loads .SNA snapshots (48K only)
-* Loads .Z81 files for ZX81 emulation (see below)
+* Loads .P files for ZX81 emulation (see below)
 * Loads .ROM files up to 16K in place of standard BIOS (diagnostics, etc)
 * Supports .POK files (same name as base game and stored in POK subdir)
 * Kempston and Sinclair joystick support
@@ -214,21 +214,21 @@ The emulator supports the Paul Farrow ZX81 emulator for the ZX 128k machines.
 
 http://www.fruitcake.plus.com/Sinclair/Interface2/Cartridges/Interface2_RC_New_ZX81.htm
 
-To make this work, download the 16K Interface 2 ROM for the emulator - either Edition 2
-or Edition 3 (do not use Edition 1 or the 'bugfix version').  Take this ROM file
-and concatenate it with a ZX81 .p file for the game you want to play.
-
-So let's say you want to play the original ZX81 Mazogs. Obtain the mazogs.p file and the 
-aforementioned ZX81 emulator ROM and do the following:
-```
-Linux:   cat S128_ZX81_ED2_ROM.bin mazogs.p > mazogs.z81
-Windows: copy /b S128_ZX81_ED2_ROM.bin + mazogs.p mazogs.z81
-```
-
-This will produce a .z81 file that is roughly 25K in size... it contains the emulator + the game .p file 
-in one binary image. This .z81 file is now loadable directly into Speccy-SE - when you pick the game, it 
-will automatically insert the keystrokes needed to get the emulator running. This takes about 10 seconds...
+To make this work, download the 16K Interface ROM for the emulator - either Edition 2
+or Edition 3 (do not use Edition 1 or the 'bugfix version' as neither will work properly
+with SpeccySE).  Take the Edition 2 or 3 ROM file exactly as Paul named it and place it 
+in the same directory you put your 48.ROM Spectrum BASIC/BIOS file. This will now let
+you load and run .P files directly. When you pick the game, it will automatically insert
+the keystrokes needed to get the emulator running. This takes about 10 seconds...
 don't touch any virtual keys until the ZX81 game is fully loaded.
+
+If the game loads but shows something like 0/0 at the bottom, it's a BASIC game that
+has been loaded and you should press the 'R' virtual key to enter the RUN command
+and press ENTER... this will get the game going.
+
+Paul's emulator works with most ZX81 .P games but there are a few that won't run 
+as they do some unusual things that the emulator can't handle. You can read more about
+it on his website listed above.
 
 POK Support :
 -----------------------
@@ -259,6 +259,10 @@ you're likely going to want ZXDS.
 
 Version History :
 -----------------------
+Version 1.2 - 07-Sep-2025 by wavemotion-dave
+* Improved ZX81 support for direct loading of .P files
+* New global option for machine type (48K vs 128K)
+* New main icon to better reflect the design aesthetics
 
 Version 1.1 - 30-Apr-2025 by wavemotion-dave
 * Double buffer video on DSi/XL/LL for reduced tearing

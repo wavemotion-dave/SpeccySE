@@ -691,8 +691,8 @@ void speccy_reset(void)
     }
     else if (speccy_mode == MODE_ZX81)
     {
-        // Move the BIOS/Diagnostic ROM into memory...
-        memcpy(RAM_Memory, ROM_Memory, 0x4000);   // Load diagnostics ROM into place - the rest of the file is the P-File
+        // Move the ZX81 Emulator ROM into memory where the BIOS would normally be...
+        memcpy(RAM_Memory, ZX81Emulator, 0x4000);
 
         // And force 128K mode needed for ZX81 emulation
         zx_128k_mode = 1;

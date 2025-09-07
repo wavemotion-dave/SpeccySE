@@ -158,6 +158,7 @@ extern u8 give_up_counter;
 extern u32 last_edge;
 extern u8 bottom_screen;
 extern char *loader_type;
+extern u8 bZX81EmuFound;
 
 extern void BottomScreenOptions(void);
 extern void BottomScreenCassette(void);

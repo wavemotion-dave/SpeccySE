@@ -54,8 +54,9 @@ u8 RAM_Memory[0x10000]    ALIGN(32) = {0};  // The Z80 Memory is 64K
 u8 RAM_Memory128[0x20000] ALIGN(32) = {0};  // The Z80 Memory is 64K but we expand this for a 128K model
 u8 SpectrumBios[0x4000]             = {0};  // We keep the 16k ZX Spectrum 48K BIOS around
 u8 SpectrumBios128[0x8000]          = {0};  // We keep the 32k ZX Spectrum 128K BIOS around
+u8 ZX81Emulator[0x4000]             = {0};  // We keep the 16k ZX Spectrum Emulator ROM around
 
-u8 ROM_Memory[MAX_TAPE_SIZE];               // This is where we keep the raw untouched file as read from the SD card (.TAP, .TZX, .Z80, etc)
+u8 ROM_Memory[MAX_TAPE_SIZE];               // This is where we keep the raw untouched file as read from the SD card (.TAP, .TZX, .Z80, .P, etc)
 
 // ----------------------------------------------------------------------------
 // We track the most recent directory and file loaded... both the initial one
@@ -86,6 +87,7 @@ u16 timingFrames    __attribute__((section(".dtcm"))) = 0;
 // For the various BIOS files ... only the 48.rom spectrum BIOS is truly required...
 // ----------------------------------------------------------------------------------
 u8 bSpeccyBiosFound   = false;
+u8 bZX81EmuFound      = false;
 
 u8 soundEmuPause     __attribute__((section(".dtcm"))) = 1;       // Set to 1 to pause (mute) sound, 0 is sound unmuted (sound channels active)
 
@@ -212,7 +214,7 @@ int breather    __attribute__((section(".dtcm"))) = 0;
 
 ITCM_CODE mm_word OurSoundMixer(mm_word len, mm_addr dest, mm_stream_formats format)
 {
-    if (soundEmuPause)  // If paused, just "mix" in mute sound chip... all channels are OFF
+    if (soundEmuPause || (speccy_mode == MODE_ZX81))  // If paused, just "mix" in mute sound chip... all channels are OFF
     {
         s16 *p = (s16*)dest;
         for (int i=0; i<len; i++)
@@ -1198,7 +1200,7 @@ void SpeccySE_main(void)
                     if (speccy_mode == MODE_ZX81)
                     {
                         u8 *ptr = MemoryMap[16393>>14] +  (16393&0x3FFF);
-                        memcpy(ptr, ROM_Memory+0x4000, last_file_size-0x4000);
+                        memcpy(ptr, ROM_Memory, last_file_size);
                     }
                     else // Otherwise, play the ZX Spectrum tape!
                     {
@@ -1636,7 +1638,9 @@ void speccySEInitCPU(void)
 }
 
 // -------------------------------------------------------------
-// Only used for basic timing of splash screen fade-out
+// For the DSi, we double buffer the screen rendering to avoid
+// some tearing issues - we render the screen to non-main VRAM 
+// and then during the DSi VBLANK, we copy it over for display.
 // -------------------------------------------------------------
 void irqVBlank(void)
 {
@@ -1646,7 +1650,7 @@ void irqVBlank(void)
     vusCptVBL++;
     if (backgroundRenderScreen) // Only set for DSi mode... double buffer
     {
-        dmaCopyWordsAsynch(3, (u16*)(backgroundRenderScreen & 1 ? 0x06820000:0x06830000), (u16*)0x06000000, 64*1024);
+        dmaCopyWordsAsynch(3, (u16*)(backgroundRenderScreen & 1 ? 0x06820000:0x06830000), (u16*)0x06000000, 256*192);
         backgroundRenderScreen = 0;
     }
 }
@@ -1662,10 +1666,11 @@ void LoadBIOSFiles(void)
     // We will look for the 48K and 128K BIOS ROMs
     // --------------------------------------------------
     bSpeccyBiosFound = false;
+    bZX81EmuFound = false;
 
-    // -----------------------------------------------------------
-    // Next try to load the Spectrum BIOS files
-    // -----------------------------------------------------------
+    // -----------------------------------------------------------------------------
+    // Next try to load the Spectrum BIOS files. We must have at least the 48K BIOS
+    // -----------------------------------------------------------------------------
     size = ReadFileCarefully("48.rom", SpectrumBios, 0x4000, 0);
     if (!size) size = ReadFileCarefully("/roms/bios/48.rom", SpectrumBios, 0x4000, 0);
     if (!size) size = ReadFileCarefully("/data/bios/48.rom", SpectrumBios, 0x4000, 0);
@@ -1688,6 +1693,9 @@ void LoadBIOSFiles(void)
 
     if (size) bSpeccyBiosFound = true; else memset(SpectrumBios, 0xFF, 0x4000);
 
+    // --------------------------------------------------------------------------------
+    // Try to find the Spectrum 128K BIOS - this is not strictly needed for emulation.
+    // --------------------------------------------------------------------------------
     size = ReadFileCarefully("128.rom", SpectrumBios128, 0x8000, 0);
     if (!size) size = ReadFileCarefully("/roms/bios/128.rom", SpectrumBios128, 0x8000, 0);
     if (!size) size = ReadFileCarefully("/data/bios/128.rom", SpectrumBios128, 0x8000, 0);
@@ -1701,6 +1709,27 @@ void LoadBIOSFiles(void)
     if (!size) size = ReadFileCarefully("/data/bios/zxs128.rom", SpectrumBios128, 0x8000, 0);
 
     if (size) bSpeccyBiosFound = true; else memset(SpectrumBios128, 0xFF, 0x8000);
+
+    // ---------------------------------------------------------------------------
+    // Try and read in the ZX81 Emulator ROM... will allow .p files to be loaded.
+    // ---------------------------------------------------------------------------
+    size = ReadFileCarefully("S128_ZX81_ED3_ROM.bin", ZX81Emulator, 0x4000, 0);
+    if (!size) size = ReadFileCarefully("/roms/bios/S128_ZX81_ED3_ROM.bin", ZX81Emulator, 0x4000, 0);
+    if (!size) size = ReadFileCarefully("/data/bios/S128_ZX81_ED3_ROM.bin", ZX81Emulator, 0x4000, 0);
+
+    if (!size) size = ReadFileCarefully("S128_ZX81_ED3_ROM.rom", ZX81Emulator, 0x4000, 0);
+    if (!size) size = ReadFileCarefully("/roms/bios/S128_ZX81_ED3_ROM.rom", ZX81Emulator, 0x4000, 0);
+    if (!size) size = ReadFileCarefully("/data/bios/S128_ZX81_ED3_ROM.rom", ZX81Emulator, 0x4000, 0);
+
+    if (!size) size = ReadFileCarefully("S128_ZX81_ED2_ROM.bin", ZX81Emulator, 0x4000, 0);
+    if (!size) size = ReadFileCarefully("/roms/bios/S128_ZX81_ED2_ROM.bin", ZX81Emulator, 0x4000, 0);
+    if (!size) size = ReadFileCarefully("/data/bios/S128_ZX81_ED2_ROM.bin", ZX81Emulator, 0x4000, 0);
+
+    if (!size) size = ReadFileCarefully("S128_ZX81_ED2_ROM.rom", ZX81Emulator, 0x4000, 0);
+    if (!size) size = ReadFileCarefully("/roms/bios/S128_ZX81_ED2_ROM.rom", ZX81Emulator, 0x4000, 0);
+    if (!size) size = ReadFileCarefully("/data/bios/S128_ZX81_ED2_ROM.rom", ZX81Emulator, 0x4000, 0);
+
+    if (size) bZX81EmuFound = true; else memset(ZX81Emulator, 0xFF, 0x4000);
 }
 
 /************************************************************************************

@@ -355,11 +355,15 @@ void speccySEFindFiles(u8 bTapeOnly)
                   uNbFile++;
                   countZX++;
                 }
-                if ( (strcasecmp(strrchr(szFile, '.'), ".z81") == 0) )  {
-                  strcpy(gpFic[uNbFile].szName,szFile);
-                  gpFic[uNbFile].uType = SPECCY_FILE;
-                  uNbFile++;
-                  countZX++;
+                
+                if (bZX81EmuFound)
+                {
+                    if ( (strcasecmp(strrchr(szFile, '.'), ".p") == 0) )  {
+                      strcpy(gpFic[uNbFile].szName,szFile);
+                      gpFic[uNbFile].uType = SPECCY_FILE;
+                      uNbFile++;
+                      countZX++;
+                    }
                 }
             }
             if ( (strcasecmp(strrchr(szFile, '.'), ".tap") == 0) )  {
@@ -866,6 +870,8 @@ void LoadConfig(void)
 // -------------------------------------------------------------------------
 void FindConfig(void)
 {
+    u8 bFound = 0;
+    
     // -----------------------------------------------------------------
     // Start with defaults.. if we find a match in our config database
     // below, we will fill in the config with data read from the file.
@@ -877,8 +883,15 @@ void FindConfig(void)
         if (AllConfigs[slot].game_crc == file_crc)  // Got a match?!
         {
             memcpy(&myConfig, &AllConfigs[slot], sizeof(struct Config_t));
+            bFound = 1;
             break;
         }
+    }
+    
+    // If we didn't find a match and we are ZX81 mode, default to cursor keys
+    if (!bFound && (speccy_mode == MODE_ZX81))
+    {
+        Cursors();
     }
 }
 
@@ -1326,8 +1339,8 @@ void ReadFileCRCAndConfig(void)
     if (strstr(gpFic[ucGameChoice].szName, ".TZX") != 0) speccy_mode = MODE_TZX;
     if (strstr(gpFic[ucGameChoice].szName, ".rom") != 0) speccy_mode = MODE_BIOS;
     if (strstr(gpFic[ucGameChoice].szName, ".ROM") != 0) speccy_mode = MODE_BIOS;
-    if (strstr(gpFic[ucGameChoice].szName, ".z81") != 0) speccy_mode = MODE_ZX81;
-    if (strstr(gpFic[ucGameChoice].szName, ".Z81") != 0) speccy_mode = MODE_ZX81;
+    if (strstr(gpFic[ucGameChoice].szName, ".p")   != 0) speccy_mode = MODE_ZX81;
+    if (strstr(gpFic[ucGameChoice].szName, ".P")   != 0) speccy_mode = MODE_ZX81;
 
     FindConfig();    // Try to find keymap and config for this file...
 }

@@ -129,6 +129,7 @@ extern u8 zx_ScreenRendering;
 
 extern u8 SpectrumBios[0x4000];
 extern u8 SpectrumBios128[0x8000];
+extern u8 ZX81Emulator[0x4000];
 
 extern u8 ROM_Memory[MAX_TAPE_SIZE];
 extern u8 RAM_Memory[0x10000];
