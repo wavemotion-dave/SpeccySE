@@ -1429,30 +1429,34 @@ void SpeccySE_main(void)
                     nds_key |= KEY_RIGHT;
                 }
           }
-
+        
           // --------------------------------------------------------------------------------------------------
           // There are 12 NDS buttons (D-Pad, XYAB, L/R and Start+Select) - we allow mapping of any of these.
           // --------------------------------------------------------------------------------------------------
-          for (u8 i=0; i<12; i++)
+          if (!key_debounce)
           {
-              if (nds_key & NDS_keyMap[i])
+              for (u8 i=0; i<12; i++)
               {
-                  if (keyCoresp[myConfig.keymap[i]] < 0xF000)   // Normal key map
+                  if (nds_key & NDS_keyMap[i])
                   {
-                      ucDEUX  |= keyCoresp[myConfig.keymap[i]];
-                  }
-                  else // This is a keyboard maping... handle that here... just set the appopriate kbd_key
-                  {
-                      if      ((keyCoresp[myConfig.keymap[i]] >= META_KBD_A) && (keyCoresp[myConfig.keymap[i]] <= META_KBD_Z))  kbd_key = ('A' + (keyCoresp[myConfig.keymap[i]] - META_KBD_A));
-                      else if ((keyCoresp[myConfig.keymap[i]] >= META_KBD_0) && (keyCoresp[myConfig.keymap[i]] <= META_KBD_9))  kbd_key = ('0' + (keyCoresp[myConfig.keymap[i]] - META_KBD_0));
-                      else if (keyCoresp[myConfig.keymap[i]] == META_KBD_SPACE)     kbd_key  = ' ';
-                      else if (keyCoresp[myConfig.keymap[i]] == META_KBD_RETURN)    kbd_key  = KBD_KEY_RET;
-                      else if (keyCoresp[myConfig.keymap[i]] == META_KBD_SHIFT)    {kbd_key  = KBD_KEY_SFTDIR;  DisplayStatusLine(false);}
-                      else if (keyCoresp[myConfig.keymap[i]] == META_KBD_SYMBOL)   {kbd_key  = KBD_KEY_SYMDIR;  DisplayStatusLine(false);}
-
-                      if (kbd_key != 0)
+                      if (keyCoresp[myConfig.keymap[i]] < 0xF000)   // Normal key map
                       {
-                          kbd_keys[kbd_keys_pressed++] = kbd_key;
+                          ucDEUX  |= keyCoresp[myConfig.keymap[i]];
+                      }
+                      else // This is a keyboard maping... handle that here... just set the appopriate kbd_key
+                      {
+                          if      ((keyCoresp[myConfig.keymap[i]] >= META_KBD_A) && (keyCoresp[myConfig.keymap[i]] <= META_KBD_Z))  kbd_key = ('A' + (keyCoresp[myConfig.keymap[i]] - META_KBD_A));
+                          else if ((keyCoresp[myConfig.keymap[i]] >= META_KBD_0) && (keyCoresp[myConfig.keymap[i]] <= META_KBD_9))  kbd_key = ('0' + (keyCoresp[myConfig.keymap[i]] - META_KBD_0));
+                          else if (keyCoresp[myConfig.keymap[i]] == META_KBD_SPACE)     kbd_key  = ' ';
+                          else if (keyCoresp[myConfig.keymap[i]] == META_KBD_RETURN)    kbd_key  = KBD_KEY_RET;
+                          else if (keyCoresp[myConfig.keymap[i]] == META_KBD_SHIFT)    {kbd_key  = KBD_KEY_SFTDIR;  DisplayStatusLine(false);}
+                          else if (keyCoresp[myConfig.keymap[i]] == META_KBD_SYMBOL)   {kbd_key  = KBD_KEY_SYMDIR;  DisplayStatusLine(false);}
+
+                          if (kbd_key != 0)
+                          {
+                              if (kbd_keys_pressed < 12) kbd_keys[kbd_keys_pressed++] = kbd_key;
+                              if (speccy_mode == MODE_ZX81) key_debounce = 3;
+                          }
                       }
                   }
               }

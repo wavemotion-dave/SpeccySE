@@ -781,6 +781,7 @@ ITCM_CODE u8 tape_pulse(void)
                 // --------------------------------------------------------------------------
                 if ((CPU.TStates-last_edge) > 10000) // Slow bit reads happening?
                 {
+#if 0 // This is causing problems with some 128K loads...
                     if (++give_up_counter > 5)
                     {
                         if (myConfig.autoStop)
@@ -795,6 +796,7 @@ ITCM_CODE u8 tape_pulse(void)
                             return 0x00;
                         }
                     }
+#endif                    
                 }
 
                 if (current_bit == handle_last_bits) // Are we done sending this byte?
