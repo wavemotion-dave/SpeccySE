@@ -459,7 +459,7 @@ void tape_parse_blocks(int tapeSize)
             }
         }
     }
-    
+
     // -----------------------------------------------------------------------------------------
     // Sometimes the final block will have a long gap - but it's not needed as the tape is done
     // playing at that point... so we cut this short which helps the emulator stop the tape.
@@ -775,27 +775,26 @@ ITCM_CODE u8 tape_pulse(void)
                 current_bit = current_bit>>1;
 
                 // --------------------------------------------------------------------------
-                // If slow bit reads are happening (arbitrarily above 10000 CPU ticks), we
+                // If slow bit reads are happening (arbitrarily above 100000 CPU ticks), we
                 // increment a "give up" counter... if this reaches critical mass, we simply
                 // stop the tape as it no longer looks like we are trying to load anything.
                 // --------------------------------------------------------------------------
-                if ((CPU.TStates-last_edge) > 10000) // Slow bit reads happening?
+                if ((CPU.TStates-last_edge) > 100000) // Slow bit reads happening?
                 {
-                    if (++give_up_counter > 5)
+                    if (++give_up_counter > 12)
                     {
                         if (myConfig.autoStop)
                         {
                             tape_stop();
                             return 0x00;
                         }
-                        else // No auto-stop... best we can do is go back to the start of the block
+                        else
                         {
-                            tape_stop();
-                            tape_play();
-                            return 0x00;
+                             // No auto-stop... just keep on going...
+                             give_up_counter=0;
                         }
                     }
-                }
+                } else give_up_counter=0;
 
                 if (current_bit == handle_last_bits) // Are we done sending this byte?
                 {
