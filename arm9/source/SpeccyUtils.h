@@ -19,7 +19,7 @@
 #define MAX_FILENAME_LEN            160
 #define MAX_TAPE_SIZE               (640*1024) // 640K is big enough for any .TAP/.TZX or Snapshot
 
-#define MAX_CONFIGS                 1000
+#define MAX_CONFIGS                 4096
 #define CONFIG_VERSION              0x0004
 
 #define SPECCY_FILE                 0x01
@@ -74,7 +74,7 @@ struct __attribute__((__packed__)) GlobalConfig_t
     u8  global_09;
     u8  global_10;
     u8  global_11;
-    u8  global_12;
+    u8  compressed;
     u8  debugger;
     u32 config_checksum;
 };
@@ -107,7 +107,7 @@ extern struct GlobalConfig_t myGlobalConfig;
 extern u8 last_special_key;
 extern u8 last_special_key_dampen;
 
-extern u16 JoyState;                    // Joystick / Paddle management
+extern u16 JoyState;
 
 extern u32 file_crc;
 extern u8 bFirstTime;
@@ -126,6 +126,7 @@ extern u8 portFE, portFD;
 extern u8 zx_AY_enabled;
 extern u8 zx_128k_mode;
 extern u8 zx_ScreenRendering;
+extern u8 tape_play_skip_frame;
 
 extern u8 SpectrumBios[0x4000];
 extern u8 SpectrumBios128[0x8000];
@@ -142,6 +143,8 @@ extern FISpeccy gpFic[MAX_FILES];
 extern int uNbRoms;
 extern int ucGameAct;
 extern int ucGameChoice;
+extern u8 CompressBuffer[];
+
 
 extern void LoadConfig(void);
 extern u8   showMessage(char *szCh1, char *szCh2);

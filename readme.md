@@ -259,6 +259,11 @@ you're likely going to want ZXDS.
 
 Version History :
 -----------------------
+Version 1.3 - ??-Sep-2025 by wavemotion-dave
+* Increased number of configuration game slots to 4096
+* Fix and improvements for auto-tape handling so games load more reliably
+* Minor tweak to main menu and cassette menu handling to avoid screen garbage character
+
 Version 1.2 - 07-Sep-2025 by wavemotion-dave
 * Improved ZX81 support for direct loading of .P files
 * New global option for machine type (48K vs 128K)

@@ -37,7 +37,7 @@
 
 // -----------------------------------------------------------------
 // Most handy for development of the emulator is a set of 16 R/W
-// registers and a couple of index vars... we show this when 
+// registers and a couple of index vars... we show this when
 // global settings is set to show the 'Debugger'. It's amazing
 // how handy these general registers are for emulation development.
 // -----------------------------------------------------------------
@@ -50,7 +50,7 @@ u32 DY = 0;
 //    0x0000-0x3FFF  Spectrum BIOS. Either 48.rom or 128.rom (bank 0 or 1)
 //    0x4000-0xFFFF  Spectrum 48K of RAM / Memory
 // --------------------------------------------------------------------------
-u8 RAM_Memory[0x10000]    ALIGN(32) = {0};  // The Z80 Memory is 64K
+u8 RAM_Memory[0x10000]    ALIGN(32) = {0};  // The Z80 Memory is 64K for the Spectrum 48K model
 u8 RAM_Memory128[0x20000] ALIGN(32) = {0};  // The Z80 Memory is 64K but we expand this for a 128K model
 u8 SpectrumBios[0x4000]             = {0};  // We keep the 16k ZX Spectrum 48K BIOS around
 u8 SpectrumBios128[0x8000]          = {0};  // We keep the 32k ZX Spectrum 128K BIOS around
@@ -90,6 +90,7 @@ u8 bSpeccyBiosFound   = false;
 u8 bZX81EmuFound      = false;
 
 u8 soundEmuPause     __attribute__((section(".dtcm"))) = 1;       // Set to 1 to pause (mute) sound, 0 is sound unmuted (sound channels active)
+char tmp[64]         __attribute__((section(".dtcm")));           // For various sprintf() calls
 
 // -----------------------------------------------------------------------------------------------
 // This set of critical vars is what determines the machine type -
@@ -103,7 +104,7 @@ u8 kbd_keys[12]      __attribute__((section(".dtcm")));           // Up to 12 po
 
 u8 bStartSoundEngine = 0;      // Set to true to unmute sound after 1 frame of rendering...
 int bg0, bg1, bg0b, bg1b;      // Some vars for NDS background screen handling
-u16 vusCptVBL = 0;             // We use this as a basic timer for the Mario sprite... could be removed if another timer can be utilized
+u16 vusCptVBL = 0;             // We use this as a basic timer for the splash screen...
 u8 touch_debounce = 0;         // A bit of touch-screen debounce
 u8 key_debounce = 0;           // A bit of key debounce to ensure the key is held pressed for a minimum amount of time
 
@@ -166,8 +167,6 @@ u16 keyCoresp[MAX_KEY_OPTIONS] __attribute__((section(".dtcm"))) = {
     META_KBD_RETURN
 };
 
-static char tmp[64];    // For various sprintf() calls
-
 // ------------------------------------------------------------
 // Utility function to pause the sound...
 // ------------------------------------------------------------
@@ -189,11 +188,11 @@ void SoundUnPause(void)
 // We were using the normal ARM7 sound core but it sounded "scratchy" and so with the help
 // of FluBBa, we've swiched over to the maxmod sound core which performs much better.
 // --------------------------------------------------------------------------------------------
-#define sample_rate         (30800)    // To roughly match how many samples (4x per scanline x 312 scanlines x 50 frames)
-#define buffer_size         (512+16)   // Enough buffer that we don't have to fill it too often. Must be multiple of 16.
+#define sample_rate     (30800)    // To roughly match how many samples per frame (4x per scanline x 312 scanlines x 50 frames)
+#define buffer_size     (512+16)   // Enough buffer that we don't have to fill it too often. Must be multiple of 16.
 
-mm_ds_system sys   __attribute__((section(".dtcm")));
-mm_stream myStream __attribute__((section(".dtcm")));
+mm_ds_system sys    __attribute__((section(".dtcm")));
+mm_stream myStream  __attribute__((section(".dtcm")));
 
 #define WAVE_DIRECT_BUF_SIZE 4095
 u16 mixer_read      __attribute__((section(".dtcm"))) = 0;
@@ -248,9 +247,9 @@ ITCM_CODE mm_word OurSoundMixer(mm_word len, mm_addr dest, mm_stream_formats for
 // to make the direct beeper sound a bit less harsh - but this really needs to be properly
 // over-sampled and smoothed someday to make it really shine... good enough for now.
 // --------------------------------------------------------------------------------------------
-s16 mixbufAY[4]  __attribute__((section(".dtcm")));
-s16 beeper_vol[4] __attribute__((section(".dtcm"))) = { 0x000, 0x200, 0x600, 0xA00 };
-u32 vol __attribute__((section(".dtcm"))) = 0;
+s16 mixbufAY[4]     __attribute__((section(".dtcm"))) = { 0x000, 0x000, 0x000, 0x000 };
+s16 beeper_vol[4]   __attribute__((section(".dtcm"))) = { 0x000, 0x200, 0x600, 0xA00 };
+u32 vol             __attribute__((section(".dtcm"))) = 0;
 ITCM_CODE void processDirectAudio(void)
 {
     if (zx_AY_enabled)
@@ -277,7 +276,7 @@ ITCM_CODE void processDirectAudio(void)
 }
 
 // -----------------------------------------------------------------------------------------------
-// The user can override the core emulation speed from 80% to 120% to make games play faster/slow 
+// The user can override the core emulation speed from 80% to 120% to make games play faster/slow
 // than normal. We must adjust the MaxMode sample frequency to match or else we will not have the
 // proper number of samples in our sound buffer... this isn't perfect but it's reasonably good!
 // -----------------------------------------------------------------------------------------------
@@ -726,7 +725,7 @@ void CassetteMenu(void)
 
 // ------------------------------------------------------------------------
 // Show the Mini Menu - highlight the selected row. This can be called
-// up directly from the ZX Keyboard Graphic - allows the user to quit 
+// up directly from the ZX Keyboard Graphic - allows the user to quit
 // the current game, set high scores, save/load game state, etc.
 // ------------------------------------------------------------------------
 u8 mini_menu_items = 0;
@@ -1142,7 +1141,7 @@ void SpeccySE_main(void)
   emuFps=0;
 
   newStreamSampleRate();
-  
+
   // Force the sound engine to turn on when we start emulation
   bStartSoundEngine = 10;
 
@@ -1194,7 +1193,7 @@ void SpeccySE_main(void)
                 if (--bStartIn == 0)
                 {
                     // ---------------------------------------------------------
-                    // If we are running in ZX81 mode, we now copy the .P file 
+                    // If we are running in ZX81 mode, we now copy the .P file
                     // into memory and the ZX81 emulation will take over...
                     // ---------------------------------------------------------
                     if (speccy_mode == MODE_ZX81)
@@ -1231,8 +1230,8 @@ void SpeccySE_main(void)
                     }
                     else if (speccy_mode == MODE_ZX81)
                     {
-                        BufferKey('6'); BufferKey(254); BufferKey('6'); BufferKey(254); BufferKey('6'); BufferKey(254); BufferKey(KBD_KEY_RET); BufferKey(255); BufferKey(255); BufferKey(255); BufferKey(255); BufferKey(255); 
-                        BufferKey('M'); BufferKey(255); BufferKey('5'); BufferKey(254); BufferKey('0'); BufferKey(254); BufferKey('0'); BufferKey(254); BufferKey('0'); BufferKey(254); BufferKey(KBD_KEY_RET); BufferKey(255); 
+                        BufferKey('6'); BufferKey(254); BufferKey('6'); BufferKey(254); BufferKey('6'); BufferKey(254); BufferKey(KBD_KEY_RET); BufferKey(255); BufferKey(255); BufferKey(255); BufferKey(255); BufferKey(255);
+                        BufferKey('M'); BufferKey(255); BufferKey('5'); BufferKey(254); BufferKey('0'); BufferKey(254); BufferKey('0'); BufferKey(254); BufferKey('0'); BufferKey(254); BufferKey(KBD_KEY_RET); BufferKey(255);
                         bStartIn = 10; // Start P-File in 10 seconds... (it takes 6-7 seconds to process those keys above... slow processing on the ZX81 emulation)
                     }
                 }
@@ -1429,7 +1428,7 @@ void SpeccySE_main(void)
                     nds_key |= KEY_RIGHT;
                 }
           }
-        
+
           // --------------------------------------------------------------------------------------------------
           // There are 12 NDS buttons (D-Pad, XYAB, L/R and Start+Select) - we allow mapping of any of these.
           // --------------------------------------------------------------------------------------------------
@@ -1539,6 +1538,9 @@ void speccySEInit(void)
   speccySEFindFiles(0);
 }
 
+// ---------------------------------------------------------------------------
+// Setup the bottom screen - mostly for menu, high scores, options, etc.
+// ---------------------------------------------------------------------------
 void BottomScreenOptions(void)
 {
     swiWaitForVBlank();
@@ -1567,9 +1569,9 @@ void BottomScreenOptions(void)
     bottom_screen = 1;
 }
 
-// ---------------------------------------------------------------------------
-// Setup the bottom screen - mostly for menu, high scores, options, etc.
-// ---------------------------------------------------------------------------
+// ------------------------------------------
+// Setup the virtual keyboard for Speccy-SE
+// ------------------------------------------
 void BottomScreenKeyboard(void)
 {
     swiWaitForVBlank();
@@ -1601,7 +1603,10 @@ void BottomScreenKeyboard(void)
 }
 
 
-
+// -----------------------------------------------------------
+// Show the virtual cassette background... We use this area
+// to allow the user to start/stop/rewind or change the tape.
+// -----------------------------------------------------------
 void BottomScreenCassette(void)
 {
     swiWaitForVBlank();
@@ -1643,15 +1648,14 @@ void speccySEInitCPU(void)
 
 // -------------------------------------------------------------
 // For the DSi, we double buffer the screen rendering to avoid
-// some tearing issues - we render the screen to non-main VRAM 
+// some tearing issues - we render the screen to non-main VRAM
 // and then during the DSi VBLANK, we copy it over for display.
 // -------------------------------------------------------------
 void irqVBlank(void)
 {
-    extern u8 backgroundRenderScreen;
-    
     // Manage time
     vusCptVBL++;
+
     if (backgroundRenderScreen) // Only set for DSi mode... double buffer
     {
         dmaCopyWordsAsynch(3, (u16*)(backgroundRenderScreen & 1 ? 0x06820000:0x06830000), (u16*)0x06000000, 256*192);
@@ -1744,7 +1748,8 @@ int main(int argc, char **argv)
   //  Init sound
   consoleDemoInit();
 
-  if  (!fatInitDefault()) {
+  if  (!fatInitDefault())
+  {
      iprintf("Unable to initialize libfat!\n");
      return -1;
   }

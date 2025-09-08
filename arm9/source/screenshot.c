@@ -57,7 +57,6 @@ bool screenshotbmp(const char* filename) {
     // We steal this from the compression buffer which is not
     // otherwise used except when save/loading save states.
     // ---------------------------------------------------------
-    extern u8 CompressBuffer[];
     u8 *temp = (u8*)CompressBuffer;
 
     HEADER *header= (HEADER*)temp;

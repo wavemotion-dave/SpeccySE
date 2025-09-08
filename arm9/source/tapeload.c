@@ -590,7 +590,8 @@ ITCM_CODE u8 tape_pre_edge_accel(void)
 ITCM_CODE u8 tape_pulse(void)
 {
     u32 pilot_pulse = 0;
-#if 0
+
+#if 0 // Use this block to debug new loaders
     debug[0]  = OpZ80(CPU.PC.W-10);
     debug[1]  = OpZ80(CPU.PC.W-9);
     debug[2]  = OpZ80(CPU.PC.W-8);
@@ -775,11 +776,11 @@ ITCM_CODE u8 tape_pulse(void)
                 current_bit = current_bit>>1;
 
                 // --------------------------------------------------------------------------
-                // If slow bit reads are happening (arbitrarily above 100000 CPU ticks), we
+                // If slow bit reads are happening (arbitrarily above 50000 CPU ticks), we
                 // increment a "give up" counter... if this reaches critical mass, we simply
                 // stop the tape as it no longer looks like we are trying to load anything.
                 // --------------------------------------------------------------------------
-                if ((CPU.TStates-last_edge) > 100000) // Slow bit reads happening?
+                if ((CPU.TStates-last_edge) > 50000) // Slow bit reads happening?
                 {
                     if (++give_up_counter > 12)
                     {

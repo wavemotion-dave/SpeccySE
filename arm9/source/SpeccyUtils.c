@@ -25,7 +25,7 @@
 #include "pdev_tbg0.h"
 #include "pdev_bg0.h"
 #include "printf.h"
-
+#include "lzav.h"
 #include "CRC32.h"
 #include "printf.h"
 
@@ -41,9 +41,6 @@ char        strBuf[40];
 struct Config_t AllConfigs[MAX_CONFIGS];
 struct Config_t myConfig __attribute((aligned(4))) __attribute__((section(".dtcm")));
 struct GlobalConfig_t myGlobalConfig;
-extern u32 file_crc;
-
-u16 *pVidFlipBuf  = (u16*) (0x06000000);    // Video flipping buffer
 
 // -----------------------------------------------------------------------
 // Used by our system to map into 8K memory chunks which allows for very
@@ -683,11 +680,23 @@ void SaveConfig(bool bShow)
     {
         mkdir("/data", 0777);   // Doesn't exist - make it...
     }
+    
     fp = fopen("/data/SpeccySE.DAT", "wb+");
     if (fp != NULL)
     {
+        myGlobalConfig.compressed = 1;
+        myGlobalConfig.config_ver = CONFIG_VERSION;
         fwrite(&myGlobalConfig, sizeof(myGlobalConfig), 1, fp); // Write the global config
-        fwrite(&AllConfigs, sizeof(AllConfigs), 1, fp);         // Write the array of all configurations
+
+        // --------------------------------------------------------------------
+        // Compress the configuration data - this shrinks down quite nicely...
+        // --------------------------------------------------------------------
+        int max_len = lzav_compress_bound_hi( sizeof(AllConfigs) );
+        int comp_len = lzav_compress_hi( &AllConfigs, CompressBuffer, sizeof(AllConfigs), max_len );
+
+        fwrite(&comp_len,          sizeof(comp_len), 1, fp);
+        fwrite(CompressBuffer,     comp_len,         1, fp);
+
         fclose(fp);
     } else DSPrint(4,23,0, (char*)"ERROR SAVING CONFIG FILE");
 
@@ -839,6 +848,8 @@ void SetDefaultGameConfig(void)
 // ----------------------------------------------------------
 void LoadConfig(void)
 {
+    u8 bInitDatabase = 0;
+    
     // -----------------------------------------------------------------
     // Start with defaults.. if we find a match in our config database
     // below, we will fill in the config with data read from the file.
@@ -847,23 +858,38 @@ void LoadConfig(void)
 
     if (ReadFileCarefully("/data/SpeccySE.DAT", (u8*)&myGlobalConfig, sizeof(myGlobalConfig), 0))  // Read Global Config
     {
-        ReadFileCarefully("/data/SpeccySE.DAT", (u8*)&AllConfigs, sizeof(AllConfigs), sizeof(myGlobalConfig)); // Read the full game array of configs
+        if (myGlobalConfig.compressed)
+        {
+            u32 comp_len = 0;
+            // Read in the compressed buffer... we will uncompress this back into the AllConfigs[] array...
+            ReadFileCarefully("/data/SpeccySE.DAT", (u8*)&comp_len, sizeof(comp_len), sizeof(myGlobalConfig));
+            ReadFileCarefully("/data/SpeccySE.DAT", (u8*)CompressBuffer, comp_len, sizeof(myGlobalConfig)+sizeof(comp_len));
+            (void)lzav_decompress( CompressBuffer, AllConfigs, comp_len, sizeof(AllConfigs) );
+        }
+        else // Uncompressed... old-style format held 1000 slots
+        {
+            ReadFileCarefully("/data/SpeccySE.DAT", (u8*)&AllConfigs, 1000 * sizeof(struct Config_t), sizeof(myGlobalConfig)); // Read the full game array of configs
+        }
 
+        // Wrong version... init the entire database
         if (myGlobalConfig.config_ver != CONFIG_VERSION)
         {
-            memset(&AllConfigs, 0x00, sizeof(AllConfigs));
-            SetDefaultGameConfig();
-            SetDefaultGlobalConfig();
-            SaveConfig(FALSE);
+            bInitDatabase = 1;
         }
     }
     else    // Not found... init the entire database...
+    {
+        bInitDatabase = 1;
+    }
+    
+    if (bInitDatabase)
     {
         memset(&AllConfigs, 0x00, sizeof(AllConfigs));
         SetDefaultGameConfig();
         SetDefaultGlobalConfig();
         SaveConfig(FALSE);
-    }}
+    }        
+}
 
 // -------------------------------------------------------------------------
 // Try to match our loaded game to a configuration my matching CRCs
@@ -1665,10 +1691,11 @@ u8 spectrumInit(char *szGame)
   REG_BG3Y = 0;
 
   // Init the page flipping buffer...
+  u16 *pVidBuffer = (u16*) (0x06000000);
   for (uBcl=0;uBcl<192;uBcl++)
   {
      uVide=(uBcl/12);
-     dmaFillWords(uVide | (uVide<<16),pVidFlipBuf+uBcl*128,256);
+     dmaFillWords(uVide | (uVide<<16),pVidBuffer+uBcl*128,256);
   }
 
   RetFct = loadgame(szGame);      // Load up the Spectrum game/tap/tzx
