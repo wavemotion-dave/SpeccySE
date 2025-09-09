@@ -162,7 +162,7 @@ it should match the core emulation speed perfectly. This can be adjusted
 on a per-game basis.
 
 As for the per-game options, you can set things like the auto fire 
-for the joystick and the aforementioned CHUCKIE mode of joystick d-pad
+for the joystick and the aforementioned Slide-n-Glide mode of joystick d-pad
 handling. One of the more useful per-game options is to decide how you
 want to load the game - using a 48K Spectrum or the upgraded 128K Spectrum.
 You can also force a load as 128K spectrum by pressing the NDS Y-Button
