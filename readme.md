@@ -262,6 +262,7 @@ Version History :
 Version 1.3 - ??-Sep-2025 by wavemotion-dave
 * Increased number of configuration game slots to 4096
 * Fix and improvements for auto-tape handling so games load more reliably
+* Fix for Save/Load states for 128K games (some games would not load back properly)
 * Minor tweak to main menu and cassette menu handling to avoid screen garbage character
 
 Version 1.2 - 07-Sep-2025 by wavemotion-dave
