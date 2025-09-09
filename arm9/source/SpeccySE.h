@@ -158,6 +158,8 @@ extern u8 bottom_screen;
 extern char *loader_type;
 extern u8 bZX81EmuFound;
 extern u8 backgroundRenderScreen;
+extern int8 currentBrightness;
+extern uint16 dimDampen;
 
 extern void BottomScreenOptions(void);
 extern void BottomScreenCassette(void);

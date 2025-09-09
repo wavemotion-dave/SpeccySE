@@ -64,7 +64,7 @@ struct __attribute__((__packed__)) GlobalConfig_t
     u8  showFPS;
     u8  lastDir;
     u8  defMachine;
-    u8  global_02;
+    u8  brightness;
     u8  global_03;
     u8  global_04;
     u8  global_05;

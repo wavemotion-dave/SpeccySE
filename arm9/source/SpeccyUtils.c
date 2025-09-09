@@ -131,7 +131,7 @@ u8 showMessage(char *szCh1, char *szCh2)
   DSPrint(16-strlen(szCh2)/2,12,6,szCh2);
   DSPrint(8,14,6,("> YES <"));
   DSPrint(20,14,6,("  NO   "));
-  while ((keysCurrent() & (KEY_TOUCH | KEY_LEFT | KEY_RIGHT | KEY_A ))!=0);
+  while ((keysCurrent() & (KEY_TOUCH | KEY_LEFT | KEY_RIGHT | KEY_A ))!=0) {currentBrightness = 0; dimDampen = 0;}
 
   while (uRet == ID_SHM_CANCEL)
   {
@@ -219,7 +219,7 @@ u8 showMessage(char *szCh1, char *szCh2)
       uRet = ucCho;
     }
   }
-  while ((keysCurrent() & (KEY_TOUCH | KEY_LEFT | KEY_RIGHT | KEY_A ))!=0);
+  while ((keysCurrent() & (KEY_TOUCH | KEY_LEFT | KEY_RIGHT | KEY_A ))!=0) {currentBrightness = 0; dimDampen = 0;}
 
   BottomScreenKeyboard();
 
@@ -433,6 +433,7 @@ u8 speccySELoadFile(u8 bTapeOnly)
   // -----------------------------------------------------
   while (!bDone)
   {
+    currentBrightness = 0; dimDampen = 0;
     if (keysCurrent() & KEY_UP)
     {
       if (!ucHaut)
@@ -957,6 +958,7 @@ const struct options_t Option_Table[2][20] =
         {"DEF MACHINE",    {"48K SPECTRUM",  "128K SPECTRUM"},                         &myGlobalConfig.defMachine,  2},
         {"FPS",            {"OFF", "ON", "ON FULLSPEED"},                              &myGlobalConfig.showFPS,     3},
         {"START DIR",      {"/ROMS/SPECCY",  "LAST USED DIR"},                         &myGlobalConfig.lastDir,     2},
+        {"KEYBD BRIGHT",   {"MAX BRIGHT", "DIM", "DIMMER", "DIMMEST"},                 &myGlobalConfig.brightness,  4},        
         {"DEBUGGER",       {"OFF", "BAD OPS", "DEBUG", "FULL DEBUG"},                  &myGlobalConfig.debugger,    4},
         {NULL,             {"",      ""},                                              NULL,                        1},
     }
@@ -1013,6 +1015,7 @@ void SpeccySEGameOptions(bool bIsGlobal)
     }
     while (!bDone)
     {
+        currentBrightness = 0; dimDampen = 0;
         keys_pressed = keysCurrent();
         if (keys_pressed != last_keys_pressed)
         {
@@ -1163,7 +1166,9 @@ void SpeccySEChangeKeymap(void)
       ;
   WAITVBL;
 
-  while (!bOK) {
+  while (!bOK) 
+  {
+    currentBrightness = 0; dimDampen = 0;
     if (keysCurrent() & KEY_UP) {
       if (!ucHaut) {
         DisplayKeymapName(32);
@@ -1335,8 +1340,9 @@ void NoGameSelected(u32 ucY)
     DSPrint(5,10,0,("   NO GAME SELECTED   "));
     DSPrint(5,12,0,("  PLEASE, USE OPTION  "));
     DSPrint(5,14,0,("      LOAD  GAME      "));
-    while (!(keysCurrent()  & (KEY_START | KEY_A)));
-    while (keysCurrent()  & (KEY_START | KEY_A));
+    WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;
+    while (!(keysCurrent()  & (KEY_START | KEY_A))) {currentBrightness = 0; dimDampen = 0;}
+    while (keysCurrent()  & (KEY_START | KEY_A)) {currentBrightness = 0; dimDampen = 0;}
     dmaFillWords(dmaVal | (dmaVal<<16),(void*) bgGetMapPtr(bg1b)+5*32*2,32*18*2);
     dispInfoOptions(ucY);
 }
@@ -1443,7 +1449,9 @@ void speccySEChangeOptions(void)
       DisplayFileName();
   }
 
-  while (!bOK) {
+  while (!bOK) 
+  {
+    currentBrightness = 0; dimDampen = 0;
     if (keysCurrent()  & KEY_UP) {
       if (!ucHaut) {
         dispInfoOptions(32);

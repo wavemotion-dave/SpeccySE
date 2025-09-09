@@ -167,6 +167,12 @@ u16 keyCoresp[MAX_KEY_OPTIONS] __attribute__((section(".dtcm"))) = {
     META_KBD_RETURN
 };
 
+int8 currentBrightness = 0;
+uint16 dimDampen = 0;
+
+const int8 brightness[] = {0, -6, -12, -15};
+
+
 // ------------------------------------------------------------
 // Utility function to pause the sound...
 // ------------------------------------------------------------
@@ -405,6 +411,8 @@ void ResetSpectrum(void)
   bStartIn = 0;
   bottom_screen = 0;
   last_speccy_mode = 99;
+  currentBrightness = 0; 
+  dimDampen = 0;
 }
 
 //*********************************************************************************
@@ -636,6 +644,7 @@ void CassetteMenu(void)
   u8 bExitMenu = false;
   while (true)
   {
+    currentBrightness = 0; dimDampen = 0;
     nds_key = keysCurrent();
     if (nds_key)
     {
@@ -766,6 +775,7 @@ u8 MiniMenu(void)
 
   while (true)
   {
+    currentBrightness = 0; dimDampen = 0;
     nds_key = keysCurrent();
     if (nds_key)
     {
@@ -829,6 +839,8 @@ u8 last_kbd_key = 0;
 
 u8 handle_spectrum_keyboard_press(u16 iTx, u16 iTy)  // ZX Spectrum keyboard
 {
+    currentBrightness = 0; dimDampen = 0;
+    
     if ((iTy >= 14) && (iTy < 48))   // Row 1 (number row)
     {
         if      ((iTx >= 0)   && (iTx < 28))   kbd_key = '1';
@@ -1021,6 +1033,7 @@ u8 speccyTapePosition(void)
 
     while (1)
     {
+        currentBrightness = 0; dimDampen = 0;
         u16 keys = keysCurrent();
         if (keys & KEY_A) break;
         if (keys & KEY_B) {sel = 0xFF; break;}
@@ -1646,6 +1659,17 @@ void speccySEInitCPU(void)
     BottomScreenKeyboard();
 }
 
+__attribute__ ((noinline)) void HandleBrightness(void)
+{
+    if (currentBrightness == 0) setBrightness(2, currentBrightness);
+    if (++dimDampen > ((currentBrightness == 0) ? 300 : 15))
+    {
+        if (currentBrightness < brightness[myGlobalConfig.brightness]) currentBrightness++; else currentBrightness--;
+        setBrightness(2, currentBrightness);      // Subscreen Brightness
+        dimDampen = 0;
+    }
+}
+
 // -------------------------------------------------------------
 // For the DSi, we double buffer the screen rendering to avoid
 // some tearing issues - we render the screen to non-main VRAM
@@ -1660,6 +1684,11 @@ void irqVBlank(void)
     {
         dmaCopyWordsAsynch(3, (u16*)(backgroundRenderScreen & 1 ? 0x06820000:0x06830000), (u16*)0x06000000, 256*192);
         backgroundRenderScreen = 0;
+    }
+    
+    if (currentBrightness != brightness[myGlobalConfig.brightness])
+    {
+        HandleBrightness();
     }
 }
 

@@ -183,7 +183,7 @@ void pok_select(void)
         DSPrint(0,12,0,"IN A SUBDIR NAMED /POK RELATIVE ");
         DSPrint(0,13,0,"TO WHERE THE GAME FILE IS FOUND ");
         WAITVBL;WAITVBL;WAITVBL;
-        while (!keysCurrent()) {WAITVBL;}
+        while (!keysCurrent()) {WAITVBL;currentBrightness = 0; dimDampen = 0;}
     }
     else
     {
@@ -200,6 +200,7 @@ void pok_select(void)
 
         while (1)
         {
+            currentBrightness = 0; dimDampen = 0;
             u16 keys = keysCurrent();
             if (keys & KEY_A)
             {
