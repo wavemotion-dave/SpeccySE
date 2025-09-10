@@ -17,7 +17,7 @@
 
 #define MAX_FILES                   2048
 #define MAX_FILENAME_LEN            160
-#define MAX_TAPE_SIZE               (640*1024) // 640K is big enough for any .TAP/.TZX or Snapshot
+#define MAX_TAPE_SIZE               (512*1024) // 512K is big enough for any .TAP/.TZX or Snapshot
 
 #define MAX_CONFIGS                 4096
 #define CONFIG_VERSION              0x0004

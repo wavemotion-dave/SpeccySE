@@ -87,16 +87,24 @@ typedef struct
   u16  data_one_width;          // How wide the one '1' bit pulse is {1710}
   u16  data_one_widthX2;        // How wide the one '1' bit pulse is {1710*2}
   u8   last_bits_used;          // The number of bits used in the last byte
+  u8   custom_pulse_slot;       // For the BLOCK_ID_PULSE_SEQ type of block (points to the custom pulse table slot)
   u16  gap_delay_after;         // How many milliseconds delay after this block {1000}
   u16  loop_counter;            // For Loops... how many times to iterate
   u32  block_data_idx;          // Where does the block data start (after header stuff is parsed)
   u32  block_data_len;          // How many bytes are in the data stream for this block?
   char description[31];         // For text / meta / description / group blocks (they can be larger, but this is all we will show)
   char block_filename[11];      // For the filename in a header block
-  u16  custom_pulse_len[255];   // For the BLOCK_ID_PULSE_SEQ type of block
 } TapeBlock_t;
 
 TapeBlock_t TapeBlocks[MAX_TAPE_BLOCKS];  // The .TAP or .TZX will be parsed and this will be filled in.
+
+// ----------------------------------------------------------------------------------------------------
+// We support up to 255 custom pulse blocks that can each contain up to 255 pulse lengths (128K table).
+// While it's theoretically possible for more custom pulse blocks to exist, it's unlikely any game
+// would get anywhere near this level of complexity and we're on a bit of a memory budget with the DS.
+// ----------------------------------------------------------------------------------------------------
+u16  custom_pulse_table[255][255];
+
 u8  tape_state                  __attribute__((section(".dtcm"))) = TAPE_STOP;
 u16 num_blocks_available        __attribute__((section(".dtcm"))) = 0;
 u16 current_block               __attribute__((section(".dtcm"))) = 0;
@@ -207,11 +215,13 @@ void tape_parse_blocks(int tapeSize)
     u32 block_len   = 0;
     u16 gap_len     = 0;
     u8  block_flag  = 0;
+    u8  last_custom_slot = 0;
 
     num_blocks_available = 0;
     current_block = 0;
 
     memset(TapeBlocks, 0x00, sizeof(TapeBlocks));
+    memset(custom_pulse_table, 0x00, sizeof(custom_pulse_table));
 
     // ---------------------------------------------------------------
     // All tape files start with a block of 750ms 'gap' silence...
@@ -353,12 +363,14 @@ void tape_parse_blocks(int tapeSize)
 
                 case BLOCK_ID_PULSE_SEQ:
                     pilot_pulses = ROM_Memory[idx++];
+                    TapeBlocks[num_blocks_available].custom_pulse_slot = last_custom_slot;
                     for (u16 i=0; i < pilot_pulses; i++)
                     {
                         pilot_length = ROM_Memory[idx+0]  | (ROM_Memory[idx+1]  << 8);
                         idx += 2;
-                        TapeBlocks[num_blocks_available].custom_pulse_len[i] = pilot_length;
+                        custom_pulse_table[last_custom_slot][i] = pilot_length;
                     }
+                    last_custom_slot++; // Move to the next custom pulse slot
                     TapeBlocks[num_blocks_available].pilot_length    = 0;
                     TapeBlocks[num_blocks_available].pilot_pulses    = pilot_pulses;
                     num_blocks_available++;
@@ -737,7 +749,7 @@ ITCM_CODE u8 tape_pulse(void)
                 break;
 
             case CUSTOM_PULSE_SEQ:
-                if ((CPU.TStates-last_edge) < TapeBlocks[current_block].custom_pulse_len[custom_pulse_idx])
+                if ((CPU.TStates-last_edge) < custom_pulse_table[TapeBlocks[current_block].custom_pulse_slot][custom_pulse_idx])
                 {
                     if (custom_pulse_idx & 1) return 0x40; else return 0x00;  // Send the pulse bit
                 }

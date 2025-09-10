@@ -1277,6 +1277,8 @@ void SpeccySE_main(void)
                 mixer_read = mixer_write = 0;
                 bStartSoundEngine = 5;  // Unpause sound after 5 frames
                 SoundPause();           // But for now, keep muted while we load
+                currentBrightness = 0;  // Keep at full brightness while loading
+                dimDampen = 0;
                 break;                  // With tape playing, speedup to allow faster load
             }
         }

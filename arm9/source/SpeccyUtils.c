@@ -1156,6 +1156,8 @@ void SpeccySEChangeKeymap(void)
   DSPrint(1 ,21,0,("       X : SWAP KEYMAP TYPE  "));
   DSPrint(1 ,22,0,("   START : SAVE KEYMAP       "));
   DisplayKeymapName(ucY);
+  
+  bIndTch = myConfig.keymap[0];
 
   // -----------------------------------------------------------------------
   // Clear out any keys that might be pressed on the way in - make sure
