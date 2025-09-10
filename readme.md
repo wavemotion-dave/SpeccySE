@@ -261,6 +261,7 @@ Version History :
 -----------------------
 Version 1.3 - 10-Sep-2025 by wavemotion-dave
 * Increased number of configuration game slots to 4096
+* Increased number of high-score slots to 1500
 * Fix and improvements for auto-tape handling so games load more reliably
 * Fix for Save/Load states for 128K games (some games would not load back properly)
 * Added ability to dim the keyboard screen in-game (set in Global Options)
