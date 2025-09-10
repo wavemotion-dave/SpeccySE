@@ -9,8 +9,8 @@ as the emulator or else in /roms/bios or /data/bios
 
 Features :
 -----------------------
-* Loads .TAP files up to 640K total length (can swap tapes mid-game)
-* Loads .TZX files up to 640K total length (can swap tapes mid-game)
+* Loads .TAP files up to 512K total length (can swap tapes mid-game)
+* Loads .TZX files up to 512K total length (can swap tapes mid-game)
 * Loads .Z80 snapshots (V1, V2 and V3 formats, 48K or 128K)
 * Loads .SNA snapshots (48K only)
 * Loads .P files for ZX81 emulation (see below)
