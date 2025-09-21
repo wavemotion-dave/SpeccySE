@@ -259,6 +259,11 @@ you're likely going to want ZXDS.
 
 Version History :
 -----------------------
+Version 1.4 - ??-????-2025 by wavemotion-dave
+* Fixed Shift and Symbol so they are truly temporary.
+* Improved memory contention timing.
+* Added more resolution to the CPU speed options.
+
 Version 1.3 - 10-Sep-2025 by wavemotion-dave
 * Increased number of configuration game slots to 4096
 * Increased number of high-score slots to 1500

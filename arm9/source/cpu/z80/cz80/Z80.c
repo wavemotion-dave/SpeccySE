@@ -642,7 +642,7 @@ ITCM_CODE void ExecZ80_Speccy(u32 RunToCycles)
       // ----------------------------------------------------------------------------------------
       // If we are in contended memory - add penalty. This is not cycle accurate but we want to
       // at least make an attempt to get closer on the cycle timing. So we simply use an 'average'
-      // penalty of 4 cycles if we are in contended memory while the screen is rendering. It's
+      // penalty of 3 cycles if we are in contended memory while the screen is rendering. It's
       // rough but gets us close enough to play games. We can improve this later...
       // ----------------------------------------------------------------------------------------
       if (render)

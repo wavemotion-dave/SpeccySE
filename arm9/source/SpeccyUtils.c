@@ -942,16 +942,16 @@ const struct options_t Option_Table[2][20] =
 {
     // Game Specific Configuration
     {
-        {"MACHINE",        {"48K SPECTRUM", "128K SPECTRUM"},                          &myConfig.machine,           2},
-        {"AUTO PLAY",      {"NO", "YES"},                                              &myConfig.autoLoad,          2},
-        {"AUTO STOP",      {"NO", "YES"},                                              &myConfig.autoStop,          2},
-        {"AUTO FIRE",      {"OFF", "ON"},                                              &myConfig.autoFire,          2},
-        {"TAPE SPEED",     {"NORMAL", "ACCELERATED"},                                  &myConfig.tapeSpeed,         2},
-        {"GAME SPEED",     {"100%", "110%", "120%", "90%", "80%"},                     &myConfig.gameSpeed,         5},
-        {"BUS CONTEND",    {"NORMAL", "LIGHT", "HEAVY"},                               &myConfig.contention,        3},
-        {"NDS D-PAD",      {"NORMAL", "DIAGONALS", "SLIDE-N-GLIDE"},                   &myConfig.dpad,              3},
+        {"MACHINE",        {"48K SPECTRUM", "128K SPECTRUM"},                           &myConfig.machine,           2},
+        {"AUTO PLAY",      {"NO", "YES"},                                               &myConfig.autoLoad,          2},
+        {"AUTO STOP",      {"NO", "YES"},                                               &myConfig.autoStop,          2},
+        {"AUTO FIRE",      {"OFF", "ON"},                                               &myConfig.autoFire,          2},
+        {"TAPE SPEED",     {"NORMAL", "ACCELERATED"},                                   &myConfig.tapeSpeed,         2},
+        {"GAME SPEED",     {"100%","102%","105%","110%","120%","98%","95%","90%","80%"},&myConfig.gameSpeed,         9},
+        {"BUS CONTEND",    {"NORMAL", "LIGHT", "HEAVY"},                                &myConfig.contention,        3},
+        {"NDS D-PAD",      {"NORMAL", "DIAGONALS", "SLIDE-N-GLIDE"},                    &myConfig.dpad,              3},
         
-        {NULL,             {"",      ""},                                              NULL,                        1},
+        {NULL,             {"",      ""},                                               NULL,                        1},
     },
     // Global Options
     {

@@ -85,6 +85,7 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
             {
                 return PatchLookup[CPU.PC.W]();
             }
+            zx_special_key = 0; 
             return ~tape_pulse();
         }
 
@@ -203,15 +204,14 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
             {
                 bNonSpecialKeyWasPressed = 1;
             }
-            else
-            {
-                if (bNonSpecialKeyWasPressed)
-                {
-                    zx_special_key = 0;
-                    bNonSpecialKeyWasPressed = 0;
-                    DisplayStatusLine(false);
-                }
-            }
+        }
+
+        // If no key was pressed but we had a special key press previously... clear it.
+        if (bNonSpecialKeyWasPressed && !kbd_keys_pressed)
+        {
+            zx_special_key = 0;
+            bNonSpecialKeyWasPressed = 0;
+            DisplayStatusLine(false);
         }
 
         return (u8)~key;
@@ -606,7 +606,7 @@ void speccy_reset(void)
     bRenderSkipOnce        = 1;
 
     // Set the 'average' contention delay...
-    static const u8 contend_delay[3] = {4,3,5};
+    static const u8 contend_delay[3] = {3,2,4};
     zx_contend_delay = contend_delay[myConfig.contention];
 
     // ------------------------------------------------

@@ -194,7 +194,7 @@ void SoundUnPause(void)
 // We were using the normal ARM7 sound core but it sounded "scratchy" and so with the help
 // of FluBBa, we've swiched over to the maxmod sound core which performs much better.
 // --------------------------------------------------------------------------------------------
-#define sample_rate     (30800)    // To roughly match how many samples per frame (4x per scanline x 312 scanlines x 50 frames)
+#define sample_rate     (31000)    // To roughly match how many samples per frame (2x per scanline x 312 scanlines x 50.08 frames)
 #define buffer_size     (512+16)   // Enough buffer that we don't have to fill it too often. Must be multiple of 16.
 
 mm_ds_system sys    __attribute__((section(".dtcm")));
@@ -207,7 +207,7 @@ s16 mixer[WAVE_DIRECT_BUF_SIZE+1];
 
 
 // The games normally run at the proper 100% speed, but user can override from 80% to 120%
-u16 GAME_SPEED_PAL[]  __attribute__((section(".dtcm"))) = {655, 596, 547, 728, 818 };
+u16 GAME_SPEED_PAL[]  __attribute__((section(".dtcm"))) = {653, 640, 623, 594, 545, 666, 686, 725, 815};
 
 // -------------------------------------------------------------------------------------------
 // maxmod will call this routine when the buffer is half-empty and requests that
@@ -287,7 +287,7 @@ ITCM_CODE void processDirectAudio(void)
 // proper number of samples in our sound buffer... this isn't perfect but it's reasonably good!
 // -----------------------------------------------------------------------------------------------
 static u8 last_game_speed = 0;
-static u32 sample_rate_adjust[] = {100, 110, 120, 90, 80};
+static u32 sample_rate_adjust[] = {100, 102, 105, 110, 120, 98, 95, 90, 80};
 void newStreamSampleRate(void)
 {
     if (last_game_speed != myConfig.gameSpeed)
@@ -1265,7 +1265,7 @@ void SpeccySE_main(void)
 
         // ----------------------------------------------------------------------
         // 32,728.5 ticks of TIMER2 = 1 second
-        // 1 frame = 1/50 or 655 ticks of TIMER2
+        // 1 frame = 1/50.08 or 653 ticks of TIMER2
         //
         // This is how we time frame-to frame to keep the game running at 50FPS
         // ----------------------------------------------------------------------
