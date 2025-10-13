@@ -1371,8 +1371,8 @@ void ReadFileCRCAndConfig(void)
     if (strstr(gpFic[ucGameChoice].szName, ".TAP") != 0) speccy_mode = MODE_TAP;
     if (strstr(gpFic[ucGameChoice].szName, ".tzx") != 0) speccy_mode = MODE_TZX;
     if (strstr(gpFic[ucGameChoice].szName, ".TZX") != 0) speccy_mode = MODE_TZX;
-    if (strstr(gpFic[ucGameChoice].szName, ".rom") != 0) speccy_mode = MODE_BIOS;
-    if (strstr(gpFic[ucGameChoice].szName, ".ROM") != 0) speccy_mode = MODE_BIOS;
+    if (strstr(gpFic[ucGameChoice].szName, ".rom") != 0) speccy_mode = MODE_ROM;
+    if (strstr(gpFic[ucGameChoice].szName, ".ROM") != 0) speccy_mode = MODE_ROM;
     if (strstr(gpFic[ucGameChoice].szName, ".p")   != 0) speccy_mode = MODE_ZX81;
     if (strstr(gpFic[ucGameChoice].szName, ".P")   != 0) speccy_mode = MODE_ZX81;
 

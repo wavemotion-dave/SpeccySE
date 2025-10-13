@@ -27,6 +27,7 @@
 #include "Tables.h"
 #include <stdio.h>
 #include "../../../printf.h"
+#include "../../../SpeccyUtils.h"
 
 extern Z80 CPU;
 
@@ -34,6 +35,8 @@ extern u32 debug[];
 extern u32 DX,DY;
 extern u8 zx_ScreenRendering, zx_contend_delay, zx_128k_mode, portFD;
 extern void EI_Enable(void);
+void ExecOneInstruction(void);
+void ResetZ80(Z80 *R);
 
 #define INLINE static inline
 
@@ -54,7 +57,7 @@ extern unsigned char cpu_readport_speccy(register unsigned short Port);
 extern void cpu_writeport_speccy(register unsigned short Port,register unsigned char Value);
 
 // ------------------------------------------------------------------------------
-// This is how we access the Z80 memory. We indirect through the MemoryMap[] to 
+// This is how we access the Z80 memory. We indirect through the MemoryMap[] to
 // allow for easy mapping by the 128K machines. It's slightly slower than direct
 // RAM access but much faster than having to move around chunks of bank memory.
 // ------------------------------------------------------------------------------
@@ -65,10 +68,168 @@ inline byte OpZ80(word A)
 
 #define RdZ80 OpZ80 // Nothing unique about a memory read - same as an OpZ80 opcode fetch
 
+// -------------------------------------------------------------------------------------------------------------
+// ZX-Dandanator support is fairly basic - we're not supporting the full set of Dandanator functionality, only
+// enough that we can do basic BANK swapping into the 512K ROM area and some basic handling on resets and
+// disables via the 'special command 40'
+// We use a command settle time of 35 T-States which is borrowed from ZEsarUX and a peek at the PIC code
+// for the dandanator. This seems to work fine for the majority of Dandanator ROMs out there - mainly this is
+// going to be used for Sword of Ianna and maybe Castlevania - Spectral Interlude plus a few compilation carts.
+// -------------------------------------------------------------------------------------------------------------
+
+#define DANDANATOR_COMMAND_TIME  35     // 35 T-States. Value doesn't have to be exact, but some delay must be used.
+
+u8 dandanator_cmd   = 0x00;
+u8 dandanator_data1 = 0x00;
+u8 dandanator_data2 = 0x00;
+u8 dan_latched_cmd  = 0x00;
+u8 dandy_disabled   = 0;
+u8 dandy_locked     = 0;
+u8 dan_counter      = 0;
+u8 dan_state        = 0;    // 0=Idle/Ready, 1=Command/Processing
+
+// -----------------------------------------------------------------------------
+// We use 'rom_special_bank' below to indicate that the Dandanator has control
+// of the lower 16K of memory and if the normal 128K Spectrum zx_bank() routine
+// is called, we will swap back the Dandanator ROM as needed.
+// -----------------------------------------------------------------------------
+void dandanator_switch_banks(u8 bank)
+{
+    // --------------------------------------------------------
+    // Banks are 0-31 but are represented by bank numbers 1-32
+    // --------------------------------------------------------
+    if ((bank > 0) && (bank <= 32))
+    {
+        MemoryMap[0] = ROM_Memory + (0x4000 * (bank-1));
+        rom_special_bank = bank;
+    }
+    else if ((bank == 33) || (bank == 34)) // Both represent the main Spectrum BIOS should be mapped in
+    {
+        if (myConfig.machine) // If we are 128K machine
+        {
+            MemoryMap[0] = SpectrumBios128 + ((portFD & 0x10) ? 0x4000 : 0x0000);
+        }
+        else // Otherwise original Spectrum 48K
+        {
+            MemoryMap[0] = SpectrumBios;
+        }
+        rom_special_bank = 0;
+    }
+}
+
+__attribute__((noinline)) void dandanator_flash_write(word A, byte value)
+{
+    if (speccy_mode != MODE_ROM) return; // Make sure we are a ROM load or else a flash write is simply ignored...
+
+    if (dandy_disabled) return;  // If the Dandanator has been turned off, no more commands are allowed...
+
+    switch (A)
+    {
+        // Command Confirm
+        case 0x00:
+            dandy_disabled=1;
+            ExecZ80_Speccy(CPU.TStates + DANDANATOR_COMMAND_TIME);
+            dandy_disabled=0;
+
+            // --------------------------------------------------------------------
+            // Special command... data1 is the bank to swap in, data2 has some
+            // bits that allow us to disable the dandanator or reset the CPU, etc.
+            // --------------------------------------------------------------------
+            if (dandanator_cmd == 40)
+            {
+                if (dandanator_data1 && (dandanator_data1 <= 33)) dandanator_switch_banks(dandanator_data1); // Bank 35 means 'keep previous bank'
+
+                if (dandanator_data2 & 0x08) dandy_disabled = 1;
+                if (dandanator_data2 & 0x04) dandy_locked = 1;  // We don't handle this yet... we assume programs are well behaved.
+                if (dandanator_data2 & 0x02) IntZ80(&CPU, INT_NMI);
+                if (dandanator_data2 & 0x01) ResetZ80(&CPU);
+            }
+            else if (dandanator_cmd && (dandanator_cmd <= 34))
+            {
+                dandanator_switch_banks(dandanator_cmd);
+            }
+            else if (dandanator_cmd == 36)
+            {
+                ResetZ80(&CPU);
+            }
+            else if (dandanator_cmd == 46)
+            {
+                DY++;  // This command is mainly used to lock/unlock Dandanator access. Not used in emulation.
+            }
+            dan_state = 0;
+            break;
+
+        // Command
+        case 0x01:
+            dandanator_cmd = value;
+            if (dan_state == 0)
+            {
+                dan_latched_cmd = value;
+                dan_state = 1;
+                dan_counter = 0;
+            }
+
+            // --------------------------------------------------------------------------------------------------
+            // The Dandanator is a strange beast... each time the command latch value is written, the Dandanator
+            // seems to track an internal counter and if the counter value of 'write pulses' reaches the command
+            // value, the Dandanator will handle the command immediately - in this way, it's simple to write a
+            // command to switch to Bank 0 (command 1) with a single write (and Bank 1 with two writes, etc).
+            // --------------------------------------------------------------------------------------------------
+            if (dan_state == 1)
+            {
+                dan_counter++;
+                if ((dandanator_cmd < 40) && (dan_counter == dan_latched_cmd))
+                {
+                    // ---------------------------------------------------------------
+                    // Poor-mans way of handling the delay between the command and
+                    // the dandanator finishing execution - we simply allow the CPU
+                    // to run a few instructions - temporarily disabling re-entrancy.
+                    // ---------------------------------------------------------------
+                    dandy_disabled=1;
+                    ExecZ80_Speccy(CPU.TStates + DANDANATOR_COMMAND_TIME);
+                    dandy_disabled=0;
+
+                    if (dan_latched_cmd && (dan_latched_cmd <= 34))
+                    {
+                        dandanator_switch_banks(dan_latched_cmd);
+                    }
+                    else if (dan_latched_cmd == 36)
+                    {
+                        ResetZ80(&CPU);
+                    }
+                    dan_state = 0;
+                }
+                else
+                {
+                    // See if the command changed... if so, restart count (probably isn't needed for well-behaved carts)
+                    if (dan_latched_cmd != value)
+                    {
+                        dan_state = 1;
+                        dan_counter = 1;
+                        dan_latched_cmd = value;
+                    }
+                }
+            }
+            break;
+
+        // Data 1 latch
+        case 0x02:
+            dandanator_data1 = value;
+            break;
+
+        // Data 2 latch
+        case 0x03:
+            dandanator_data2 = value;
+            break;
+    }
+}
+
 // -------------------------------------------------------------------------------------------
 // The only extra protection we have in writes is to ensure we don't write into the ROM area.
+// We support the possibility of a Dandanator ROM which writes to the first few addresses
+// of the ROM space ($0000 to $0003) and that's handled by dandanator_flash_write().
 // -------------------------------------------------------------------------------------------
-inline void WrZ80(word A, byte value)   {if (A & 0xC000) *(MemoryMap[(A)>>14] + ((A)&0x3FFF))=value;}
+void WrZ80(word A, byte value)   {if (A & 0xC000) *(MemoryMap[(A)>>14] + ((A)&0x3FFF))=value; else dandanator_flash_write(A,value);}
 
 // -------------------------------------------------------------------
 // And these two macros will give us access to the Z80 I/O ports...
@@ -417,7 +578,7 @@ ITCM_CODE void IntZ80(Z80 *R,word Vector)
           /* Read the vector */
           CPU.PC.B.l=RdZ80(Vector++);
           CPU.PC.B.h=RdZ80(Vector);
-          
+
           JumpZ80(CPU.PC.W);
 
           /* Done */
@@ -584,14 +745,14 @@ static void CodesFD_Speccy(void)
 // Almost 15K wasted space... but needed so we can keep the Enable Interrupt
 // instruction out of the main fast Z80 instruction loop. When the EI instruction
 // is issued, the interrupts are not enabled until one instruction later. This
-// function let's us execute that one instruction - somewhat more slowly but 
+// function let's us execute that one instruction - somewhat more slowly but
 // interrupts are enabled very infrequently (often enabled and left that way).
 // ------------------------------------------------------------------------------
 void ExecOneInstruction(void)
 {
   register byte I;
   register pair J;
-  u32 RunToCycles = CPU.TStates+1;   
+  u32 RunToCycles = CPU.TStates+1;
 
   I=OpZ80(CPU.PC.W++);
   CPU.TStates += Cycles_NoM1Wait[I];
@@ -609,25 +770,25 @@ void ExecOneInstruction(void)
     case PFX_DD: CodesDD_Speccy();break;
   }
 }
-  
+
 // ------------------------------------------------------------------------
 // The Enable Interrupt is delayed 1 M1 instruction and we must also check
 // to see if we are within the 32 TState period where the ZX Spectrum ULA
-// would hold the Interrupt Request pulse... 
+// would hold the Interrupt Request pulse...
 // ------------------------------------------------------------------------
 void EI_Enable(void)
 {
-   ExecOneInstruction(); 
+   ExecOneInstruction();
    CPU.IFF=(CPU.IFF&~IFF_EI)|IFF_1;
    if (CPU.IRequest != INT_NONE)
    {
        if ((CPU.TStates - CPU.TStates_IRequest) < 32) IntZ80(&CPU, CPU.IRequest); // Fire the interrupt
-       else CPU.IRequest = INT_NONE; // We missed the interrupt... 
+       else CPU.IRequest = INT_NONE; // We missed the interrupt...
    }
 }
 
 // -----------------------------------------------------------------------------------
-// The main Z80 instruction loop. We put this 15K chunk into fast memory as we 
+// The main Z80 instruction loop. We put this 15K chunk into fast memory as we
 // want to make the Z80 run as quickly as possible - this is the heart of the system.
 // -----------------------------------------------------------------------------------
 ITCM_CODE void ExecZ80_Speccy(u32 RunToCycles)
@@ -657,7 +818,7 @@ ITCM_CODE void ExecZ80_Speccy(u32 RunToCycles)
               else // Must be 0x4000 - we contend on any video access (both 48K and 128K)
               {
                   CPU.TStates += delay;
-              }              
+              }
           }
       }
 

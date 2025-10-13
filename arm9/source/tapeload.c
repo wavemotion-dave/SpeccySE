@@ -798,6 +798,8 @@ ITCM_CODE u8 tape_pulse(void)
                     {
                         if (myConfig.autoStop)
                         {
+                            // If the previous block was a header block, move back to that one...
+                            if (!(TapeBlocks[current_block-1].block_flag & 0x80)) current_block--;
                             tape_stop();
                             return 0x00;
                         }
@@ -1179,7 +1181,7 @@ ld_sample:
 // After every new block is settled into memory, we look to see if we can find one
 // of the popular loaders. We might be able to patch the loader for faster access.
 // ---------------------------------------------------------------------------------
-ITCM_CODE void tape_search_for_loader(void)
+void tape_search_for_loader(void)
 {
     if (myConfig.tapeSpeed == 0) return;
 

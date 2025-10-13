@@ -13,8 +13,9 @@ Features :
 * Loads .TZX files up to 512K total length (can swap tapes mid-game)
 * Loads .Z80 snapshots (V1, V2 and V3 formats, 48K or 128K)
 * Loads .SNA snapshots (48K only)
+* Loads .ROM files (16K diagnostics ROMs or 512K Dandanator ROMs)
+* Loads .PRG files directly into memory and executes them (use Cart menu)
 * Loads .P files for ZX81 emulation (see below)
-* Loads .ROM files up to 16K in place of standard BIOS (diagnostics, etc)
 * Supports .POK files (same name as base game and stored in POK subdir)
 * Kempston and Sinclair joystick support
 * Fully configurable keys for the 12 NDS keys to any combination of joystick/keyboard
@@ -204,9 +205,9 @@ library of known good working images for Speccy-SE.
 ROM Support :
 -----------------------
 The emulator allows you to load a .ROM file directly into the same memory
-location as the BIOS (+0000 to +4000). Only up to 16K can be loaded in this
-way. This is mainly used to load diagnostic test programs such as the
-amazing RETROLEUM DIAGROM.
+location as the BIOS (+0000 to +4000). The emulator supports 16K BIOS "replacement"
+files and 512K banked Dandanator files (e.g. Sword of Ianna). The 16K BIOS replacement
+mode is mainly used to load diagnostic test programs such as the amazing RETROLEUM DIAGROM.
 
 ZX81 Support :
 -----------------------
@@ -262,7 +263,10 @@ Version History :
 Version 1.4 - ??-????-2025 by wavemotion-dave
 * Fixed Shift and Symbol so they are truly temporary.
 * Improved memory contention timing.
+* Improved .POK support to handle much larger POK memory lists.
 * Added more resolution to the CPU speed options.
+* Added Dandanator .ROM support up to 512K banked.
+* Other minor improvements and fixes under the hood.
 
 Version 1.3 - 10-Sep-2025 by wavemotion-dave
 * Increased number of configuration game slots to 4096

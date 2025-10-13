@@ -38,9 +38,12 @@ u8  zx_special_key       __attribute__((section(".dtcm"))) = 0;
 u32 last_file_size       __attribute__((section(".dtcm"))) = 0;
 u8  isCompressed         __attribute__((section(".dtcm"))) = 1;
 u8  tape_play_skip_frame __attribute__((section(".dtcm"))) = 0;
+u8  rom_special_bank     __attribute__((section(".dtcm"))) = 0;
 
 u8  backgroundRenderScreen = 0;
 u8  bRenderSkipOnce        = 1;
+
+extern u8 dandy_disabled;
 
 ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
 {
@@ -266,9 +269,16 @@ void zx_bank(u8 new_bank)
     if (portFD & 0x20) return; // Lock out - no more bank swaps allowed
 
     // Map in the correct bios segment... make sure this isn't a diagnostic ROM
-    if ((speccy_mode != MODE_BIOS) && (speccy_mode != MODE_ZX81))
+    if ((speccy_mode != MODE_ZX81))
     {
-        MemoryMap[0] = SpectrumBios128 + ((new_bank & 0x10) ? 0x4000 : 0x0000);
+        if (rom_special_bank)
+        {
+            MemoryMap[0] = ROM_Memory + (0x4000 * (rom_special_bank-1));
+        }
+        else
+        {
+            MemoryMap[0] = SpectrumBios128 + ((new_bank & 0x10) ? 0x4000 : 0x0000);
+        }
     }
 
     // Map in the correct page of banked memory to 0xC000
@@ -601,6 +611,7 @@ void speccy_reset(void)
     zx_special_key      = 0;
 
     zx_128k_mode        = 0;   // Assume 48K until told otherwise
+    rom_special_bank    = 0;   // Assume no special ROM in SLOT0 until proven otherwise below
 
     backgroundRenderScreen = 0;
     bRenderSkipOnce        = 1;
@@ -619,7 +630,7 @@ void speccy_reset(void)
         strcpy(last_file, initial_file);
         strcpy(last_path, initial_path);
     }
-    else if (speccy_mode < MODE_BIOS)
+    else if (speccy_mode < MODE_ROM)
     {
         // -------------------------------------------------------------------
         // If we are one of the snapshot formats (Z80, SNA), decompress it...
@@ -678,10 +689,12 @@ void speccy_reset(void)
         CPU.PC.B.l=RAM_Memory[CPU.SP.W++];
         CPU.PC.B.h=RAM_Memory[CPU.SP.W++];
     }
-    else if (speccy_mode == MODE_BIOS) // Diagnostic ROM - launch in ZX 128K mode
+    else if (speccy_mode == MODE_ROM) // Diagnostic ROM or Dandanator ROM - always launch in ZX 128K mode
     {
-        // Move the BIOS/Diagnostic ROM into memory...
-        memcpy(RAM_Memory, ROM_Memory, last_file_size);   // Load diagnostics ROM into place
+        // Move the ROM into memory...
+        MemoryMap[0] = ROM_Memory;   // Load ROM into place
+        rom_special_bank = 1;        // And ensure this gets handled in zx_bank()
+        dandy_disabled   = 0;        // Dandanator starts in enabled mode
 
         if (zx_force_128k_mode || myConfig.machine)
         {
@@ -803,7 +816,7 @@ void speccy_reset(void)
         }
     }
 
-    if ((speccy_mode != MODE_BIOS) && (speccy_mode != MODE_ZX81))
+    if ((speccy_mode != MODE_ROM) && (speccy_mode != MODE_ZX81))
     {
         // Load the correct BIOS into place... either 48K Spectrum or 128K
         if (zx_128k_mode)   memcpy(RAM_Memory, SpectrumBios128, 0x4000);   // Load ZX 128K BIOS into place
@@ -833,6 +846,13 @@ ITCM_CODE u32 speccy_run(void)
         // If we are playing back the tape - just run the emulation as fast as possible
         zx_ScreenRendering = 0;
         ExecZ80_Speccy(CPU.TStates + (zx_128k_mode ? 228:224));
+
+        if (CPU.TStates > 0xFFFE0000) // Too close to the wrap point, should never happen but trap it out so we don't crash the emulation
+        {
+            CPU.TStates = 0;
+            last_edge = 0;
+            tape_stop();
+        }
     }
     else
     {

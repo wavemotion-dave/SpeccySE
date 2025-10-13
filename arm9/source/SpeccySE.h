@@ -105,7 +105,7 @@ extern u32 DX, DY;
 #define MODE_RES2           4
 #define MODE_SNA            5
 #define MODE_Z80            6
-#define MODE_BIOS           7
+#define MODE_ROM            7
 #define MODE_ZX81           8
 
 #define WAITVBL swiWaitForVBlank(); swiWaitForVBlank(); swiWaitForVBlank(); swiWaitForVBlank(); swiWaitForVBlank();
@@ -160,7 +160,10 @@ extern u8 bZX81EmuFound;
 extern u8 backgroundRenderScreen;
 extern int8 currentBrightness;
 extern uint16 dimDampen;
-
+extern u8 rom_special_bank;
+extern u8 dandanator_cmd;
+extern u8 dandanator_data1;
+extern u8 dandanator_data2;
 extern void BottomScreenOptions(void);
 extern void BottomScreenCassette(void);
 extern void BottomScreenKeyboard(void);

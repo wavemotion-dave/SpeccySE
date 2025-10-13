@@ -154,7 +154,10 @@ void spectrumSaveState()
         if (retVal) retVal = fwrite(&next_edge1,                sizeof(next_edge1),                 1, handle);
         if (retVal) retVal = fwrite(&next_edge2,                sizeof(next_edge2),                 1, handle);
         if (retVal) retVal = fwrite(&tape_play_skip_frame,      sizeof(tape_play_skip_frame),       1, handle);
-        if (retVal) retVal = fwrite(&spare,                     sizeof(spare),                      1, handle);
+        if (retVal) retVal = fwrite(&rom_special_bank,          sizeof(rom_special_bank),           1, handle);
+        if (retVal) retVal = fwrite(&dandanator_cmd,            sizeof(dandanator_cmd),             1, handle);
+        if (retVal) retVal = fwrite(&dandanator_data1,          sizeof(dandanator_data1),           1, handle);
+        if (retVal) retVal = fwrite(&dandanator_data2,          sizeof(dandanator_data2),           1, handle);        
         if (retVal) retVal = fwrite(&spare,                     sizeof(spare),                      1, handle);
         if (retVal) retVal = fwrite(&spare,                     sizeof(spare),                      1, handle);
         if (retVal) retVal = fwrite(&spare,                     sizeof(spare),                      1, handle);
@@ -296,7 +299,10 @@ void spectrumLoadState()
         if (retVal) retVal = fread(&next_edge1,                sizeof(next_edge1),                 1, handle);
         if (retVal) retVal = fread(&next_edge2,                sizeof(next_edge2),                 1, handle);
         if (retVal) retVal = fread(&tape_play_skip_frame,      sizeof(tape_play_skip_frame),       1, handle);
-        if (retVal) retVal = fread(&spare,                     sizeof(spare),                      1, handle);
+        if (retVal) retVal = fread(&rom_special_bank,          sizeof(rom_special_bank),           1, handle);
+        if (retVal) retVal = fread(&dandanator_cmd,            sizeof(dandanator_cmd),             1, handle);
+        if (retVal) retVal = fread(&dandanator_data1,          sizeof(dandanator_data1),           1, handle);
+        if (retVal) retVal = fread(&dandanator_data2,          sizeof(dandanator_data2),           1, handle);
         if (retVal) retVal = fread(&spare,                     sizeof(spare),                      1, handle);
         if (retVal) retVal = fread(&spare,                     sizeof(spare),                      1, handle);
         if (retVal) retVal = fread(&spare,                     sizeof(spare),                      1, handle);

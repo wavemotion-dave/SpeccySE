@@ -24,58 +24,67 @@
 #include "SpeccyUtils.h"
 #include "printf.h"
 
-// ----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // I've seen a few rare POKEs that are massive - e.g. Jet Set Willy has a near
-// re-write of a routine to change the jumping ... We don't support those large
-// POKEs here. Too much wasted memory and for now, we're keeping this very simple.
-// This should handle about 99% of all POKEs out there. Most games use it to
-// produce extra lives, invulnerability or weapon upgrades.
-// ----------------------------------------------------------------------------------
-#define MAX_POKES                       64  // No more than this numbber of POKEs
-#define MAX_POK_MEM                     32  // And each POKE can have up to this many memory mods
+// re-write of a routine to change the jumping and Jet-Pac RX has almost 13K 
+// worth of patches (to a 16K game!) ... To support these ultra large poke
+// possibilities, we allocate a large pool of POKs that give the system up to 
+// 16K worth of memory pokes. This should be enough for even the biggest POKs.
+// -----------------------------------------------------------------------------
+#define MAX_POKES                       64      // No more than this numbber of POKEs
+#define MAX_POK_MEM                 (16*1024)   // Our big list of POKs can contain up to 16K worth of pokes
+
+u16  pok_mem[MAX_POK_MEM];      // List of memory areas to poke
+u8   pok_val[MAX_POK_MEM];      // List of values to poke into pok_mem[] - 256 is special (means ask user)
+u8   pok_bank[MAX_POK_MEM];     // List of memory banks (for 128K Spectrum) in which to poke - usually '8' (no bank) but could be a 128K bank. High bit means ask for poke value
 
 typedef struct
 {
   char pok_name[31];            // Poke Name - cut off at 31 chars plus NULL
   u8   pok_applied;             // 1 if the poke has been applied already
-  u16  pok_mem[MAX_POK_MEM];    // List of memory areas to poke
-  u16  pok_val[MAX_POK_MEM];    // List of values to poke into pok_mem[] - 256 is special (means ask user)
-  u8   pok_bank[MAX_POK_MEM];   // List of values to poke into pok_mem[] - usually '8' but could be a 128K bank
+  u16  poke_idx_start;          // Where is this POK start in our big list?
+  u16  poke_idx_end;            // The last index to POK in our big list?
 } Poke_t;
 
-Poke_t Pokes[MAX_POKES];  // This holds all our POKEs for the current game
+Poke_t Pokes[MAX_POKES];        // This holds all our POKEs for the current game
 
 char szLoadFile[256];
 char szLine[256];
 u32  last_file_crc_poke_read;
+u16  last_pok_mem_idx;
 
 inline void WrZ80(word A, byte value)   {if (A & 0xC000) *(MemoryMap[(A)>>14] + ((A)&0x3FFF))=value;}
 
 void pok_init()
 {
-    memset(Pokes, 0x00, sizeof(Pokes));
+    memset(Pokes,    0x00, sizeof(Pokes));
+    memset(pok_mem,  0x00, sizeof(pok_mem));
+    memset(pok_val,  0x00, sizeof(pok_val));
+    memset(pok_bank, 0x00, sizeof(pok_bank));
+    last_pok_mem_idx = 0; // Index into our big 16K table of POKs
+    
     last_file_crc_poke_read = 0x00000000;
 }
 
 void pok_apply(u8 sel)
 {
     Pokes[sel].pok_applied = 1;
-    for (u8 j=0; j<MAX_POK_MEM; j++)
+    for (u16 j=Pokes[sel].poke_idx_start; j<Pokes[sel].poke_idx_end; j++)
     {
-        if (Pokes[sel].pok_mem[j] != 0)
+        if (pok_mem[j] != 0)
         {
-            u8 bank = Pokes[sel].pok_bank[j];
-            u16 value = Pokes[sel].pok_val[j];
+            u8 bank = pok_bank[j] & 0x7F;
+            u8 value = pok_val[j];
 
-            if (value == 256) // Must ask user for value...
+            if (pok_bank[j] & 0x80) // Must ask user for value...
             {
                 value = 0;
                 DSPrint(0,22,0,"ENTER POKE VALUE (0-255): ");
                 while (1)
                 {
                     if (keysCurrent() & KEY_A)    break;
-                    if (keysCurrent() & KEY_UP)   value=(value+1) & 0xFF;
-                    if (keysCurrent() & KEY_DOWN) value=(value-1) & 0xFF;
+                    if (keysCurrent() & KEY_UP)   value++;
+                    if (keysCurrent() & KEY_DOWN) value--;
                     char tmp[5];
                     sprintf(tmp,"%03d", value);
                     DSPrint(28,22,2,tmp);
@@ -88,11 +97,11 @@ void pok_apply(u8 sel)
             // If a bank is indicated (rare), we poke directly into the 128K RAM bank
             if (bank < 8)
             {
-                RAM_Memory128[(0x4000 * bank) + Pokes[sel].pok_mem[j]] = (u8)value;
+                RAM_Memory128[(0x4000 * bank) + pok_mem[j]] = value;
             }
             else
             {
-                WrZ80(Pokes[sel].pok_mem[j], (u8)value);
+                WrZ80(pok_mem[j], value);
             }
         }
     }
@@ -107,6 +116,7 @@ u8 pok_readfile(void)
 
     // Zero out all pokes before reading file
     memset(Pokes, 0x00, sizeof(Pokes));
+    last_pok_mem_idx = 0;
     num_pokes = 0;
 
     // POK files must be in a ./pok subdirectory
@@ -122,7 +132,6 @@ u8 pok_readfile(void)
 
     if (infile)
     {
-        u8 mem_idx = 0;
         do
         {
             fgets(szLine, 255, infile);
@@ -132,23 +141,27 @@ u8 pok_readfile(void)
             if (szLine[0] == 'N')
             {
                 memcpy(Pokes[num_pokes].pok_name, szLine+1, 30);
-                mem_idx=0;
+                Pokes[num_pokes].poke_idx_start = last_pok_mem_idx;
+                Pokes[num_pokes].poke_idx_end = last_pok_mem_idx;
             }
 
             if (szLine[0] == 'M' || szLine[0] == 'Z')
             {
                 while (*ptr != ' ') ptr++; while (*ptr == ' ') ptr++; // Skip to next field
-                Pokes[num_pokes].pok_bank[mem_idx] = atoi(ptr);
+                pok_bank[last_pok_mem_idx] = atoi(ptr);
                 while (*ptr != ' ') ptr++; while (*ptr == ' ') ptr++; // Skip to next field
-                Pokes[num_pokes].pok_mem[mem_idx] = atoi(ptr);
+                pok_mem[last_pok_mem_idx] = atoi(ptr);
                 while (*ptr != ' ') ptr++; while (*ptr == ' ') ptr++; // Skip to next field
-                Pokes[num_pokes].pok_val[mem_idx] = atoi(ptr);
-                if (mem_idx < (MAX_POK_MEM-1)) mem_idx++;
+                u16 value = atoi(ptr);
+                pok_val[last_pok_mem_idx] = value & 0xFF;
+                if (value == 256) pok_bank[last_pok_mem_idx] |= 0x80; // Flag to indicate user-defined value
+                
+                if (last_pok_mem_idx < (MAX_POK_MEM-1)) last_pok_mem_idx++;
+                Pokes[num_pokes].poke_idx_end = last_pok_mem_idx;
+                
                 if (szLine[0] == 'Z')
                 {
-                    if (mem_idx < MAX_POK_MEM) num_pokes++;
-                    else memset(Pokes[num_pokes].pok_mem, 0x00, sizeof(Pokes[num_pokes].pok_mem));
-                    if (num_pokes >= MAX_POKES) break;
+                    if (num_pokes < (MAX_POKES-1)) num_pokes++; else break; // We only support so many POKs
                 }
             }
 
@@ -163,7 +176,7 @@ u8 pok_readfile(void)
 
 #define POKES_PER_SCREEN  16
 
-// Show tape blocks with filenames/descriptions...
+// Show the various POK names to the user so they can select the right one...
 void pok_select(void)
 {
     char tmp[33];

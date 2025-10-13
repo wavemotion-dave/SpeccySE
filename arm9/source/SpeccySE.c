@@ -1000,7 +1000,7 @@ u8 __attribute__((noinline)) handle_meta_key(u8 meta_key)
             break;
 
         case MENU_CHOICE_CASSETTE:
-            if ((speccy_mode <= MODE_SNA) || (speccy_mode == MODE_BIOS)) // Only show if we have a tape loaded
+            if ((speccy_mode <= MODE_SNA) || (speccy_mode == MODE_ROM)) // Only show if we have a tape loaded
             {
                 CassetteMenu();
             }
