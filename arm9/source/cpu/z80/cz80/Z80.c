@@ -231,6 +231,9 @@ __attribute__((noinline)) void dandanator_flash_write(word A, byte value)
 // -------------------------------------------------------------------------------------------
 void WrZ80(word A, byte value)   {if (A & 0xC000) *(MemoryMap[(A)>>14] + ((A)&0x3FFF))=value; else dandanator_flash_write(A,value);}
 
+// For when we are writing the Stack which is always RAM-based... buys us a few frames of speed
+void WrZ80_fast(word A, byte value)   {*(MemoryMap[(A)>>14] + ((A)&0x3FFF))=value;}
+
 // -------------------------------------------------------------------
 // And these two macros will give us access to the Z80 I/O ports...
 // -------------------------------------------------------------------
@@ -291,11 +294,11 @@ void WrZ80(word A, byte value)   {if (A & 0xC000) *(MemoryMap[(A)>>14] + ((A)&0x
 #define M_POP(Rg)      \
   CPU.Rg.B.l=OpZ80(CPU.SP.W++);CPU.Rg.B.h=OpZ80(CPU.SP.W++)
 #define M_PUSH(Rg)     \
-  WrZ80(--CPU.SP.W,CPU.Rg.B.h);WrZ80(--CPU.SP.W,CPU.Rg.B.l)
+  WrZ80_fast(--CPU.SP.W,CPU.Rg.B.h);WrZ80_fast(--CPU.SP.W,CPU.Rg.B.l)
 
 #define M_CALL         \
   J.B.l=OpZ80(CPU.PC.W++);J.B.h=OpZ80(CPU.PC.W++);         \
-  WrZ80(--CPU.SP.W,CPU.PC.B.h);WrZ80(--CPU.SP.W,CPU.PC.B.l); \
+  WrZ80_fast(--CPU.SP.W,CPU.PC.B.h);WrZ80_fast(--CPU.SP.W,CPU.PC.B.l); \
   CPU.PC.W=J.W; \
   JumpZ80(J.W)
 
@@ -304,7 +307,7 @@ void WrZ80(word A, byte value)   {if (A & 0xC000) *(MemoryMap[(A)>>14] + ((A)&0x
 #define M_RET CPU.PC.B.l=OpZ80(CPU.SP.W++);CPU.PC.B.h=OpZ80(CPU.SP.W++);JumpZ80(CPU.PC.W)
 
 #define M_RST(Ad)      \
-  WrZ80(--CPU.SP.W,CPU.PC.B.h);WrZ80(--CPU.SP.W,CPU.PC.B.l);CPU.PC.W=Ad;JumpZ80(Ad)
+  WrZ80_fast(--CPU.SP.W,CPU.PC.B.h);WrZ80_fast(--CPU.SP.W,CPU.PC.B.l);CPU.PC.W=Ad;JumpZ80(Ad)
 
 #define M_LDWORD(Rg)   \
   CPU.Rg.B.l=OpZ80(CPU.PC.W++);CPU.Rg.B.h=OpZ80(CPU.PC.W++)

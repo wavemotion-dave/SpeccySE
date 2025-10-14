@@ -411,7 +411,7 @@ void ResetSpectrum(void)
   bStartIn = 0;
   bottom_screen = 0;
   last_speccy_mode = 99;
-  currentBrightness = 0; 
+  currentBrightness = 0;
   dimDampen = 0;
 }
 
@@ -840,7 +840,7 @@ u8 last_kbd_key = 0;
 u8 handle_spectrum_keyboard_press(u16 iTx, u16 iTy)  // ZX Spectrum keyboard
 {
     currentBrightness = 0; dimDampen = 0;
-    
+
     if ((iTy >= 14) && (iTy < 48))   // Row 1 (number row)
     {
         if      ((iTx >= 0)   && (iTx < 28))   kbd_key = '1';
@@ -1687,7 +1687,7 @@ void irqVBlank(void)
         dmaCopyWordsAsynch(3, (u16*)(backgroundRenderScreen & 1 ? 0x06820000:0x06830000), (u16*)0x06000000, 256*192);
         backgroundRenderScreen = 0;
     }
-    
+
     if (currentBrightness != brightness[myGlobalConfig.brightness])
     {
         HandleBrightness();
@@ -1733,21 +1733,24 @@ void LoadBIOSFiles(void)
     if (size) bSpeccyBiosFound = true; else memset(SpectrumBios, 0xFF, 0x4000);
 
     // --------------------------------------------------------------------------------
-    // Try to find the Spectrum 128K BIOS - this is not strictly needed for emulation.
+    // Try to find the Spectrum 128K BIOS - we require both 48K above and 128K here.
     // --------------------------------------------------------------------------------
-    size = ReadFileCarefully("128.rom", SpectrumBios128, 0x8000, 0);
-    if (!size) size = ReadFileCarefully("/roms/bios/128.rom", SpectrumBios128, 0x8000, 0);
-    if (!size) size = ReadFileCarefully("/data/bios/128.rom", SpectrumBios128, 0x8000, 0);
+    if (bSpeccyBiosFound)
+    {
+        size = ReadFileCarefully("128.rom", SpectrumBios128, 0x8000, 0);
+        if (!size) size = ReadFileCarefully("/roms/bios/128.rom", SpectrumBios128, 0x8000, 0);
+        if (!size) size = ReadFileCarefully("/data/bios/128.rom", SpectrumBios128, 0x8000, 0);
 
-    if (!size) size = ReadFileCarefully("128k.rom", SpectrumBios128, 0x8000, 0);
-    if (!size) size = ReadFileCarefully("/roms/bios/128k.rom", SpectrumBios128, 0x8000, 0);
-    if (!size) size = ReadFileCarefully("/data/bios/128k.rom", SpectrumBios128, 0x8000, 0);
+        if (!size) size = ReadFileCarefully("128k.rom", SpectrumBios128, 0x8000, 0);
+        if (!size) size = ReadFileCarefully("/roms/bios/128k.rom", SpectrumBios128, 0x8000, 0);
+        if (!size) size = ReadFileCarefully("/data/bios/128k.rom", SpectrumBios128, 0x8000, 0);
 
-    if (!size) size = ReadFileCarefully("zxs128.rom", SpectrumBios128, 0x8000, 0);
-    if (!size) size = ReadFileCarefully("/roms/bios/zxs128.rom", SpectrumBios128, 0x8000, 0);
-    if (!size) size = ReadFileCarefully("/data/bios/zxs128.rom", SpectrumBios128, 0x8000, 0);
+        if (!size) size = ReadFileCarefully("zxs128.rom", SpectrumBios128, 0x8000, 0);
+        if (!size) size = ReadFileCarefully("/roms/bios/zxs128.rom", SpectrumBios128, 0x8000, 0);
+        if (!size) size = ReadFileCarefully("/data/bios/zxs128.rom", SpectrumBios128, 0x8000, 0);
 
-    if (size) bSpeccyBiosFound = true; else memset(SpectrumBios128, 0xFF, 0x8000);
+        if (size) bSpeccyBiosFound = true; else memset(SpectrumBios128, 0xFF, 0x8000);
+    }
 
     // ---------------------------------------------------------------------------
     // Try and read in the ZX81 Emulator ROM... will allow .p files to be loaded.
@@ -1870,10 +1873,10 @@ int main(int argc, char **argv)
     // ---------------------------------------------------------------
     if (!bSpeccyBiosFound)
     {
-        DSPrint(2,10,0,"ERROR: ZX SPECTRUM 48.rom");
-        DSPrint(2,12,0,"      WAS NOT FOUND      ");
-        DSPrint(2,14,0," Put 48.rom in same dir  ");
-        DSPrint(2,15,0,"as EMULATOR or /ROMS/BIOS");
+        DSPrint(1,10,0," ERROR: ZX SPECTRUM ROMS WERE ");
+        DSPrint(1,12,0,"   NOT FOUND. PLEASE PUT      ");
+        DSPrint(1,14,0,"48.rom and 128.ROM in same dir");
+        DSPrint(1,16,0,"  as EMULATOR or /ROMS/BIOS   ");
         while(1) ;  // We're done... Need a Spectrum bios to run this emulator
     }
 

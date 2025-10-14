@@ -926,14 +926,14 @@ void FindConfig(void)
 // ------------------------------------------------------------------------------
 // Options are handled here... we have a number of things the user can tweak
 // and these options are applied immediately. The user can also save off
-// their option choices for the currently running game into the NINTV-DS.DAT
-// configuration database. When games are loaded back up, NINTV-DS.DAT is read
+// their option choices for the currently running game into the SpeccySE.DAT
+// configuration database. When games are loaded back up, SpeccySE.DAT is read
 // to see if we have a match and the user settings can be restored for the game.
 // ------------------------------------------------------------------------------
 struct options_t
 {
     const char  *label;
-    const char  *option[37];
+    const char  *option[16];
     u8          *option_val;
     u8           option_max;
 };
