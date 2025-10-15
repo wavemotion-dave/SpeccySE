@@ -127,7 +127,7 @@ char *loader_type = "STANDARD";
 u8 tape_sample_standard(void);
 u8 tape_pre_edge_accel(void);
 
-inline byte OpZ80(word A)  {return *(MemoryMap[(A)>>14] + ((A)&0x3FFF));}
+inline byte OpZ80(word A)  {return MemoryMap[(A)>>14][A];}
 
 TapePositionTable_t TapePositionTable[255];
 extern char strcasestr (const char *big, const char *little);
@@ -177,7 +177,7 @@ u8 tape_find_positions(void)
 // Used in the pre-loader in the standard ROM... speeds up
 // a roughly ~1 second loop and every little bit helps.
 // --------------------------------------------------------
-u8 tape_preloader_delay(void)
+ITCM_CODE u8 tape_preloader_delay(void)
 {
     u8 B = (CPU.BC.B.h-1) & 0xFF;
     if (B)
@@ -525,7 +525,7 @@ void tape_position(u8 newPos)
 // the Spectrum memory.
 // --------------------------------------------------------
 u8 show_tape_counter = 0;
-void tape_frame(void)
+ITCM_CODE void tape_frame(void)
 {
     char tmp[5];
 

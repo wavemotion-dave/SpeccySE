@@ -1211,7 +1211,7 @@ void SpeccySE_main(void)
                     // ---------------------------------------------------------
                     if (speccy_mode == MODE_ZX81)
                     {
-                        u8 *ptr = MemoryMap[16393>>14] +  (16393&0x3FFF);
+                        u8 *ptr = MemoryMap[16393>>14] +  (16393);
                         memcpy(ptr, ROM_Memory, last_file_size);
                     }
                     else // Otherwise, play the ZX Spectrum tape!
@@ -1393,7 +1393,10 @@ void SpeccySE_main(void)
       {
           if (myConfig.dpad == DPAD_DIAGONALS) // Diagonals... map standard Left/Right/Up/Down to combinations
           {
-              // TODO: add diagonal dpad support... not sure how often this is needed
+                   if (nds_key & KEY_UP)    nds_key |= KEY_RIGHT;  // UP-RIGHT
+              else if (nds_key & KEY_DOWN)  nds_key |= KEY_LEFT;   // DOWN-LEFT
+              else if (nds_key & KEY_LEFT)  nds_key |= KEY_UP;     // UP-LEFT
+              else if (nds_key & KEY_RIGHT) nds_key |= KEY_DOWN;   // DOWN-RIGHT
           }
 
           if (myConfig.dpad == DPAD_SLIDE_N_GLIDE) // CHUCKIE-EGG Style... hold left/right or up/down for a few frames
@@ -1677,7 +1680,7 @@ __attribute__ ((noinline)) void HandleBrightness(void)
 // some tearing issues - we render the screen to non-main VRAM
 // and then during the DSi VBLANK, we copy it over for display.
 // -------------------------------------------------------------
-void irqVBlank(void)
+ITCM_CODE void irqVBlank(void)
 {
     // Manage time
     vusCptVBL++;

@@ -744,10 +744,10 @@ void MapQAOP(void)
 
 void MapWASD(void)
 {
-    myConfig.keymap[0]   = 27;    // W
-    myConfig.keymap[1]   =  5;    // A
-    myConfig.keymap[2]   = 23;    // S
-    myConfig.keymap[3]   =  8;    // D
+    myConfig.keymap[0]   = 27;    // W (up)
+    myConfig.keymap[1]   = 23;    // S (down)
+    myConfig.keymap[2]   =  5;    // A (left)
+    myConfig.keymap[3]   =  8;    // D (right)
     myConfig.keymap[4]   = 43;   // Space
     myConfig.keymap[5]   = 43;   // Space
     myConfig.keymap[6]   = 30;   // Z
@@ -1570,7 +1570,7 @@ void speccySEChangeOptions(void)
 //*****************************************************************************
 // Displays a message on the screen
 //*****************************************************************************
-void DSPrint(int iX,int iY,int iScr,char *szMessage)
+ITCM_CODE void DSPrint(int iX,int iY,int iScr,char *szMessage)
 {
   u16 *pusScreen,*pusMap;
   u16 usCharac;
