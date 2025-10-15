@@ -25,7 +25,7 @@
 
 #include "lzav.h"
 
-#define SPECCY_SAVE_VER   0x0007    // Change this if the basic format of the .SAV file changes. Invalidates older .sav files.
+#define SPECCY_SAVE_VER   0x0008    // Change this if the basic format of the .SAV file changes. Invalidates older .sav files.
 
 // -----------------------------------------------------------------------------------------------------
 // Since the main MemoryMap[] can point to differt things (RAM, ROM, BIOS, etc) and since we can't rely
@@ -175,6 +175,8 @@ void spectrumSaveState()
         if (retVal) retVal = fwrite(&spare,                     sizeof(spare),                      1, handle);
         if (retVal) retVal = fwrite(&spare,                     sizeof(spare),                      1, handle);
         if (retVal) retVal = fwrite(&spare,                     sizeof(spare),                      1, handle);
+        if (retVal) retVal = fwrite(&spare,                     sizeof(spare),                      1, handle);
+        if (retVal) retVal = fwrite(&spare,                     sizeof(spare),                      1, handle);
 
         // Save Z80 Memory Map... either 48K or 128K
         u8 *ptr = (zx_128k_mode ? RAM_Memory128 : (RAM_Memory+0x4000));
@@ -321,6 +323,8 @@ void spectrumLoadState()
         if (retVal) retVal = fread(&dandanator_cmd,            sizeof(dandanator_cmd),             1, handle);
         if (retVal) retVal = fread(&dandanator_data1,          sizeof(dandanator_data1),           1, handle);
         if (retVal) retVal = fread(&dandanator_data2,          sizeof(dandanator_data2),           1, handle);
+        if (retVal) retVal = fread(&spare,                     sizeof(spare),                      1, handle);
+        if (retVal) retVal = fread(&spare,                     sizeof(spare),                      1, handle);
         if (retVal) retVal = fread(&spare,                     sizeof(spare),                      1, handle);
         if (retVal) retVal = fread(&spare,                     sizeof(spare),                      1, handle);
         if (retVal) retVal = fread(&spare,                     sizeof(spare),                      1, handle);

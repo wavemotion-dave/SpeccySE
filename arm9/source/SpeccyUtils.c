@@ -833,6 +833,7 @@ void SetDefaultGameConfig(void)
     myConfig.dpad        = DPAD_NORMAL;                 // Normal DPAD use - mapped to joystick
     myConfig.autoLoad    = 1;                           // Default is to to auto-load TAP and TZX games
     myConfig.machine     = myGlobalConfig.defMachine;   // Default machine is 48K but can be changed globally
+    myConfig.contention  = 0;                           // Normal Bus Contention
     myConfig.gameSpeed   = 0;                           // Default is 100% game speed
     myConfig.reserved3   = 0;
     myConfig.reserved4   = 0;
