@@ -45,6 +45,9 @@ u8  bRenderSkipOnce        = 1;
 
 extern u8 dandy_disabled;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+
 ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
 {
     static u8 bNonSpecialKeyWasPressed = 0;
@@ -264,7 +267,7 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
 // For the ZX Spectrum 128K this is the banking routine that will swap the BIOS ROM and
 // swap out the bank of memory that will be visible at 0xC000 in CPU address space.
 // --------------------------------------------------------------------------------------
-void zx_bank(u8 new_bank)
+ITCM_CODE void zx_bank(u8 new_bank)
 {
     if (portFD & 0x20) return; // Lock out - no more bank swaps allowed
 
@@ -282,7 +285,7 @@ void zx_bank(u8 new_bank)
     }
 
     // Map in the correct page of banked memory to 0xC000
-    MemoryMap[3] = RAM_Memory128 + ((new_bank & 0x07) * 0x4000) + 0x0000;
+    MemoryMap[3] = RAM_Memory128 + ((new_bank & 0x07) * 0x4000) - 0xC000;
 
     portFD = new_bank;
 }
@@ -330,15 +333,6 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
     }
 }
 
-// A fast look-up table when we are rendering background pixels
-u32 zx_colors_extend32[16] __attribute__((section(".dtcm"))) =
-{
-    0x00000000, 0x01010101, 0x02020202, 0x03030303,
-    0x04040404, 0x05050505, 0x06060606, 0x07070707,
-    0x08080808, 0x09090909, 0x0A0A0A0A, 0x0B0B0B0B,
-    0x0C0C0C0C, 0x0D0D0D0D, 0x0E0E0E0E, 0x0F0F0F0F
-};
-
 // ----------------------------------------------------------------------------
 // Render one screen line of pixels. This is called on every visible scanline
 // and is heavily optimized to draw as fast as possible. Since the screen is
@@ -371,13 +365,13 @@ ITCM_CODE void speccy_render_screen_line(u8 line)
     }
 
     // -----------------------------------------------------------------------------
-    // Only draw one out of every 32 frames when we are loading tape. We want to
+    // Only draw one out of every 16 frames when we are loading tape. We want to
     // give as much horsepower to the emulation CPU as possible here - this is
     // good enough to let the screen draw slowly in the background as we have time.
     // -----------------------------------------------------------------------------
     if (tape_is_playing())
     {
-        if (tape_play_skip_frame & 0x1F) return;
+        if (tape_play_skip_frame & 0x0F) return;
     }
 
     // -----------------------------------------------------------
@@ -429,11 +423,11 @@ ITCM_CODE void speccy_render_screen_line(u8 line)
         }
         else // Just drawing all background which is common...
         {
-            // ------------------------------------------------------------------
-            // Draw background directly to the screen via extended look-up table
-            // ------------------------------------------------------------------
-            *vidBuf++ = zx_colors_extend32[paper];
-            *vidBuf++ = zx_colors_extend32[paper];
+            // --------------------------------------------------------------------------------------
+            // Draw background directly to the screen - this is slightly faster than a lookup table.
+            // --------------------------------------------------------------------------------------
+            *vidBuf++ = (paper << 24) | (paper << 16) | (paper << 8) | paper;
+            *vidBuf++ = (paper << 24) | (paper << 16) | (paper << 8) | paper;
         }
     }
 }
@@ -599,9 +593,9 @@ void speccy_reset(void)
 
     // Default to a simplified memory map - remap as needed below
     MemoryMap[0] = RAM_Memory + 0x0000;
-    MemoryMap[1] = RAM_Memory + 0x4000;
-    MemoryMap[2] = RAM_Memory + 0x8000;
-    MemoryMap[3] = RAM_Memory + 0xC000;
+    MemoryMap[1] = RAM_Memory + 0x4000 - 0x4000;    // Yes, this looks silly but we do this
+    MemoryMap[2] = RAM_Memory + 0x8000 - 0x8000;    // to illustrate that we offset each
+    MemoryMap[3] = RAM_Memory + 0xC000 - 0xC000;    // MemoryMap[] by 16K for fast indexing in Z80.c
 
     CPU.PC.W            = 0x0000;
     portFE              = 0x00;
@@ -692,7 +686,7 @@ void speccy_reset(void)
     else if (speccy_mode == MODE_ROM) // Diagnostic ROM or Dandanator ROM - always launch in ZX 128K mode
     {
         // Move the ROM into memory...
-        MemoryMap[0] = ROM_Memory;   // Load ROM into place
+        MemoryMap[0] = ROM_Memory;   // Load ROM into place (for Dandanator, this will be bank 0)
         rom_special_bank = 1;        // And ensure this gets handled in zx_bank()
         dandy_disabled   = 0;        // Dandanator starts in enabled mode
 
@@ -702,9 +696,9 @@ void speccy_reset(void)
             myConfig.machine = 1;
 
             // Now set the memory map to point to the right banks...
-            MemoryMap[1] = RAM_Memory128 + (5 * 0x4000) + 0x0000; // Bank 5
-            MemoryMap[2] = RAM_Memory128 + (2 * 0x4000) + 0x0000; // Bank 2
-            MemoryMap[3] = RAM_Memory128 + (0 * 0x4000) + 0x0000; // Bank 0
+            MemoryMap[1] = RAM_Memory128 + (5 * 0x4000) - 0x4000; // Bank 5
+            MemoryMap[2] = RAM_Memory128 + (2 * 0x4000) - 0x8000; // Bank 2
+            MemoryMap[3] = RAM_Memory128 + (0 * 0x4000) - 0xC000; // Bank 0
         }
     }
     else if (speccy_mode == MODE_ZX81) // Special handling for Paul Farrow's Interface 2 ROMs
@@ -717,9 +711,9 @@ void speccy_reset(void)
         myConfig.machine = 1;
 
         // Now set the memory map to point to the right banks...
-        MemoryMap[1] = RAM_Memory128 + (5 * 0x4000) + 0x0000; // Bank 5
-        MemoryMap[2] = RAM_Memory128 + (2 * 0x4000) + 0x0000; // Bank 2
-        MemoryMap[3] = RAM_Memory128 + (0 * 0x4000) + 0x0000; // Bank 0
+        MemoryMap[1] = RAM_Memory128 + (5 * 0x4000) - 0x4000; // Bank 5
+        MemoryMap[2] = RAM_Memory128 + (2 * 0x4000) - 0x8000; // Bank 2
+        MemoryMap[3] = RAM_Memory128 + (0 * 0x4000) - 0xC000; // Bank 0
     }
     else if (speccy_mode < MODE_SNA) // TAP or TZX file - 48K or 128K
     {
@@ -730,9 +724,9 @@ void speccy_reset(void)
             myConfig.machine = 1;
 
             // Now set the memory map to point to the right banks...
-            MemoryMap[1] = RAM_Memory128 + (5 * 0x4000) + 0x0000; // Bank 5
-            MemoryMap[2] = RAM_Memory128 + (2 * 0x4000) + 0x0000; // Bank 2
-            MemoryMap[3] = RAM_Memory128 + (0 * 0x4000) + 0x0000; // Bank 0
+            MemoryMap[1] = RAM_Memory128 + (5 * 0x4000) - 0x4000; // Bank 5
+            MemoryMap[2] = RAM_Memory128 + (2 * 0x4000) - 0x8000; // Bank 2
+            MemoryMap[3] = RAM_Memory128 + (0 * 0x4000) - 0xC000; // Bank 0
         }
     }
     else // Z80 snapshot
@@ -791,8 +785,8 @@ void speccy_reset(void)
             if (zx_128k_mode)
             {
                 // Now set the memory map to point to the right banks...
-                MemoryMap[1] = RAM_Memory128 + (5 * 0x4000) + 0x0000; // Bank 5
-                MemoryMap[2] = RAM_Memory128 + (2 * 0x4000) + 0x0000; // Bank 2
+                MemoryMap[1] = RAM_Memory128 + (5 * 0x4000) - 0x4000; // Bank 5
+                MemoryMap[2] = RAM_Memory128 + (2 * 0x4000) - 0x8000; // Bank 2
 
                 zx_bank(ROM_Memory[35]);     // Last write to 0x7ffd (banking)
 
@@ -816,11 +810,10 @@ void speccy_reset(void)
         }
     }
 
+    // And put the BIOS into place into the memory map...
     if ((speccy_mode != MODE_ROM) && (speccy_mode != MODE_ZX81))
     {
-        // Load the correct BIOS into place... either 48K Spectrum or 128K
-        if (zx_128k_mode)   memcpy(RAM_Memory, SpectrumBios128, 0x4000);   // Load ZX 128K BIOS into place
-        else                memcpy(RAM_Memory, SpectrumBios, 0x4000);      // Load ZX 48K BIOS into place
+        MemoryMap[0] = (zx_128k_mode ? SpectrumBios128 : SpectrumBios);
     }
 }
 
@@ -908,5 +901,7 @@ ITCM_CODE u32 speccy_run(void)
 
     return 1; // Not end of frame
 }
+
+#pragma GCC diagnostic pop
 
 // End of file

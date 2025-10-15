@@ -55,7 +55,7 @@ const u32 crc32_table[256] = {
 // --------------------------------------------------
 // Compute the CRC of a memory buffer of any size...
 // --------------------------------------------------
-u32 getCRC32(u8 *buf, u32 size)
+ITCM_CODE u32 getCRC32(u8 *buf, u32 size)
 {
     u32 crc = 0xFFFFFFFF;
 
@@ -72,7 +72,7 @@ u32 getCRC32(u8 *buf, u32 size)
 // Read the file in and compute CRC... it's a bit slow but good enough and accurate!
 // When this routine finishes, the file will be read into ROM_Memory[]
 // ------------------------------------------------------------------------------------
-u32 getFileCrc(const char* filename)
+ITCM_CODE u32 getFileCrc(const char* filename)
 {
     u32 crc1 = 0;
     u32 crc2 = 1;

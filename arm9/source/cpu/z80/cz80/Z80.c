@@ -60,10 +60,17 @@ extern void cpu_writeport_speccy(register unsigned short Port,register unsigned 
 // This is how we access the Z80 memory. We indirect through the MemoryMap[] to
 // allow for easy mapping by the 128K machines. It's slightly slower than direct
 // RAM access but much faster than having to move around chunks of bank memory.
+//
+// Note that the MemoryMap[] here has each of the 4 segments offset by the
+// segment * 16K. This allows us to not have to mask the Address with 0x3FFF
+// and can instead just index directly knowing that MemoryMap[] has been offset
+// properly when it was setup (e.g. on a 48K machine, each MemoryMap[] segment
+// would point to the start of RAM_Memory[] such that this just turns into a 
+// simple index by the address without having to mask. This buys us 10% speed.
 // ------------------------------------------------------------------------------
-inline byte OpZ80(word A)
+inline byte OpZ80(u32 A)
 {
-    return *(MemoryMap[(A)>>14] + ((A)&0x3FFF));
+    return MemoryMap[(A)>>14][A];
 }
 
 #define RdZ80 OpZ80 // Nothing unique about a memory read - same as an OpZ80 opcode fetch
@@ -229,10 +236,10 @@ __attribute__((noinline)) void dandanator_flash_write(word A, byte value)
 // We support the possibility of a Dandanator ROM which writes to the first few addresses
 // of the ROM space ($0000 to $0003) and that's handled by dandanator_flash_write().
 // -------------------------------------------------------------------------------------------
-void WrZ80(word A, byte value)   {if (A & 0xC000) *(MemoryMap[(A)>>14] + ((A)&0x3FFF))=value; else dandanator_flash_write(A,value);}
+inline void WrZ80(u32 A, byte value)   {if (A & 0xC000) MemoryMap[(A)>>14][A] = value; else dandanator_flash_write(A,value);}
 
 // For when we are writing the Stack which is always RAM-based... buys us a few frames of speed
-void WrZ80_fast(word A, byte value)   {*(MemoryMap[(A)>>14] + ((A)&0x3FFF))=value;}
+inline void WrZ80_fast(u32 A, byte value)   {MemoryMap[(A)>>14][A] = value;}
 
 // -------------------------------------------------------------------
 // And these two macros will give us access to the Z80 I/O ports...
@@ -779,7 +786,7 @@ void ExecOneInstruction(void)
 // to see if we are within the 32 TState period where the ZX Spectrum ULA
 // would hold the Interrupt Request pulse...
 // ------------------------------------------------------------------------
-void EI_Enable(void)
+ITCM_CODE void EI_Enable(void)
 {
    ExecOneInstruction();
    CPU.IFF=(CPU.IFF&~IFF_EI)|IFF_1;

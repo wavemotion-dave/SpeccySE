@@ -25,7 +25,7 @@
 
 #include "lzav.h"
 
-#define SPECCY_SAVE_VER   0x0006    // Change this if the basic format of the .SAV file changes. Invalidates older .sav files.
+#define SPECCY_SAVE_VER   0x0007    // Change this if the basic format of the .SAV file changes. Invalidates older .sav files.
 
 // -----------------------------------------------------------------------------------------------------
 // Since the main MemoryMap[] can point to differt things (RAM, ROM, BIOS, etc) and since we can't rely
@@ -54,6 +54,9 @@ static char szLoadFile[256];        // We build the filename out of the base fil
 static char tmpStr[32];
 
 u8 CompressBuffer[150*1024];        // Big enough to handle compression of even full 128K games - we also steal this memory for screen snapshot use
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
 
 void spectrumSaveState()
 {
@@ -97,25 +100,36 @@ void spectrumSaveState()
         // And the Memory Map - we must only save offsets so that this is generic when we change code and memory shifts...
         for (u8 i=0; i<4; i++)
         {
-            if ((MemoryMap[i] >= SpectrumBios) && (MemoryMap[i] < SpectrumBios+(sizeof(SpectrumBios))))
+            // -------------------------------------------------------------------------------
+            // This is the base address where the Memory Map is pointing to... (the maps are
+            // all offset by chunks of 16K to provide faster reading/writing in Z80.c)
+            // -------------------------------------------------------------------------------
+            u8 *ptr = MemoryMap[i] + (i*0x4000);
+            
+            if ((ptr >= SpectrumBios) && (ptr < SpectrumBios+sizeof(SpectrumBios)))
             {
                 Offsets[i].type = TYPE_BIOS;
-                Offsets[i].offset = MemoryMap[i] - SpectrumBios;
+                Offsets[i].offset = ptr - SpectrumBios;
             }
-            else if ((MemoryMap[i] >= SpectrumBios128) && (MemoryMap[i] < SpectrumBios128+(sizeof(SpectrumBios128))))
+            else if ((ptr >= SpectrumBios128) && (ptr < SpectrumBios+sizeof(SpectrumBios128)))
             {
                 Offsets[i].type = TYPE_BIOS128;
-                Offsets[i].offset = MemoryMap[i] - SpectrumBios128;
+                Offsets[i].offset = ptr - SpectrumBios128;
             }
-            else if ((MemoryMap[i] >= RAM_Memory) && (MemoryMap[i] < RAM_Memory+(sizeof(RAM_Memory))))
+            else if ((ptr >= RAM_Memory) && (ptr < RAM_Memory+sizeof(RAM_Memory)))
             {
                 Offsets[i].type = TYPE_RAM;
-                Offsets[i].offset = MemoryMap[i] - RAM_Memory;
+                Offsets[i].offset = ptr - RAM_Memory;
             }
-            else if ((MemoryMap[i] >= RAM_Memory128) && (MemoryMap[i] < RAM_Memory128+(sizeof(RAM_Memory128))))
+            else if ((ptr >= RAM_Memory128) && (ptr < RAM_Memory128+sizeof(RAM_Memory128)))
             {
                 Offsets[i].type = TYPE_RAM128;
-                Offsets[i].offset = MemoryMap[i] - RAM_Memory128;
+                Offsets[i].offset = ptr - RAM_Memory128;
+            }
+            else if ((ptr >= ROM_Memory) && (ptr < ROM_Memory+sizeof(ROM_Memory)))
+            {
+                Offsets[i].type = TYPE_ROM;
+                Offsets[i].offset = ptr - ROM_Memory;
             }
             else
             {
@@ -248,23 +262,27 @@ void spectrumLoadState()
             {
                 if (Offsets[i].type == TYPE_BIOS)
                 {
-                    MemoryMap[i] = (u8 *) (SpectrumBios + Offsets[i].offset);
+                    MemoryMap[i] = (u8 *) (SpectrumBios + Offsets[i].offset - (i*0x4000));
                 }
                 else if (Offsets[i].type == TYPE_BIOS128)
                 {
-                    MemoryMap[i] = (u8 *) (SpectrumBios128 + Offsets[i].offset);
+                    MemoryMap[i] = (u8 *) (SpectrumBios128 + Offsets[i].offset - (i*0x4000));
                 }
                 else if (Offsets[i].type == TYPE_RAM)
                 {
-                    MemoryMap[i] = (u8 *) (RAM_Memory + Offsets[i].offset);
+                    MemoryMap[i] = (u8 *) (RAM_Memory + Offsets[i].offset - (i*0x4000));
                 }
                 else if (Offsets[i].type == TYPE_RAM128)
                 {
-                    MemoryMap[i] = (u8 *) (RAM_Memory128 + Offsets[i].offset);
+                    MemoryMap[i] = (u8 *) (RAM_Memory128 + Offsets[i].offset - (i*0x4000));
+                }
+                else if (Offsets[i].type == TYPE_ROM)
+                {
+                    MemoryMap[i] = (u8 *) (ROM_Memory + Offsets[i].offset - (i*0x4000));
                 }
                 else // TYPE_OTHER - this is just a pointer to memory
                 {
-                    MemoryMap[i] = (u8 *) (Offsets[i].offset);
+                    MemoryMap[i] = (u8 *) (Offsets[i].offset - (i*0x4000));
                 }
             }
         }
@@ -340,5 +358,7 @@ void spectrumLoadState()
 
     fclose(handle);
 }
+
+#pragma GCC diagnostic pop
 
 // End of file

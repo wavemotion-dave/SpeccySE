@@ -260,12 +260,14 @@ you're likely going to want ZXDS.
 
 Version History :
 -----------------------
-Version 1.4 - ??-????-2025 by wavemotion-dave
+Version 1.4 - 15-Oct-2025 by wavemotion-dave
 * Fixed Shift and Symbol so they are truly temporary.
 * Improved memory contention timing.
 * Improved .POK support to handle much larger POK memory lists.
 * Added more resolution to the CPU speed options.
 * Added Dandanator .ROM support up to 512K banked.
+* Added diagonal D-Pad handling as a configurable option.
+* CPU Core speedup for 10% speed gain (helps with DS-Lite).
 * Other minor improvements and fixes under the hood.
 
 Version 1.3 - 10-Sep-2025 by wavemotion-dave

@@ -1570,7 +1570,7 @@ void speccySEChangeOptions(void)
 //*****************************************************************************
 // Displays a message on the screen
 //*****************************************************************************
-void DSPrint(int iX,int iY,int iScr,char *szMessage)
+ITCM_CODE void DSPrint(int iX,int iY,int iScr,char *szMessage)
 {
   u16 *pusScreen,*pusMap;
   u16 usCharac;
