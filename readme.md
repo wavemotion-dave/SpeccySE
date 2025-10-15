@@ -260,7 +260,7 @@ you're likely going to want ZXDS.
 
 Version History :
 -----------------------
-Version 1.4 - 15-Oct-2025 by wavemotion-dave
+Version 1.4a - 15-Oct-2025 by wavemotion-dave
 * Fixed Shift and Symbol so they are truly temporary.
 * Improved memory contention timing.
 * Improved .POK support to handle much larger POK memory lists.
@@ -270,6 +270,7 @@ Version 1.4 - 15-Oct-2025 by wavemotion-dave
 * CPU Core speedup for 10% speed gain (helps with DS-Lite).
 * Fixed WSAD key mapping defaults (S and A were swapped).
 * Other minor improvements and fixes under the hood.
+* 1.4a Hotfix! Fixes crash in some 128K games. Sorry!
 
 Version 1.3 - 10-Sep-2025 by wavemotion-dave
 * Increased number of configuration game slots to 4096

@@ -68,7 +68,7 @@ extern void cpu_writeport_speccy(register unsigned short Port,register unsigned 
 // would point to the start of RAM_Memory[] such that this just turns into a 
 // simple index by the address without having to mask. This buys us 10% speed.
 // ------------------------------------------------------------------------------
-inline byte OpZ80(u32 A)
+inline byte OpZ80(word A)
 {
     return MemoryMap[(A)>>14][A];
 }
@@ -236,10 +236,10 @@ __attribute__((noinline)) void dandanator_flash_write(word A, byte value)
 // We support the possibility of a Dandanator ROM which writes to the first few addresses
 // of the ROM space ($0000 to $0003) and that's handled by dandanator_flash_write().
 // -------------------------------------------------------------------------------------------
-inline void WrZ80(u32 A, byte value)   {if (A & 0xC000) MemoryMap[(A)>>14][A] = value; else dandanator_flash_write(A,value);}
+inline void WrZ80(word A, byte value)   {if (A & 0xC000) MemoryMap[(A)>>14][A] = value; else dandanator_flash_write(A,value);}
 
 // For when we are writing the Stack which is always RAM-based... buys us a few frames of speed
-inline void WrZ80_fast(u32 A, byte value)   {MemoryMap[(A)>>14][A] = value;}
+inline void WrZ80_fast(word A, byte value)   {MemoryMap[(A)>>14][A] = value;}
 
 // -------------------------------------------------------------------
 // And these two macros will give us access to the Z80 I/O ports...

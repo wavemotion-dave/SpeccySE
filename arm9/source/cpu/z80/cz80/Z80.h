@@ -84,16 +84,10 @@ typedef union
   word W;
 } pair;
 
-// Special for the PC,SP to avoid mask - 2% speedup!
-typedef union
-{
-  struct { byte l,h, zz, xx; } B;
-  u32 W;
-} Dpair;
 
 typedef struct
 {
-  Dpair PC, SP;                     /* Program Counter and Stack Pointer    */
+  pair PC, SP;                      /* Program Counter and Stack Pointer    */
   pair AF,BC,DE,HL,IX,IY;           /* Main registers                       */
   pair AF1,BC1,DE1,HL1;             /* Shadow registers                     */
   byte IFF,I;                       /* Interrupt registers                  */
