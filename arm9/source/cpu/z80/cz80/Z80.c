@@ -236,17 +236,14 @@ __attribute__((noinline)) void dandanator_flash_write(word A, byte value)
 // We support the possibility of a Dandanator ROM which writes to the first few addresses
 // of the ROM space ($0000 to $0003) and that's handled by dandanator_flash_write().
 // -------------------------------------------------------------------------------------------
-inline void WrZ80(word A, byte value)   {if (A & 0xC000) MemoryMap[(A)>>14][A] = value; else dandanator_flash_write(A,value);}
+void WrZ80(word A, byte value)   {if (A & 0xC000) MemoryMap[(A)>>14][A] = value; else dandanator_flash_write(A,value);}
 
-// For when we are writing the Stack which is always RAM-based... buys us a few frames of speed
-inline void WrZ80_fast(word A, byte value)   {MemoryMap[(A)>>14][A] = value;}
 
 // -------------------------------------------------------------------
 // And these two macros will give us access to the Z80 I/O ports...
 // -------------------------------------------------------------------
 #define OutZ80(P,V)     cpu_writeport_speccy(P,V)
 #define InZ80(P)        cpu_readport_speccy(P)
-
 
 
 /** Macros for use through the CPU subsystem */
@@ -301,11 +298,11 @@ inline void WrZ80_fast(word A, byte value)   {MemoryMap[(A)>>14][A] = value;}
 #define M_POP(Rg)      \
   CPU.Rg.B.l=OpZ80(CPU.SP.W++);CPU.Rg.B.h=OpZ80(CPU.SP.W++)
 #define M_PUSH(Rg)     \
-  WrZ80_fast(--CPU.SP.W,CPU.Rg.B.h);WrZ80_fast(--CPU.SP.W,CPU.Rg.B.l)
+  WrZ80(--CPU.SP.W,CPU.Rg.B.h);WrZ80(--CPU.SP.W,CPU.Rg.B.l)
 
 #define M_CALL         \
   J.B.l=OpZ80(CPU.PC.W++);J.B.h=OpZ80(CPU.PC.W++);         \
-  WrZ80_fast(--CPU.SP.W,CPU.PC.B.h);WrZ80_fast(--CPU.SP.W,CPU.PC.B.l); \
+  WrZ80(--CPU.SP.W,CPU.PC.B.h);WrZ80(--CPU.SP.W,CPU.PC.B.l); \
   CPU.PC.W=J.W; \
   JumpZ80(J.W)
 
@@ -314,7 +311,7 @@ inline void WrZ80_fast(word A, byte value)   {MemoryMap[(A)>>14][A] = value;}
 #define M_RET CPU.PC.B.l=OpZ80(CPU.SP.W++);CPU.PC.B.h=OpZ80(CPU.SP.W++);JumpZ80(CPU.PC.W)
 
 #define M_RST(Ad)      \
-  WrZ80_fast(--CPU.SP.W,CPU.PC.B.h);WrZ80_fast(--CPU.SP.W,CPU.PC.B.l);CPU.PC.W=Ad;JumpZ80(Ad)
+  WrZ80(--CPU.SP.W,CPU.PC.B.h);WrZ80(--CPU.SP.W,CPU.PC.B.l);CPU.PC.W=Ad;JumpZ80(Ad)
 
 #define M_LDWORD(Rg)   \
   CPU.Rg.B.l=OpZ80(CPU.PC.W++);CPU.Rg.B.h=OpZ80(CPU.PC.W++)
@@ -583,8 +580,8 @@ ITCM_CODE void IntZ80(Z80 *R,word Vector)
       /* If in IM2 mode... */
       if(CPU.IFF&IFF_IM2)
       {
-          /* Make up the vector address */
-          Vector=(Vector&0xFF)|((word)(CPU.I)<<8);
+          /* Make up the vector address - technically the Vector is whatever is on the data bus but is usually 0xFF */
+          Vector=(0xFF)|((word)(CPU.I)<<8);
           /* Read the vector */
           CPU.PC.B.l=RdZ80(Vector++);
           CPU.PC.B.h=RdZ80(Vector);

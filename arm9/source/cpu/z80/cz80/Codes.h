@@ -386,8 +386,8 @@ case LD_xWORD_A:
   break;
 
 case EX_HL_xSP:
-  J.B.l=RdZ80(CPU.SP.W);WrZ80_fast(CPU.SP.W++,CPU.HL.B.l);
-  J.B.h=RdZ80(CPU.SP.W);WrZ80_fast(CPU.SP.W--,CPU.HL.B.h);
+  J.B.l=RdZ80(CPU.SP.W);WrZ80(CPU.SP.W++,CPU.HL.B.l);
+  J.B.h=RdZ80(CPU.SP.W);WrZ80(CPU.SP.W--,CPU.HL.B.h);
   CPU.HL.W=J.W;
   break;
 

@@ -20,6 +20,7 @@ Features :
 * Kempston and Sinclair joystick support
 * Fully configurable keys for the 12 NDS keys to any combination of joystick/keyboard
 * Save and Restore states so you can pick up where you left off
+* ULAPlus support for enhanced 64 color mode (from a palette of 256 colors)
 * Slide-n-Glide style Joystick configuration to make climbing ladders in games like Chuckie-Egg more forgiving (try it - you'll like it!)
 * High Score saving for 10 scores with initials, date/time.
 * Solid Z80 core that passes the ZEXDOC test suite (covering everything but not undocumented flags).

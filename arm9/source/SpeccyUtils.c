@@ -819,6 +819,7 @@ void SetDefaultGlobalConfig(void)
     myGlobalConfig.lastDir        = 0;    // Default is to start in /roms/speccy
     myGlobalConfig.debugger       = 0;    // Debugger is not shown by default
     myGlobalConfig.defMachine     = 0;    // Default machine is 48K Spectrum
+    myGlobalConfig.defULAplus     = 1;    // Default machine allows ULA Plus
 }
 
 void SetDefaultGameConfig(void)
@@ -835,7 +836,7 @@ void SetDefaultGameConfig(void)
     myConfig.machine     = myGlobalConfig.defMachine;   // Default machine is 48K but can be changed globally
     myConfig.contention  = 0;                           // Normal Bus Contention
     myConfig.gameSpeed   = 0;                           // Default is 100% game speed
-    myConfig.reserved3   = 0;
+    myConfig.ULAplus     = myGlobalConfig.defULAplus;   // Default is to allow ULA Plus but can be changed globally
     myConfig.reserved4   = 0;
     myConfig.reserved5   = 0;
     myConfig.reserved6   = 0;
@@ -871,6 +872,20 @@ void LoadConfig(void)
         else // Uncompressed... old-style format held 1000 slots
         {
             ReadFileCarefully("/data/SpeccySE.DAT", (u8*)&AllConfigs, 1000 * sizeof(struct Config_t), sizeof(myGlobalConfig)); // Read the full game array of configs
+        }
+        
+        // One time upgrade from 4 to 5 - patches in the ULA Plus support
+        if (myGlobalConfig.config_ver == 4)
+        {
+            myGlobalConfig.defULAplus = 1;
+            for (int i=0; i<MAX_CONFIGS; i++)
+            {
+                if (AllConfigs[i].game_crc != 0x00000000)
+                {
+                    AllConfigs[i].ULAplus = 1;
+                }
+            }
+            myGlobalConfig.config_ver = CONFIG_VERSION;
         }
 
         // Wrong version... init the entire database
@@ -944,12 +959,13 @@ const struct options_t Option_Table[2][20] =
     // Game Specific Configuration
     {
         {"MACHINE",        {"48K SPECTRUM", "128K SPECTRUM"},                           &myConfig.machine,           2},
+        {"ULA PLUS",       {"DISABLED",  "ENABLED"},                                    &myConfig.ULAplus,           2},
         {"AUTO PLAY",      {"NO", "YES"},                                               &myConfig.autoLoad,          2},
         {"AUTO STOP",      {"NO", "YES"},                                               &myConfig.autoStop,          2},
         {"AUTO FIRE",      {"OFF", "ON"},                                               &myConfig.autoFire,          2},
         {"TAPE SPEED",     {"NORMAL", "ACCELERATED"},                                   &myConfig.tapeSpeed,         2},
         {"GAME SPEED",     {"100%","102%","105%","110%","120%","98%","95%","90%","80%"},&myConfig.gameSpeed,         9},
-        {"BUS CONTEND",    {"NORMAL", "LIGHT", "HEAVY"},                                &myConfig.contention,        3},
+        {"BUS CONTEND",    {"NORMAL", "LIGHT", "HEAVY", "NONE"},                        &myConfig.contention,        4},
         {"NDS D-PAD",      {"NORMAL", "DIAGONALS", "SLIDE-N-GLIDE"},                    &myConfig.dpad,              3},
         
         {NULL,             {"",      ""},                                               NULL,                        1},
@@ -957,6 +973,7 @@ const struct options_t Option_Table[2][20] =
     // Global Options
     {
         {"DEF MACHINE",    {"48K SPECTRUM",  "128K SPECTRUM"},                         &myGlobalConfig.defMachine,  2},
+        {"ULA PLUS",       {"DISABLED",  "ENABLED"},                                   &myGlobalConfig.defULAplus,  2},
         {"FPS",            {"OFF", "ON", "ON FULLSPEED"},                              &myGlobalConfig.showFPS,     3},
         {"START DIR",      {"/ROMS/SPECCY",  "LAST USED DIR"},                         &myGlobalConfig.lastDir,     2},
         {"KEYBD BRIGHT",   {"MAX BRIGHT", "DIM", "DIMMER", "DIMMEST"},                 &myGlobalConfig.brightness,  4},        

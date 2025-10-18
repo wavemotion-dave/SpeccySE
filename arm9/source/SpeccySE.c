@@ -513,6 +513,11 @@ void DisplayStatusLine(bool bForce)
         last_speccy_mode = speccy_mode;
         DSPrint(28,0,2, zx_128k_mode ? "128K" : " 48K");
     }
+    
+    if (zx_ula_plus_enabled)
+    {
+        DSPrint(23,0,2, "UL[+");
+    }
 
     if (zx_special_key || (kbd_key == KBD_KEY_SYMBOL) || (kbd_key == KBD_KEY_SHIFT) || (kbd_key == KBD_KEY_SYMDIR) || (kbd_key == KBD_KEY_SFTDIR))
     {
@@ -1138,7 +1143,6 @@ void SpeccySE_main(void)
   // Get the ZX Spectrum Emulator ready
   spectrumInit(gpFic[ucGameAct].szName);
 
-  spectrumSetPalette();
   spectrumRun();
 
   // Frame-to-frame timing...

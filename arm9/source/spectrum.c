@@ -39,6 +39,10 @@ u32 last_file_size       __attribute__((section(".dtcm"))) = 0;
 u8  isCompressed         __attribute__((section(".dtcm"))) = 1;
 u8  tape_play_skip_frame __attribute__((section(".dtcm"))) = 0;
 u8  rom_special_bank     __attribute__((section(".dtcm"))) = 0;
+u8  zx_ula_plus_enabled  __attribute__((section(".dtcm"))) = 0;
+
+u8  zx_ula_plus_palette[64] = {0};
+u8  zx_ula_plus_reg_port = 0x00;
 
 u8  backgroundRenderScreen = 0;
 u8  bRenderSkipOnce        = 1;
@@ -235,10 +239,25 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
         return joy1;
     }
     else
-    if ((Port & 0xc002) == 0xc000) // AY input
+    if ((Port & 0xBFFF) == 0xBF3B) // ULA+
     {
-        return ay38910DataR(&myAY);
-    }
+        // 0xBF3B is Register Port
+        // 0xFF3B is the Data Port
+        if (myConfig.ULAplus)
+        {
+            if (Port == 0xFF3B)
+            {
+                if ((zx_ula_plus_reg_port >> 6) == 0x00) // Palette Group
+                {
+                    return zx_ula_plus_palette[zx_ula_plus_reg_port & 0x3F];
+                }
+                else if ((zx_ula_plus_reg_port >> 6) == 0x01) // Mode Group
+                {
+                    return zx_ula_plus_enabled;
+                }
+            }
+        }
+     }
 
     // ---------------------------------------------------------------------------------------------
     // Poor Man's floating bus. Very few games use this - so we basically handle it very roughly.
@@ -331,6 +350,93 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
         ay38910DataW(Value, &myAY);
         if (zx_AY_index_written) zx_AY_enabled = 1;
     }
+    else
+    if ((Port & 0xBFFF) == 0xBF3B) // ULA+
+    {
+        if (myConfig.ULAplus)
+        {
+            // 0xBF3B is Register Port
+            // 0xFF3B is the Data Port            
+            if (Port == 0xBF3B)
+            {
+                zx_ula_plus_reg_port = Value;
+            }
+            else if (Port == 0xFF3B)
+            {
+                if ((zx_ula_plus_reg_port >> 6) == 0x00) // Palette Group
+                {
+                    u8 reg = zx_ula_plus_reg_port & 0x3F;
+                    u8 r = (Value >> 2) & 7;
+                    u8 g = (Value >> 5) & 7;
+                    u8 b = (Value & 3) << 1 | ((Value & 3) ? 1:0);
+                    r = (r << 5) | (r << 2) | (r >> 1);
+                    g = (g << 5) | (g << 2) | (g >> 1);
+                    b = (b << 5) | (b << 2) | (b >> 1);
+                    SPRITE_PALETTE[reg] = RGB15(r,g,b);
+                    BG_PALETTE[reg]     = RGB15(r,g,b);
+                    zx_ula_plus_palette[reg] = Value;
+                }
+                else if ((zx_ula_plus_reg_port >> 6) == 0x01) // Mode Group
+                {
+                    zx_ula_plus_enabled = (Value & 1);
+                    if (zx_ula_plus_enabled == 0) spectrumSetPalette();
+                }
+            }
+        }
+    }
+}
+
+void apply_ula_plus_palette(void)
+{
+    for (int reg=0; reg<64; reg++)
+    {
+        u8 r = (zx_ula_plus_palette[reg] >> 2) & 7;
+        u8 g = (zx_ula_plus_palette[reg] >> 5) & 7;
+        u8 b = (zx_ula_plus_palette[reg] & 3) << 1 | ((zx_ula_plus_palette[reg] & 3) ? 1:0);
+        r = (r << 5) | (r << 2) | (r >> 1);
+        g = (g << 5) | (g << 2) | (g >> 1);
+        b = (b << 5) | (b << 2) | (b >> 1);
+        SPRITE_PALETTE[reg] = RGB15(r,g,b);
+        BG_PALETTE[reg]     = RGB15(r,g,b);
+    }
+}
+
+// ----------------------------------------------------------------------------
+// ULA Plus render line
+// ----------------------------------------------------------------------------
+ITCM_CODE void speccy_render_screen_line_ula_plus(u32 *vidBuf, u8* attrPtr, u8*pixelPtr)
+{
+    // ---------------------------------------------------------------------
+    // With 8 pixels per byte, there are 32 bytes of horizontal screen data
+    // ---------------------------------------------------------------------
+    for (int x=0; x<32; x++)
+    {
+        u8 attr = *attrPtr++;           // The color attribute for ULA+
+        u8 pixel = *pixelPtr++;         // And here is 8 pixels to draw
+
+        u8 ink   = ((attr >> 6) * 16) + (attr & 0x07);            // Ink Color is the foreground
+        u8 paper = ((attr >> 6) * 16) + ((attr >> 3) & 0x07) + 8; // Paper is the background
+        
+        // --------------------------------------------------------------------------
+        // And now the pixel drawing... We try to speed this up as much as possible.
+        // --------------------------------------------------------------------------
+        if (pixel) // Is at least one pixel on?
+        {
+            // ------------------------------------------------------------------------------------------------------------------------
+            // I've tried look-up tables here, but nothing was as fast as checking the bit and shifting ink/paper to the right spot...
+            // ------------------------------------------------------------------------------------------------------------------------
+            *vidBuf++ = (((pixel & 0x80) ? ink:paper)) | (((pixel & 0x40) ? ink:paper) << 8) | (((pixel & 0x20) ? ink:paper) << 16) | (((pixel & 0x10) ? ink:paper) << 24);
+            *vidBuf++ = (((pixel & 0x08) ? ink:paper)) | (((pixel & 0x04) ? ink:paper) << 8) | (((pixel & 0x02) ? ink:paper) << 16) | (((pixel & 0x01) ? ink:paper) << 24);
+        }
+        else // Just drawing all background which is common...
+        {
+            // --------------------------------------------------------------------------------------
+            // Draw background directly to the screen - this is slightly faster than a lookup table.
+            // --------------------------------------------------------------------------------------
+            *vidBuf++ = (paper << 24) | (paper << 16) | (paper << 8) | paper;
+            *vidBuf++ = (paper << 24) | (paper << 16) | (paper << 8) | paper;
+        }
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -392,7 +498,9 @@ ITCM_CODE void speccy_render_screen_line(u8 line)
     u8 *attrPtr = &zx_ScreenPage[0x1800 + ((line/8)*32)];
     word offset = ((line&0x07) << 8) | ((line&0x38) << 2) | ((line&0xC0) << 5);
     u8 *pixelPtr = zx_ScreenPage+offset;
-
+    
+    if (zx_ula_plus_enabled) speccy_render_screen_line_ula_plus(vidBuf, attrPtr, pixelPtr);
+    else
     // ---------------------------------------------------------------------
     // With 8 pixels per byte, there are 32 bytes of horizontal screen data
     // ---------------------------------------------------------------------
@@ -431,6 +539,7 @@ ITCM_CODE void speccy_render_screen_line(u8 line)
         }
     }
 }
+
 
 // -----------------------------------------------------
 // Z80 Snapshot v1 is always a 48K game...
@@ -590,6 +699,9 @@ void speccy_reset(void)
     tape_reset();
     tape_patch();
     pok_init();
+    
+    // Restore the original palette (in case ULA+ changed it)
+    spectrumSetPalette();
 
     // Default to a simplified memory map - remap as needed below
     MemoryMap[0] = RAM_Memory + 0x0000;
@@ -606,12 +718,16 @@ void speccy_reset(void)
 
     zx_128k_mode        = 0;   // Assume 48K until told otherwise
     rom_special_bank    = 0;   // Assume no special ROM in SLOT0 until proven otherwise below
+    
+    zx_ula_plus_enabled     = 0;   // Assume no ULA+ (normal Spectrum ULA)
+    zx_ula_plus_reg_port    = 0x00;
+    memset(zx_ula_plus_palette, 0x00, sizeof(zx_ula_plus_palette));
 
     backgroundRenderScreen = 0;
     bRenderSkipOnce        = 1;
 
     // Set the 'average' contention delay...
-    static const u8 contend_delay[3] = {3,2,4};
+    static const u8 contend_delay[4] = {3,2,4,0};
     zx_contend_delay = contend_delay[myConfig.contention];
 
     // ------------------------------------------------
@@ -688,7 +804,7 @@ void speccy_reset(void)
         // Move the ROM into memory...
         MemoryMap[0] = ROM_Memory;   // Load ROM into place (for Dandanator, this will be bank 0)
         rom_special_bank = 1;        // And ensure this gets handled in zx_bank()
-        dandy_disabled   = 0;        // Dandanator starts in enabled mode
+        dandy_disabled   = (last_file_size <= (16*1024)) ? 1:0;  // Dandanator starts in enabled mode if > 16K
 
         if (zx_force_128k_mode || myConfig.machine)
         {

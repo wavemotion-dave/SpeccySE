@@ -171,8 +171,14 @@ void spectrumSaveState()
         if (retVal) retVal = fwrite(&rom_special_bank,          sizeof(rom_special_bank),           1, handle);
         if (retVal) retVal = fwrite(&dandanator_cmd,            sizeof(dandanator_cmd),             1, handle);
         if (retVal) retVal = fwrite(&dandanator_data1,          sizeof(dandanator_data1),           1, handle);
-        if (retVal) retVal = fwrite(&dandanator_data2,          sizeof(dandanator_data2),           1, handle);        
-        if (retVal) retVal = fwrite(&spare,                     sizeof(spare),                      1, handle);
+        if (retVal) retVal = fwrite(&dandanator_data2,          sizeof(dandanator_data2),           1, handle);
+        if (retVal) retVal = fwrite(&zx_ula_plus_enabled,       sizeof(zx_ula_plus_enabled),        1, handle);
+        if (retVal) retVal = fwrite(&zx_ula_plus_reg_port,      sizeof(zx_ula_plus_reg_port),       1, handle);
+        if (zx_ula_plus_enabled)
+        {
+            if (retVal) retVal = fwrite(&zx_ula_plus_palette,   sizeof(zx_ula_plus_palette),        1, handle);
+        }
+        if (retVal) retVal = fwrite(&spare,                     2,                                  1, handle);
         if (retVal) retVal = fwrite(&spare,                     sizeof(spare),                      1, handle);
         if (retVal) retVal = fwrite(&spare,                     sizeof(spare),                      1, handle);
         if (retVal) retVal = fwrite(&spare,                     sizeof(spare),                      1, handle);
@@ -323,7 +329,14 @@ void spectrumLoadState()
         if (retVal) retVal = fread(&dandanator_cmd,            sizeof(dandanator_cmd),             1, handle);
         if (retVal) retVal = fread(&dandanator_data1,          sizeof(dandanator_data1),           1, handle);
         if (retVal) retVal = fread(&dandanator_data2,          sizeof(dandanator_data2),           1, handle);
-        if (retVal) retVal = fread(&spare,                     sizeof(spare),                      1, handle);
+        if (retVal) retVal = fread(&zx_ula_plus_enabled,       sizeof(zx_ula_plus_enabled),        1, handle);
+        if (retVal) retVal = fread(&zx_ula_plus_reg_port,      sizeof(zx_ula_plus_reg_port),       1, handle);
+        if (zx_ula_plus_enabled)
+        {
+            if (retVal) retVal = fread(&zx_ula_plus_palette,   sizeof(zx_ula_plus_palette),        1, handle);
+            apply_ula_plus_palette();
+        }
+        if (retVal) retVal = fread(&spare,                     2,                                  1, handle);
         if (retVal) retVal = fread(&spare,                     sizeof(spare),                      1, handle);
         if (retVal) retVal = fread(&spare,                     sizeof(spare),                      1, handle);
         if (retVal) retVal = fread(&spare,                     sizeof(spare),                      1, handle);

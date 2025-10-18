@@ -17,10 +17,10 @@
 
 #define MAX_FILES                   2048
 #define MAX_FILENAME_LEN            160
-#define MAX_TAPE_SIZE               (512*1024) // 512K is big enough for any .TAP/.TZX or Snapshot
+#define MAX_TAPE_SIZE               (640*1024) // 640K is big enough for any .TAP/.TZX or Snapshot
 
 #define MAX_CONFIGS                 4096
-#define CONFIG_VERSION              0x0004
+#define CONFIG_VERSION              0x0005
 
 #define SPECCY_FILE                 0x01
 #define DIRECTORY                   0x02
@@ -65,7 +65,7 @@ struct __attribute__((__packed__)) GlobalConfig_t
     u8  lastDir;
     u8  defMachine;
     u8  brightness;
-    u8  global_03;
+    u8  defULAplus;
     u8  global_04;
     u8  global_05;
     u8  global_06;
@@ -91,7 +91,7 @@ struct __attribute__((__packed__)) Config_t
     u8  autoLoad;
     u8  machine;
     u8  gameSpeed;
-    u8  reserved3;
+    u8  ULAplus;
     u8  reserved4;
     u8  reserved5;
     u8  reserved6;
