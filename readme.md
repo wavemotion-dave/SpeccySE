@@ -246,6 +246,12 @@ other way to reverse the Memory Poke that has been done. If you are using a tape
 poke. Use at your own risk (oh... you can't really damage anything but the poke
 might not work the way you expect if you do it at the wrong time).
 
+Known Issues :
+-----------------------
+* Not all Dandanator games run properly - support is preliminary.
+* Plyuk and Ringo utilize graphics handling that requires pinpoint accuracy in emulation timing and will not look correct.
+* TRD disk files are not supported yet. Most games have TAP or Dandanator alternatives - but not all.
+
 Why? :
 -----------------------
 There was never a need for this emulator to exist. ZXDS is the defacto standard of 
