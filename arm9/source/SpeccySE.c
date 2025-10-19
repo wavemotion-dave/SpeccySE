@@ -254,8 +254,6 @@ ITCM_CODE mm_word OurSoundMixer(mm_word len, mm_addr dest, mm_stream_formats for
 // over-sampled and smoothed someday to make it really shine... good enough for now.
 // --------------------------------------------------------------------------------------------
 s16 mixbufAY[4]     __attribute__((section(".dtcm"))) = { 0x000, 0x000, 0x000, 0x000 };
-s16 beeper_vol[4]   __attribute__((section(".dtcm"))) = { 0x000, 0x200, 0x600, 0xA00 };
-u32 vol             __attribute__((section(".dtcm"))) = 0;
 ITCM_CODE void processDirectAudio(void)
 {
     if (zx_AY_enabled)
@@ -265,15 +263,11 @@ ITCM_CODE void processDirectAudio(void)
 
     for (u8 i=0; i<2; i++)
     {
-        // Smooth edges of beeper slightly...
-        if (portFE & 0x10) {if (vol < 3) vol++;}
-        else {if (vol) vol--;}
-
         if (breather) {return;}
         s16 sample = mixbufAY[i];
-        if (beeper_vol[vol])
+        if (portFE & 0x10)
         {
-            sample += beeper_vol[vol] + (8 - (int)(rand() & 0xF)); // Sample plus a bit of white noise to break up aliasing
+            sample += 0xA00 + (8 - (int)(rand() & 0xF)); // Sample plus a bit of white noise to break up aliasing
         }
         mixer[mixer_write] = sample;
         mixer_write++; mixer_write &= WAVE_DIRECT_BUF_SIZE;

@@ -25,7 +25,7 @@
 
 #include "lzav.h"
 
-#define SPECCY_SAVE_VER   0x0008    // Change this if the basic format of the .SAV file changes. Invalidates older .sav files.
+#define SPECCY_SAVE_VER   0x0009    // Change this if the basic format of the .SAV file changes. Invalidates older .sav files.
 
 // -----------------------------------------------------------------------------------------------------
 // Since the main MemoryMap[] can point to differt things (RAM, ROM, BIOS, etc) and since we can't rely
@@ -58,11 +58,14 @@ u8 CompressBuffer[150*1024];        // Big enough to handle compression of even 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
 
+u8 spare[300];
+
 void spectrumSaveState()
 {
-    u32 spare = 0;
     size_t retVal;
 
+    memset(spare, 0x00, sizeof(spare));
+    
     // Return to the original path
     chdir(initial_path);
 
@@ -173,16 +176,10 @@ void spectrumSaveState()
         if (retVal) retVal = fwrite(&dandanator_data1,          sizeof(dandanator_data1),           1, handle);
         if (retVal) retVal = fwrite(&dandanator_data2,          sizeof(dandanator_data2),           1, handle);
         if (retVal) retVal = fwrite(&zx_ula_plus_enabled,       sizeof(zx_ula_plus_enabled),        1, handle);
-        if (retVal) retVal = fwrite(&zx_ula_plus_reg_port,      sizeof(zx_ula_plus_reg_port),       1, handle);
-        if (zx_ula_plus_enabled)
-        {
-            if (retVal) retVal = fwrite(&zx_ula_plus_palette,   sizeof(zx_ula_plus_palette),        1, handle);
-        }
-        if (retVal) retVal = fwrite(&spare,                     2,                                  1, handle);
-        if (retVal) retVal = fwrite(&spare,                     sizeof(spare),                      1, handle);
-        if (retVal) retVal = fwrite(&spare,                     sizeof(spare),                      1, handle);
-        if (retVal) retVal = fwrite(&spare,                     sizeof(spare),                      1, handle);
-        if (retVal) retVal = fwrite(&spare,                     sizeof(spare),                      1, handle);
+        if (retVal) retVal = fwrite(&zx_ula_plus_group,         sizeof(zx_ula_plus_group),          1, handle);
+        if (retVal) retVal = fwrite(&zx_ula_plus_palette_reg,   sizeof(zx_ula_plus_palette_reg),    1, handle);
+        if (retVal) retVal = fwrite(&zx_ula_plus_palette,       sizeof(zx_ula_plus_palette),        1, handle);
+        if (retVal) retVal = fwrite(spare,                      300,                                1, handle);
 
         // Save Z80 Memory Map... either 48K or 128K
         u8 *ptr = (zx_128k_mode ? RAM_Memory128 : (RAM_Memory+0x4000));
@@ -218,7 +215,6 @@ void spectrumSaveState()
  ********************************************************************************/
 void spectrumLoadState()
 {
-    u32 spare = 0;
     size_t retVal;
 
     // Return to the original path
@@ -330,17 +326,15 @@ void spectrumLoadState()
         if (retVal) retVal = fread(&dandanator_data1,          sizeof(dandanator_data1),           1, handle);
         if (retVal) retVal = fread(&dandanator_data2,          sizeof(dandanator_data2),           1, handle);
         if (retVal) retVal = fread(&zx_ula_plus_enabled,       sizeof(zx_ula_plus_enabled),        1, handle);
-        if (retVal) retVal = fread(&zx_ula_plus_reg_port,      sizeof(zx_ula_plus_reg_port),       1, handle);
+        if (retVal) retVal = fread(&zx_ula_plus_group,         sizeof(zx_ula_plus_group),          1, handle);
+        if (retVal) retVal = fread(&zx_ula_plus_palette_reg,   sizeof(zx_ula_plus_palette_reg),    1, handle);
+        if (retVal) retVal = fread(&zx_ula_plus_palette,       sizeof(zx_ula_plus_palette),        1, handle);
+        if (retVal) retVal = fread(spare,                      300,                                1, handle);
+
         if (zx_ula_plus_enabled)
         {
-            if (retVal) retVal = fread(&zx_ula_plus_palette,   sizeof(zx_ula_plus_palette),        1, handle);
             apply_ula_plus_palette();
         }
-        if (retVal) retVal = fread(&spare,                     2,                                  1, handle);
-        if (retVal) retVal = fread(&spare,                     sizeof(spare),                      1, handle);
-        if (retVal) retVal = fread(&spare,                     sizeof(spare),                      1, handle);
-        if (retVal) retVal = fread(&spare,                     sizeof(spare),                      1, handle);
-        if (retVal) retVal = fread(&spare,                     sizeof(spare),                      1, handle);
 
         // Load Z80 Memory Map... either 48K or 128K
         int comp_len = 0;

@@ -42,7 +42,8 @@ u8  rom_special_bank     __attribute__((section(".dtcm"))) = 0;
 u8  zx_ula_plus_enabled  __attribute__((section(".dtcm"))) = 0;
 
 u8  zx_ula_plus_palette[64] = {0};
-u8  zx_ula_plus_reg_port = 0x00;
+u8  zx_ula_plus_group = 0x00;
+u8  zx_ula_plus_palette_reg = 0x00;
 
 u8  backgroundRenderScreen = 0;
 u8  bRenderSkipOnce        = 1;
@@ -241,17 +242,17 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
     else
     if ((Port & 0xBFFF) == 0xBF3B) // ULA+
     {
-        // 0xBF3B is Register Port
-        // 0xFF3B is the Data Port
+        // 0xBF3B is Register Port - write only (no read-back)
+        // 0xFF3B is the Data Port - read/write
         if (myConfig.ULAplus)
         {
             if (Port == 0xFF3B)
             {
-                if ((zx_ula_plus_reg_port >> 6) == 0x00) // Palette Group
+                if ((zx_ula_plus_group >> 6) == 0x00) // Palette Group
                 {
-                    return zx_ula_plus_palette[zx_ula_plus_reg_port & 0x3F];
+                    return zx_ula_plus_palette[zx_ula_plus_palette_reg];
                 }
-                else if ((zx_ula_plus_reg_port >> 6) == 0x01) // Mode Group
+                else if ((zx_ula_plus_group >> 6) == 0x01) // Mode Group
                 {
                     return zx_ula_plus_enabled;
                 }
@@ -359,27 +360,33 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
             // 0xFF3B is the Data Port            
             if (Port == 0xBF3B)
             {
-                zx_ula_plus_reg_port = Value;
+                zx_ula_plus_group = Value;
+                if ((zx_ula_plus_group >> 6) == 0x00) // Palette Group
+                {
+                    zx_ula_plus_palette_reg = (zx_ula_plus_group & 0x3F);
+                }
+                else
+                {
+                    // Mode Group selected... we don't support the Timex screen extensions.
+                }
             }
             else if (Port == 0xFF3B)
             {
-                if ((zx_ula_plus_reg_port >> 6) == 0x00) // Palette Group
+                if ((zx_ula_plus_group >> 6) == 0x00) // Palette Group
                 {
-                    u8 reg = zx_ula_plus_reg_port & 0x3F;
                     u8 r = (Value >> 2) & 7;
                     u8 g = (Value >> 5) & 7;
                     u8 b = (Value & 3) << 1 | ((Value & 3) ? 1:0);
                     r = (r << 5) | (r << 2) | (r >> 1);
                     g = (g << 5) | (g << 2) | (g >> 1);
                     b = (b << 5) | (b << 2) | (b >> 1);
-                    SPRITE_PALETTE[reg] = RGB15(r,g,b);
-                    BG_PALETTE[reg]     = RGB15(r,g,b);
-                    zx_ula_plus_palette[reg] = Value;
+                    SPRITE_PALETTE[0x80|zx_ula_plus_palette_reg] = RGB15(r,g,b);
+                    BG_PALETTE[0x80|zx_ula_plus_palette_reg]     = RGB15(r,g,b);
+                    zx_ula_plus_palette[zx_ula_plus_palette_reg] = Value;
                 }
-                else if ((zx_ula_plus_reg_port >> 6) == 0x01) // Mode Group
+                else if ((zx_ula_plus_group >> 6) == 0x01) // Mode Group
                 {
                     zx_ula_plus_enabled = (Value & 1);
-                    if (zx_ula_plus_enabled == 0) spectrumSetPalette();
                 }
             }
         }
@@ -396,13 +403,15 @@ void apply_ula_plus_palette(void)
         r = (r << 5) | (r << 2) | (r >> 1);
         g = (g << 5) | (g << 2) | (g >> 1);
         b = (b << 5) | (b << 2) | (b >> 1);
-        SPRITE_PALETTE[reg] = RGB15(r,g,b);
-        BG_PALETTE[reg]     = RGB15(r,g,b);
+        SPRITE_PALETTE[0x80|reg] = RGB15(r,g,b);
+        BG_PALETTE[0x80|reg]     = RGB15(r,g,b);
     }
 }
 
 // ----------------------------------------------------------------------------
-// ULA Plus render line
+// ULA Plus render line - this repurposes the BRIGHT and FLASH bits as 
+// palette select (0-3). Ink gets 8 colors and Paper gets 8 other colors
+// and this provides 4 palette 'banks' of 16 colors for a total of 64 colors.
 // ----------------------------------------------------------------------------
 ITCM_CODE void speccy_render_screen_line_ula_plus(u32 *vidBuf, u8* attrPtr, u8*pixelPtr)
 {
@@ -414,8 +423,8 @@ ITCM_CODE void speccy_render_screen_line_ula_plus(u32 *vidBuf, u8* attrPtr, u8*p
         u8 attr = *attrPtr++;           // The color attribute for ULA+
         u8 pixel = *pixelPtr++;         // And here is 8 pixels to draw
 
-        u8 ink   = ((attr >> 6) * 16) + (attr & 0x07);            // Ink Color is the foreground
-        u8 paper = ((attr >> 6) * 16) + ((attr >> 3) & 0x07) + 8; // Paper is the background
+        u8 ink   = 0x80 | (((attr >> 6) * 16) + (attr & 0x07));            // Ink Color is the foreground
+        u8 paper = 0x80 | (((attr >> 6) * 16) + ((attr >> 3) & 0x07) + 8); // Paper is the background
         
         // --------------------------------------------------------------------------
         // And now the pixel drawing... We try to speed this up as much as possible.
@@ -720,7 +729,8 @@ void speccy_reset(void)
     rom_special_bank    = 0;   // Assume no special ROM in SLOT0 until proven otherwise below
     
     zx_ula_plus_enabled     = 0;   // Assume no ULA+ (normal Spectrum ULA)
-    zx_ula_plus_reg_port    = 0x00;
+    zx_ula_plus_group       = 0x00;
+    zx_ula_plus_palette_reg = 0x00;
     memset(zx_ula_plus_palette, 0x00, sizeof(zx_ula_plus_palette));
 
     backgroundRenderScreen = 0;
