@@ -267,6 +267,12 @@ you're likely going to want ZXDS.
 
 Version History :
 -----------------------
+Version 1.5 - 20-Oct-2025 by wavemotion-dave
+* Added ULAplus support for games that support the extended color palette.
+* Improved beeper sound accuracy.
+* Fixed potential Z80 core memory stack issue - fixes a couple of games that were crashing.
+* Other minor cleanups and improvements under the hood.
+
 Version 1.4a - 15-Oct-2025 by wavemotion-dave
 * Fixed Shift and Symbol so they are truly temporary.
 * Improved memory contention timing.

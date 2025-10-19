@@ -254,6 +254,8 @@ ITCM_CODE mm_word OurSoundMixer(mm_word len, mm_addr dest, mm_stream_formats for
 // over-sampled and smoothed someday to make it really shine... good enough for now.
 // --------------------------------------------------------------------------------------------
 s16 mixbufAY[4]     __attribute__((section(".dtcm"))) = { 0x000, 0x000, 0x000, 0x000 };
+s16 volume_decay[6] __attribute__((section(".dtcm"))) = { 0x000, 0x200, 0x400, 0x600, 0x800, 0xA00 }; // Simulate the volume decay of the beeper
+s32 vol __attribute__((section(".dtcm"))) = 0;
 ITCM_CODE void processDirectAudio(void)
 {
     if (zx_AY_enabled)
@@ -263,12 +265,14 @@ ITCM_CODE void processDirectAudio(void)
 
     for (u8 i=0; i<2; i++)
     {
+        if (portFE & 0x10) vol = 5;
+        else if (vol) vol--;
+        
         if (breather) {return;}
-        s16 sample = mixbufAY[i];
-        if (portFE & 0x10)
-        {
-            sample += 0xA00 + (8 - (int)(rand() & 0xF)); // Sample plus a bit of white noise to break up aliasing
-        }
+        
+        s16 beeper_volume = 0;
+        if (vol)  beeper_volume = volume_decay[vol] + (8 - (int)(rand() & 0xF)); // Sample plus a bit of white noise to break up aliasing
+        s16 sample = mixbufAY[i] + beeper_volume;
         mixer[mixer_write] = sample;
         mixer_write++; mixer_write &= WAVE_DIRECT_BUF_SIZE;
         if (((mixer_write+1)&WAVE_DIRECT_BUF_SIZE) == mixer_read) {breather = 2048;}
@@ -343,7 +347,7 @@ void setupStream(void)
 
 void sound_chip_reset()
 {
-  memset(mixer,   0x00, sizeof(mixer));
+  memset(mixer, 0x00, sizeof(mixer));
   mixer_read=0;
   mixer_write=0;
 
@@ -354,8 +358,7 @@ void sound_chip_reset()
   ay38910IndexW(0x07, &myAY);      // Register 7 is ENABLE
   ay38910DataW(0x3F, &myAY);       // All OFF (negative logic)
   ay38910Mixer(4, mixbufAY, &myAY);// Do an initial mix conversion to clear the output
-
-  memset(mixbufAY, 0x00, sizeof(mixbufAY));
+  last_sample = mixbufAY[2];       // And set the last sample for muting
 }
 
 // -----------------------------------------------------------------------

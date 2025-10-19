@@ -961,7 +961,7 @@ const struct options_t Option_Table[2][20] =
         {"MACHINE",        {"48K SPECTRUM", "128K SPECTRUM"},                           &myConfig.machine,           2},
         {"ULA PLUS",       {"DISABLED",  "ENABLED"},                                    &myConfig.ULAplus,           2},
         {"AUTO PLAY",      {"NO", "YES"},                                               &myConfig.autoLoad,          2},
-        {"AUTO STOP",      {"NO", "YES"},                                               &myConfig.autoStop,          2},
+        {"AUTO STOP",      {"NO", "YES", "AGGRESSIVE"},                                 &myConfig.autoStop,          3},
         {"AUTO FIRE",      {"OFF", "ON"},                                               &myConfig.autoFire,          2},
         {"TAPE SPEED",     {"NORMAL", "ACCELERATED"},                                   &myConfig.tapeSpeed,         2},
         {"GAME SPEED",     {"100%","102%","105%","110%","120%","98%","95%","90%","80%"},&myConfig.gameSpeed,         9},

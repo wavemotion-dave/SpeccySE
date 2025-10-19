@@ -122,6 +122,7 @@ u32 last_edge                   __attribute__((section(".dtcm"))) = 0;
 u32 next_edge1                  __attribute__((section(".dtcm"))) = 0;
 u32 next_edge2                  __attribute__((section(".dtcm"))) = 0;
 
+u32 tape_pulses_this_frame = 0;
 u8 give_up_counter = 0;
 char *loader_type = "STANDARD";
 u8 tape_sample_standard(void);
@@ -497,6 +498,7 @@ void tape_reset(void)
     tape_bytes_processed = 0;
     custom_pulse_idx = 0;
     give_up_counter = 0;
+    tape_pulses_this_frame = 0;
     last_edge = 0;
     next_edge1 = next_edge2 = 0;
 }
@@ -569,6 +571,31 @@ ITCM_CODE void tape_frame(void)
 
         show_tape_counter = 30;
     }
+    
+    // -----------------------------------------------------------------------
+    // This is an alternate way to auto-stop the tape playing. Some games
+    // have some extra tape that continues to be 'played' even after the
+    // game is done loading. We basically look for the tape pulse reading
+    // to become very slow - and we know that we're likely done with the tape.
+    // -----------------------------------------------------------------------
+    if (tape_state)
+    {
+        if (myConfig.autoStop)
+        {
+            static int frames_without_loading = 0;
+            if (tape_pulses_this_frame < 25)
+            {
+                if (++frames_without_loading > (myConfig.autoStop == 2 ? 150:1000)) // 20 "accelerated" seconds of no load... stop tape. This is roughly 4-5 seconds of real-time.
+                {
+                    // If the previous block was a header block, move back to that one...
+                    if (!(TapeBlocks[current_block-1].block_flag & 0x80)) current_block--;
+                    tape_stop();
+                }
+            }
+            else frames_without_loading = 0;
+        }
+    }
+    tape_pulses_this_frame = 0;
 }
 
 // -----------------------------------------------------------------------------
@@ -602,6 +629,8 @@ ITCM_CODE u8 tape_pre_edge_accel(void)
 ITCM_CODE u8 tape_pulse(void)
 {
     u32 pilot_pulse = 0;
+    
+    tape_pulses_this_frame++;
 
 #if 0 // Use this block to debug new loaders
     debug[0]  = OpZ80(CPU.PC.W-10);
