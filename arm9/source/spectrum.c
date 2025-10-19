@@ -240,6 +240,11 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
         return joy1;
     }
     else
+    if ((Port & 0xc002) == 0xc000) // AY input
+    {
+        return ay38910DataR(&myAY);
+    }
+    else
     if ((Port & 0xBFFF) == 0xBF3B) // ULA+
     {
         // 0xBF3B is Register Port - write only (no read-back)
