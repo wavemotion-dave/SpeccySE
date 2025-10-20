@@ -59,16 +59,16 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
 
     if ((Port & 1) == 0) // Any Even Address will cause the ULA to respond
     {
-          // ----------------------------------------------------------------------------------------
-          // If we are rendering the screen, a read from the ULA supplied port will produce
-          // a cycle penalty. This is not cycle accurate but we simply use an 'average'
-          // penalty of 4 cycles if we are in contended memory while the screen is rendering. It's
-          // rough but gets us close enough to play games. We can improve this later...
-          // ----------------------------------------------------------------------------------------
-          if (zx_ScreenRendering)
-          {
-              CPU.TStates += zx_contend_delay;
-          }
+         // ----------------------------------------------------------------------------------------
+         // If we are rendering the screen, a read from the ULA supplied port will produce
+         // a cycle penalty. This is not cycle accurate but we simply use an 'average'
+         // penalty of 3 cycles if we are in contended memory while the screen is rendering. It's
+         // rough but gets us close enough to play games. We can improve this later...
+         // ----------------------------------------------------------------------------------------
+         if (zx_ScreenRendering)
+         {
+             CPU.TStates += zx_contend_delay;
+         }
 
 
         // --------------------------------------------------------
@@ -1006,6 +1006,8 @@ ITCM_CODE u32 speccy_run(void)
 
     // -----------------------------------------------------------
     // Render one line if we're in the visible area of the screen
+    // This is scalines 64 (first visible scanline) to 255 (last
+    // visible scanline for a total of 192 scanlines).
     // -----------------------------------------------------------
     if (zx_current_line & 0xC0)
     {

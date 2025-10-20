@@ -249,8 +249,8 @@ might not work the way you expect if you do it at the wrong time).
 
 Known Issues :
 -----------------------
-* Not all Dandanator games run properly - support is preliminary.
-* Plyuk and Ringo utilize graphics handling that requires pinpoint accuracy in emulation timing and will not look correct.
+* Not all Dandanator compilation games run properly - support is preliminary (but good enough for the few games that really need it).
+* Gluf, Plyuk, Ringo and Old Tower (among a few others) utilize graphics handling that requires pinpoint accuracy in emulation timing and will not look correct.
 * TRD disk files are not supported yet. Most games have TAP or Dandanator alternatives - but not all.
 
 Why? :
