@@ -29,6 +29,9 @@ extern "C" {
 
 //#define ZEXALL_TEST          /* Uncomment this to run the ZEXALL Z80 instruction test */
 
+#define CONTENDED_TSTATE        14361
+#define AVERAGE_CONTEND_DELAY   4
+
                                /* Compilation options:       */
 #define LSB_FIRST              /* Compile for low-endian CPU */
 #define EXECZ80                /* Call Z80 each scanline     */
@@ -103,6 +106,7 @@ typedef struct
   u32  Reserved;                    /* For future use...                    */
 } Z80;
 
+extern u8 accurate_emulation;
 
 /** ResetZ80() ***********************************************/
 /** This function can be used to reset the registers before **/

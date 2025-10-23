@@ -834,10 +834,10 @@ void SetDefaultGameConfig(void)
     myConfig.dpad        = DPAD_NORMAL;                 // Normal DPAD use - mapped to joystick
     myConfig.autoLoad    = 1;                           // Default is to to auto-load TAP and TZX games
     myConfig.machine     = myGlobalConfig.defMachine;   // Default machine is 48K but can be changed globally
-    myConfig.contention  = 0;                           // Normal Bus Contention
+    myConfig.accuracy    = 0;                           // Normal Accuracy (1 = Enhanced)
     myConfig.gameSpeed   = 0;                           // Default is 100% game speed
     myConfig.ULAplus     = myGlobalConfig.defULAplus;   // Default is to allow ULA Plus but can be changed globally
-    myConfig.reserved4   = 0;
+    myConfig.lateTiming  = 0;                           // Normal timing
     myConfig.reserved5   = 0;
     myConfig.reserved6   = 0;
     myConfig.reserved7   = 0;
@@ -960,12 +960,13 @@ const struct options_t Option_Table[2][20] =
     {
         {"MACHINE",        {"48K SPECTRUM", "128K SPECTRUM"},                           &myConfig.machine,           2},
         {"ULA PLUS",       {"DISABLED",  "ENABLED"},                                    &myConfig.ULAplus,           2},
+        {"ACCURACY",       {"NORMAL", "ENHANCED"},                                      &myConfig.accuracy,          2},
+        {"TIMING",         {"NORMAL", "LATE"},                                          &myConfig.lateTiming,        2},        
         {"AUTO PLAY",      {"NO", "YES"},                                               &myConfig.autoLoad,          2},
         {"AUTO STOP",      {"NO", "YES", "AGGRESSIVE"},                                 &myConfig.autoStop,          3},
         {"AUTO FIRE",      {"OFF", "ON"},                                               &myConfig.autoFire,          2},
         {"TAPE SPEED",     {"NORMAL", "ACCELERATED"},                                   &myConfig.tapeSpeed,         2},
         {"GAME SPEED",     {"100%","102%","105%","110%","120%","98%","95%","90%","80%"},&myConfig.gameSpeed,         9},
-        {"BUS CONTEND",    {"NORMAL", "LIGHT", "HEAVY", "NONE"},                        &myConfig.contention,        4},
         {"NDS D-PAD",      {"NORMAL", "DIAGONALS", "SLIDE-N-GLIDE"},                    &myConfig.dpad,              3},
         
         {NULL,             {"",      ""},                                               NULL,                        1},

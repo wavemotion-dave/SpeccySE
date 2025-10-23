@@ -1,10 +1,10 @@
 /******************************************************************************
-*  SpeccySE Z80 CPU 
+*  SpeccySE Z80 CPU
 *
 * Note: Most of this file is from the ColEm emulator core by Marat Fayzullin
 *       but heavily modified for specific NDS use. If you want to use this
 *       code, you are advised to seek out the much more portable ColEm core
-*       and contact Marat.       
+*       and contact Marat.
 *
 ******************************************************************************/
 
@@ -21,16 +21,16 @@
 /**     changes to this file.                               **/
 /*************************************************************/
 
-case RLC_xHL: I=RdZ80(J.W);M_RLC(I);WrZ80(J.W,I);break;
-case RRC_xHL: I=RdZ80(J.W);M_RRC(I);WrZ80(J.W,I);break;
-case RL_xHL:  I=RdZ80(J.W);M_RL(I);WrZ80(J.W,I);break;
-case RR_xHL:  I=RdZ80(J.W);M_RR(I);WrZ80(J.W,I);break;
-case SLA_xHL: I=RdZ80(J.W);M_SLA(I);WrZ80(J.W,I);break;
-case SRA_xHL: I=RdZ80(J.W);M_SRA(I);WrZ80(J.W,I);break;
-case SLL_xHL: I=RdZ80(J.W);M_SLL(I);WrZ80(J.W,I);break;
-case SRL_xHL: I=RdZ80(J.W);M_SRL(I);WrZ80(J.W,I);break;
+case RLC_xHL: I=RdZ80(J.W); M_RLC(I); INC_RW; WrZ80(J.W,I);break; //23:443543
+case RRC_xHL: I=RdZ80(J.W); M_RRC(I); INC_RW; WrZ80(J.W,I);break;
+case RL_xHL:  I=RdZ80(J.W); M_RL(I);  INC_RW; WrZ80(J.W,I);break;
+case RR_xHL:  I=RdZ80(J.W); M_RR(I);  INC_RW; WrZ80(J.W,I);break;
+case SLA_xHL: I=RdZ80(J.W); M_SLA(I); INC_RW; WrZ80(J.W,I);break;
+case SRA_xHL: I=RdZ80(J.W); M_SRA(I); INC_RW; WrZ80(J.W,I);break;
+case SLL_xHL: I=RdZ80(J.W); M_SLL(I); INC_RW; WrZ80(J.W,I);break;
+case SRL_xHL: I=RdZ80(J.W); M_SRL(I); INC_RW; WrZ80(J.W,I);break;
 
-case BIT0_B: case BIT0_C: case BIT0_D: case BIT0_E:
+case BIT0_B: case BIT0_C: case BIT0_D: case BIT0_E: // 20:44354
 case BIT0_H: case BIT0_L: case BIT0_A:
 case BIT0_xHL: I=RdZ80(J.W);M_BIT(0,I);break;
 case BIT1_B: case BIT1_C: case BIT1_D: case BIT1_E:
@@ -55,20 +55,20 @@ case BIT7_B: case BIT7_C: case BIT7_D: case BIT7_E:
 case BIT7_H: case BIT7_L: case BIT7_A:
 case BIT7_xHL: I=RdZ80(J.W);M_BIT(7,I);break;
 
-case RES0_xHL: I=RdZ80(J.W);M_RES(0,I);WrZ80(J.W,I);break;
-case RES1_xHL: I=RdZ80(J.W);M_RES(1,I);WrZ80(J.W,I);break;   
-case RES2_xHL: I=RdZ80(J.W);M_RES(2,I);WrZ80(J.W,I);break;   
-case RES3_xHL: I=RdZ80(J.W);M_RES(3,I);WrZ80(J.W,I);break;   
-case RES4_xHL: I=RdZ80(J.W);M_RES(4,I);WrZ80(J.W,I);break;   
-case RES5_xHL: I=RdZ80(J.W);M_RES(5,I);WrZ80(J.W,I);break;   
-case RES6_xHL: I=RdZ80(J.W);M_RES(6,I);WrZ80(J.W,I);break;   
-case RES7_xHL: I=RdZ80(J.W);M_RES(7,I);WrZ80(J.W,I);break;   
+case RES0_xHL: I=RdZ80(J.W);M_RES(0,I);INC_RW;WrZ80(J.W,I);break; //23:443543
+case RES1_xHL: I=RdZ80(J.W);M_RES(1,I);INC_RW;WrZ80(J.W,I);break;
+case RES2_xHL: I=RdZ80(J.W);M_RES(2,I);INC_RW;WrZ80(J.W,I);break;
+case RES3_xHL: I=RdZ80(J.W);M_RES(3,I);INC_RW;WrZ80(J.W,I);break;
+case RES4_xHL: I=RdZ80(J.W);M_RES(4,I);INC_RW;WrZ80(J.W,I);break;
+case RES5_xHL: I=RdZ80(J.W);M_RES(5,I);INC_RW;WrZ80(J.W,I);break;
+case RES6_xHL: I=RdZ80(J.W);M_RES(6,I);INC_RW;WrZ80(J.W,I);break;
+case RES7_xHL: I=RdZ80(J.W);M_RES(7,I);INC_RW;WrZ80(J.W,I);break;
 
-case SET0_xHL: I=RdZ80(J.W);M_SET(0,I);WrZ80(J.W,I);break;   
-case SET1_xHL: I=RdZ80(J.W);M_SET(1,I);WrZ80(J.W,I);break; 
-case SET2_xHL: I=RdZ80(J.W);M_SET(2,I);WrZ80(J.W,I);break; 
-case SET3_xHL: I=RdZ80(J.W);M_SET(3,I);WrZ80(J.W,I);break; 
-case SET4_xHL: I=RdZ80(J.W);M_SET(4,I);WrZ80(J.W,I);break; 
-case SET5_xHL: I=RdZ80(J.W);M_SET(5,I);WrZ80(J.W,I);break; 
-case SET6_xHL: I=RdZ80(J.W);M_SET(6,I);WrZ80(J.W,I);break; 
-case SET7_xHL: I=RdZ80(J.W);M_SET(7,I);WrZ80(J.W,I);break; 
+case SET0_xHL: I=RdZ80(J.W);M_SET(0,I);INC_RW;WrZ80(J.W,I);break; //23:443543
+case SET1_xHL: I=RdZ80(J.W);M_SET(1,I);INC_RW;WrZ80(J.W,I);break;
+case SET2_xHL: I=RdZ80(J.W);M_SET(2,I);INC_RW;WrZ80(J.W,I);break;
+case SET3_xHL: I=RdZ80(J.W);M_SET(3,I);INC_RW;WrZ80(J.W,I);break;
+case SET4_xHL: I=RdZ80(J.W);M_SET(4,I);INC_RW;WrZ80(J.W,I);break;
+case SET5_xHL: I=RdZ80(J.W);M_SET(5,I);INC_RW;WrZ80(J.W,I);break;
+case SET6_xHL: I=RdZ80(J.W);M_SET(6,I);INC_RW;WrZ80(J.W,I);break;
+case SET7_xHL: I=RdZ80(J.W);M_SET(7,I);INC_RW;WrZ80(J.W,I);break;

@@ -71,6 +71,15 @@ extern void cpu_writeport_speccy(register unsigned short Port,register unsigned 
 // ------------------------------------------------------------------------------
 u8 cpu_contended_delay[228] __attribute__((section(".dtcm"))) = 
 {
+    3,2,1,0,0,
+    6,5,4,3,2,1,0,0,
+    6,5,4,3,2,1,0,0,
+    6,5,4,3,2,1,0,0,
+    6,5,4,3,2,1,0,0,
+    6,5,4,3,2,1,0,0,
+    6,5,4,3,2,1,0,0,
+    6,5,4,3,2,1,0,0,
+
     6,5,4,3,2,1,0,0,
     6,5,4,3,2,1,0,0,
     6,5,4,3,2,1,0,0,
@@ -80,15 +89,6 @@ u8 cpu_contended_delay[228] __attribute__((section(".dtcm"))) =
     6,5,4,3,2,1,0,0,
     6,5,4,3,2,1,0,0,
 
-    6,5,4,3,2,1,0,0,
-    6,5,4,3,2,1,0,0,
-    6,5,4,3,2,1,0,0,
-    6,5,4,3,2,1,0,0,
-    6,5,4,3,2,1,0,0,
-    6,5,4,3,2,1,0,0,
-    6,5,4,3,2,1,0,0,
-    6,5,4,3,2,1,0,0,
-
     0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,
@@ -102,7 +102,7 @@ u8 cpu_contended_delay[228] __attribute__((section(".dtcm"))) =
     0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,
-    0,0,0,0
+    0,0,0,0,6,5,4
 };
 
 u8 M1[256] __attribute__((section(".dtcm"))) =
@@ -138,9 +138,9 @@ inline __attribute__((always_inline)) byte OpZ80(word A)
     {
          if (A & 0x8000) // Must be upper bank 0xC000
          {
-              if (zx_contend_upper_bank) CPU.TStates += cpu_contended_delay[(CPU.TStates-CONTENDED_TSTATE) % 228];
+              if (zx_contend_upper_bank) CPU.TStates += cpu_contended_delay[(CPU.TStates) % 228];
          }
-         else CPU.TStates += cpu_contended_delay[(CPU.TStates-CONTENDED_TSTATE) % 228];
+         else CPU.TStates += cpu_contended_delay[(CPU.TStates) % 228];
     }
     readwrite_count = 0;
     return MemoryMap[(A)>>14][A];
@@ -152,9 +152,9 @@ inline __attribute__((always_inline)) static byte RdZ80(word A)
     {
          if (A & 0x8000) // Must be upper bank 0xC000
          {
-              if (zx_contend_upper_bank) CPU.TStates += cpu_contended_delay[((CPU.TStates+readwrite_count)-CONTENDED_TSTATE) % 228];
+              if (zx_contend_upper_bank) CPU.TStates += cpu_contended_delay[((CPU.TStates+readwrite_count)) % 228];
          }
-         else CPU.TStates += cpu_contended_delay[((CPU.TStates+readwrite_count)-CONTENDED_TSTATE) % 228];
+         else CPU.TStates += cpu_contended_delay[((CPU.TStates+readwrite_count)) % 228];
     }
     readwrite_count += 3;
     return MemoryMap[(A)>>14][A];
@@ -174,9 +174,9 @@ inline __attribute__((always_inline)) void WrZ80(word A, byte value)
         {
              if (A & 0x8000) // Must be upper bank 0xC000
              {
-                  if (zx_contend_upper_bank) CPU.TStates += cpu_contended_delay[((CPU.TStates+readwrite_count)-CONTENDED_TSTATE) % 228];
+                  if (zx_contend_upper_bank) CPU.TStates += cpu_contended_delay[((CPU.TStates+readwrite_count)) % 228];
              }
-             else CPU.TStates += cpu_contended_delay[((CPU.TStates+readwrite_count)-CONTENDED_TSTATE) % 228];
+             else CPU.TStates += cpu_contended_delay[((CPU.TStates+readwrite_count)) % 228];
         }
         
         MemoryMap[(A)>>14][A] = value; 
@@ -252,7 +252,7 @@ inline __attribute__((always_inline)) void WrZ80(word A, byte value)
   CPU.PC.W=J.W; \
   JumpZ80(J.W)
 
-#define M_JP  CPU.PC.W = (u32)OpZ80(CPU.PC.W) | ((u32)OpZ80(CPU.PC.W+1) << 8);
+#define M_JP  CPU.PC.W = (u32)RdZ80(CPU.PC.W) | ((u32)RdZ80(CPU.PC.W+1) << 8);
 #define M_JR  CPU.PC.W+=(offset)OpZ80(CPU.PC.W)+1;JumpZ80(CPU.PC.W)
 #define M_RET CPU.PC.B.l=OpZ80(CPU.SP.W++);CPU.PC.B.h=OpZ80(CPU.SP.W++);JumpZ80(CPU.PC.W)
 

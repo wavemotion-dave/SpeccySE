@@ -15,7 +15,7 @@
 #include "cpu/z80/Z80_interface.h"
 #include "cpu/ay38910/AY38910.h"
 
-#define MAX_FILES                   2048
+#define MAX_FILES                   1024
 #define MAX_FILENAME_LEN            160
 #define MAX_TAPE_SIZE               (640*1024) // 640K is big enough for any .TAP/.TZX or Snapshot
 
@@ -83,7 +83,7 @@ struct __attribute__((__packed__)) Config_t
 {
     u32 game_crc;
     u8  keymap[12];
-    u8  contention;
+    u8  accuracy;
     u8  autoStop;
     u8  autoFire;
     u8  tapeSpeed;
@@ -92,7 +92,7 @@ struct __attribute__((__packed__)) Config_t
     u8  machine;
     u8  gameSpeed;
     u8  ULAplus;
-    u8  reserved4;
+    u8  lateTiming;
     u8  reserved5;
     u8  reserved6;
     u8  reserved7;
@@ -144,7 +144,8 @@ extern int uNbRoms;
 extern int ucGameAct;
 extern int ucGameChoice;
 extern u8 CompressBuffer[];
-
+extern u8 cpu_contended_delay[228];
+extern u8 zx_contend_upper_bank;
 
 extern void LoadConfig(void);
 extern u8   showMessage(char *szCh1, char *szCh2);

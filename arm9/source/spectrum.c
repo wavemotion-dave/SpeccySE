@@ -23,23 +23,25 @@
 #include "SpeccyUtils.h"
 #include "printf.h"
 
-u8  portFE               __attribute__((section(".dtcm"))) = 0x00;
-u8  portFD               __attribute__((section(".dtcm"))) = 0x00;
-u8  zx_AY_enabled        __attribute__((section(".dtcm"))) = 0;
-u8  zx_AY_index_written  __attribute__((section(".dtcm"))) = 0;
-u32 flash_timer          __attribute__((section(".dtcm"))) = 0;
-u8  bFlash               __attribute__((section(".dtcm"))) = 0;
-u8  zx_128k_mode         __attribute__((section(".dtcm"))) = 0;
-u8  zx_ScreenRendering   __attribute__((section(".dtcm"))) = 0;
-u8  zx_force_128k_mode   __attribute__((section(".dtcm"))) = 0;
-u32 zx_current_line      __attribute__((section(".dtcm"))) = 0;
-u8  zx_contend_delay     __attribute__((section(".dtcm"))) = 0;
-u8  zx_special_key       __attribute__((section(".dtcm"))) = 0;
-u32 last_file_size       __attribute__((section(".dtcm"))) = 0;
-u8  isCompressed         __attribute__((section(".dtcm"))) = 1;
-u8  tape_play_skip_frame __attribute__((section(".dtcm"))) = 0;
-u8  rom_special_bank     __attribute__((section(".dtcm"))) = 0;
-u8  zx_ula_plus_enabled  __attribute__((section(".dtcm"))) = 0;
+u8  portFE                  __attribute__((section(".dtcm"))) = 0x00;
+u8  portFD                  __attribute__((section(".dtcm"))) = 0x00;
+u8  zx_AY_enabled           __attribute__((section(".dtcm"))) = 0;
+u8  zx_AY_index_written     __attribute__((section(".dtcm"))) = 0;
+u32 flash_timer             __attribute__((section(".dtcm"))) = 0;
+u8  bFlash                  __attribute__((section(".dtcm"))) = 0;
+u8  zx_128k_mode            __attribute__((section(".dtcm"))) = 0;
+u8  zx_ScreenRendering      __attribute__((section(".dtcm"))) = 0;
+u8  zx_force_128k_mode      __attribute__((section(".dtcm"))) = 0;
+u32 zx_current_line         __attribute__((section(".dtcm"))) = 0;
+u8  zx_special_key          __attribute__((section(".dtcm"))) = 0;
+u32 last_file_size          __attribute__((section(".dtcm"))) = 0;
+u8  isCompressed            __attribute__((section(".dtcm"))) = 1;
+u8  tape_play_skip_frame    __attribute__((section(".dtcm"))) = 0;
+u8  rom_special_bank        __attribute__((section(".dtcm"))) = 0;
+u8  zx_ula_plus_enabled     __attribute__((section(".dtcm"))) = 0;
+u8  accurate_emulation      __attribute__((section(".dtcm"))) = 0;
+u8  zx_contend_upper_bank   __attribute__((section(".dtcm"))) = 0;
+int readwrite_count         __attribute__((section(".dtcm"))) = 0;
 
 u8  zx_ula_plus_palette[64] = {0};
 u8  zx_ula_plus_group = 0x00;
@@ -65,12 +67,24 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
          // penalty of 3 cycles if we are in contended memory while the screen is rendering. It's
          // rough but gets us close enough to play games. We can improve this later...
          // ----------------------------------------------------------------------------------------
-         if (zx_ScreenRendering)
+         if (accurate_emulation)
          {
-             CPU.TStates += zx_contend_delay;
+             if (((Port & 0xC000) == 0x4000) || (((Port & 0xC000) == 0xC000) && (zx_contend_upper_bank)))
+             {
+                 CPU.TStates += cpu_contended_delay[(((CPU.TStates+readwrite_count))+0) % 228];
+                 CPU.TStates += cpu_contended_delay[(((CPU.TStates+readwrite_count))+1) % 228];
+             }
+             else
+             {
+                 CPU.TStates += cpu_contended_delay[(((CPU.TStates+readwrite_count))+1) % 228];
+             }
+             readwrite_count += 4;
          }
-
-
+         else if (zx_ScreenRendering)
+         {
+             CPU.TStates += AVERAGE_CONTEND_DELAY;
+         }
+         
         // --------------------------------------------------------
         // If we are not playing the tape but we got a hit on the
         // loader we can start the tape in motion - auto play...
@@ -311,8 +325,10 @@ ITCM_CODE void zx_bank(u8 new_bank)
 
     // Map in the correct page of banked memory to 0xC000
     MemoryMap[3] = RAM_Memory128 + ((new_bank & 0x07) * 0x4000) - 0xC000;
-
+    
     portFD = new_bank;
+
+    zx_contend_upper_bank = (zx_128k_mode && (portFD & 1));
 }
 
 // A fast look-up table when we are rendering background pixels
@@ -339,6 +355,25 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
              BG_PALETTE_SUB[1] = zx_border_colors[Value & 0x07];
         }
         portFE = Value;
+        
+         if (accurate_emulation)
+         {
+              if (((Port & 0xC000) == 0x4000) || (((Port & 0xC000) == 0xC000) && (zx_contend_upper_bank)))
+              {
+                  CPU.TStates += cpu_contended_delay[(((CPU.TStates+readwrite_count))+0) % 228];
+                  CPU.TStates += cpu_contended_delay[(((CPU.TStates+readwrite_count))+1) % 228];
+              }
+              else
+              {
+                  CPU.TStates += cpu_contended_delay[(((CPU.TStates+readwrite_count))+1) % 228];
+              }
+              
+              readwrite_count += 4;
+         }
+         else if (zx_ScreenRendering)
+         {
+             CPU.TStates += AVERAGE_CONTEND_DELAY;
+         }
     }
 
     if (zx_128k_mode && ((Port & 0x8002) == 0x0000)) // 128K Bankswitch
@@ -396,6 +431,7 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
             }
         }
     }
+    readwrite_count += 4;
 }
 
 void apply_ula_plus_palette(void)
@@ -733,6 +769,9 @@ void speccy_reset(void)
     zx_128k_mode        = 0;   // Assume 48K until told otherwise
     rom_special_bank    = 0;   // Assume no special ROM in SLOT0 until proven otherwise below
     
+    accurate_emulation  = 0;   // Set to 1 when we need to handle more accurate TState accounting / Contended Memory
+    zx_contend_upper_bank = 0; // No contention until an odd bank is mapped
+    
     zx_ula_plus_enabled     = 0;   // Assume no ULA+ (normal Spectrum ULA)
     zx_ula_plus_group       = 0x00;
     zx_ula_plus_palette_reg = 0x00;
@@ -740,10 +779,6 @@ void speccy_reset(void)
 
     backgroundRenderScreen = 0;
     bRenderSkipOnce        = 1;
-
-    // Set the 'average' contention delay...
-    static const u8 contend_delay[4] = {3,2,4,0};
-    zx_contend_delay = contend_delay[myConfig.contention];
 
     // ------------------------------------------------
     // Handle parsing of the .tap or .tzx tape formats
@@ -956,7 +991,8 @@ void speccy_reset(void)
 // -----------------------------------------------------------------------------
 ITCM_CODE u32 speccy_run(void)
 {
-    ++zx_current_line;  // This is the pixel line we're working on...
+    ++zx_current_line;                              // This is the pixel line we're working on...
+    int starting_line = 63+myConfig.lateTiming;     // And this is the first line we draw
 
     // ----------------------------------------------
     // Execute 1 scanline worth of CPU instructions.
@@ -983,13 +1019,13 @@ ITCM_CODE u32 speccy_run(void)
         // Grab 2 samples worth of AY sound to mix with the beeper
         processDirectAudio();
 
-        ExecZ80_Speccy(CPU.TStates + (zx_128k_mode ? 132:128)); // Execute CPU for the visible portion of the scanline
+        ExecZ80_Speccy(CPU.TStates + 128); // Execute CPU for the visible portion of the scanline
 
         // Grab 2 more samples worth of AY sound to mix with the beeper
         processDirectAudio();
 
         zx_ScreenRendering = 0; // On this final chunk we are drawing border and doing a horizontal sync... no contention
-
+        
         ExecZ80_Speccy((zx_128k_mode ? 228:224) * zx_current_line); // This puts us exactly where we should be for the scanline
 
         // -----------------------------------------------------------------------
@@ -1004,19 +1040,18 @@ ITCM_CODE u32 speccy_run(void)
         }
     }
 
+    accurate_emulation = 0;
     // -----------------------------------------------------------
     // Render one line if we're in the visible area of the screen
     // This is scalines 64 (first visible scanline) to 255 (last
     // visible scanline for a total of 192 scanlines).
     // -----------------------------------------------------------
-    if (zx_current_line & 0xC0)
+    if ((zx_current_line >= starting_line) && (zx_current_line < 192+starting_line))
     {
-        if ((zx_current_line & 0x100) == 0)
-        {
-            // Render one scanline...
-            speccy_render_screen_line(zx_current_line - 64);
-            zx_ScreenRendering = 1;
-        }
+        // Render one scanline...
+        speccy_render_screen_line(zx_current_line - starting_line);
+        zx_ScreenRendering = 1;
+        accurate_emulation = (tape_state ? 0 : myConfig.accuracy); // If tape playing, skip accurate emulation
     }
 
     // ------------------------------------------
