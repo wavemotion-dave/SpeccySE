@@ -935,19 +935,34 @@ void FindConfig(void)
     else if (strcasestr(gpFic[ucGameChoice].szName, "SKOOL")        != 0) myConfig.machine = 0;
     else if (strcasestr(gpFic[ucGameChoice].szName, "ELITE")        != 0) myConfig.machine = 0;
     else if (strcasestr(gpFic[ucGameChoice].szName, "LUNARJET")     != 0) myConfig.machine = 0;
-    else if (strcasestr(gpFic[ucGameChoice].szName, "MANICMIN")     != 0) myConfig.machine = 0;
-    else if (strcasestr(gpFic[ucGameChoice].szName, "MANIC MIN")    != 0) myConfig.machine = 0;
     else if (strcasestr(gpFic[ucGameChoice].szName, "LUNAR JET")    != 0) myConfig.machine = 0;
     else if (strcasestr(gpFic[ucGameChoice].szName, "JETPAC")       != 0) myConfig.machine = 0;
     else if (strcasestr(gpFic[ucGameChoice].szName, "JET-PAC")      != 0) myConfig.machine = 0;
     else if (strcasestr(gpFic[ucGameChoice].szName, "JET PAC")      != 0) myConfig.machine = 0;
     else if (strcasestr(gpFic[ucGameChoice].szName, "MACHINA")      != 0) myConfig.machine = 0;
+    else if (strcasestr(gpFic[ucGameChoice].szName, "DEATHCHASE")   != 0) myConfig.machine = 0;
+    else if (strcasestr(gpFic[ucGameChoice].szName, "DEATH CHASE")  != 0) myConfig.machine = 0;
+    else if (strcasestr(gpFic[ucGameChoice].szName, "MAZIACS")      != 0) myConfig.machine = 0;
+    else if (strcasestr(gpFic[ucGameChoice].szName, "ALIEN8")       != 0) myConfig.machine = 0;
+    else if (strcasestr(gpFic[ucGameChoice].szName, "ALIEN 8")      != 0) myConfig.machine = 0;
+    else if (strcasestr(gpFic[ucGameChoice].szName, "PSSST")        != 0) myConfig.machine = 0;
+    else if (strcasestr(gpFic[ucGameChoice].szName, "UNDERWURLDE")  != 0) myConfig.machine = 0;
+        
     else if (strcasestr(gpFic[ucGameChoice].szName, "GLUF")         != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 1;}
     else if (strcasestr(gpFic[ucGameChoice].szName, "DREAMWALKER")  != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 1;}
     else if (strcasestr(gpFic[ucGameChoice].szName, "DREAM WALKER") != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 1;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "MANICPIE")     != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 1;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "MANIC PIE")    != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 1;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "YAZZIE")       != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 1;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "OUTOFMARS")    != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 1;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "OUT OF MARS")  != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 1;}
     else if (strcasestr(gpFic[ucGameChoice].szName, "BUZZSAW")      != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "JET-POWER")    != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "JETPOWER")     != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "BRICKSVSFRU")  != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
     else if (strcasestr(gpFic[ucGameChoice].szName, "RINGO")        != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
     else if (strcasestr(gpFic[ucGameChoice].szName, "PLYUK")        != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "MULTIDUDE")    != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
     else if (strcasestr(gpFic[ucGameChoice].szName, "OLDTOWER")     != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
     else if (strcasestr(gpFic[ucGameChoice].szName, "OLD TOWER")    != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
     else if (strcasestr(gpFic[ucGameChoice].szName, "STORMFINCH")   != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
@@ -956,6 +971,12 @@ void FindConfig(void)
     else if (strcasestr(gpFic[ucGameChoice].szName, "SUNBUCKET")    != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
     else if (strcasestr(gpFic[ucGameChoice].szName, "PUSH BOT")     != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
     else if (strcasestr(gpFic[ucGameChoice].szName, "PUSHBOT")      != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "SNAKEESC")     != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "SNAKE ESC")    != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "SPLOIDS")      != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "REDBIRD")      != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "ZOOMBLOX")     != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "ZOOM BLOX")    != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
 }
 
 

@@ -42,6 +42,8 @@ u8  zx_ula_plus_enabled     __attribute__((section(".dtcm"))) = 0;
 u8  accurate_emulation      __attribute__((section(".dtcm"))) = 0;
 u8  zx_contend_upper_bank   __attribute__((section(".dtcm"))) = 0;
 
+u32  pre_render_lookup[16][16][16];
+
 u8  zx_ula_plus_palette[64] = {0};
 u8  zx_ula_plus_group = 0x00;
 u8  zx_ula_plus_palette_reg = 0x00;
@@ -633,10 +635,11 @@ ITCM_CODE void speccy_render_screen_line(u8 line)
             if (attr & 0x40) ink |= 0x08;   // Brightness
 
             // ------------------------------------------------------------------------------------------------------------------------
-            // I've tried look-up tables here, but nothing was as fast as checking the bit and shifting ink/paper to the right spot...
+            // Bit shifting was faster in a few cases, but generally this lookup table in this specific order is generally fastest.
+            // The paper color changes least frequently so it improves the cache density if the lookup is in this specific order.
             // ------------------------------------------------------------------------------------------------------------------------
-            *vidBuf++ = (((pixel & 0x80) ? ink:paper)) | (((pixel & 0x40) ? ink:paper) << 8) | (((pixel & 0x20) ? ink:paper) << 16) | (((pixel & 0x10) ? ink:paper) << 24);
-            *vidBuf++ = (((pixel & 0x08) ? ink:paper)) | (((pixel & 0x04) ? ink:paper) << 8) | (((pixel & 0x02) ? ink:paper) << 16) | (((pixel & 0x01) ? ink:paper) << 24);
+            *vidBuf++ = pre_render_lookup[paper][ink][pixel>>4];
+            *vidBuf++ = pre_render_lookup[paper][ink][pixel&0xF];
         }
         else // Just drawing all background which is common...
         {
@@ -808,6 +811,13 @@ void speccy_reset(void)
     tape_reset();
     tape_patch();
     pok_init();
+    
+    for (int pixel=0; pixel<16; pixel++)
+        for (int paper=0; paper<16; paper++)
+            for (int ink=0; ink<16; ink++)
+            {
+                pre_render_lookup[paper][ink][pixel] = (((pixel & 0x08) ? ink:paper)) | (((pixel & 0x04) ? ink:paper) << 8) | (((pixel & 0x02) ? ink:paper) << 16) | (((pixel & 0x01) ? ink:paper) << 24);
+            }
     
     // Restore the original palette (in case ULA+ changed it)
     spectrumSetPalette();
@@ -1050,8 +1060,8 @@ void speccy_reset(void)
 // -----------------------------------------------------------------------------
 ITCM_CODE u32 speccy_run(void)
 {
-    ++zx_current_line;                              // This is the pixel line we're working on...
-    int starting_line = 63+myConfig.lateTiming;     // And this is the first line we draw
+    ++zx_current_line; // This is the pixel line we're working on...
+    int starting_line = (myConfig.machine ? 63:64)+myConfig.lateTiming; // And this is the first line we draw (48K machines start 1 line later)
 
     // ----------------------------------------------
     // Execute 1 scanline worth of CPU instructions.

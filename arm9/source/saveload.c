@@ -25,7 +25,7 @@
 
 #include "lzav.h"
 
-#define SPECCY_SAVE_VER   0x0009    // Change this if the basic format of the .SAV file changes. Invalidates older .sav files.
+#define SPECCY_SAVE_VER   0x000A    // Change this if the basic format of the .SAV file changes. Invalidates older .sav files.
 
 // -----------------------------------------------------------------------------------------------------
 // Since the main MemoryMap[] can point to differt things (RAM, ROM, BIOS, etc) and since we can't rely
@@ -98,7 +98,9 @@ void spectrumSaveState()
         retVal = fwrite(&CPU, sizeof(CPU), 1, handle);
 
         // Write AY Chip info
-        retVal = fwrite(&myAY, sizeof(myAY), 1, handle);
+        u8 ay_save_buffer[64];  // The AY save state is only like 16 bytes... so this is more than enough...
+        ay38910SaveState(ay_save_buffer, &myAY);
+        retVal = fwrite(ay_save_buffer, sizeof(ay_save_buffer), 1, handle);
 
         // And the Memory Map - we must only save offsets so that this is generic when we change code and memory shifts...
         for (u8 i=0; i<4; i++)
@@ -258,8 +260,10 @@ void spectrumLoadState()
             if (retVal) retVal = fread(&CPU, sizeof(CPU), 1, handle);
 
             // Load AY Chip info
-            if (retVal) retVal = fread(&myAY, sizeof(myAY), 1, handle);
-
+            u8 ay_save_buffer[64];  // The AY save state is only like 16 bytes... so this is more than enough...
+            retVal = fread(ay_save_buffer, sizeof(ay_save_buffer), 1, handle);
+            ay38910LoadState(&myAY, ay_save_buffer);
+            
             // Load back the Memory Map - these were saved as offsets so we must reconstruct actual pointers
             if (retVal) retVal = fread(Offsets, sizeof(Offsets),1, handle);
             for (u8 i=0; i<4; i++)
