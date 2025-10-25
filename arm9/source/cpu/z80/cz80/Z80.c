@@ -717,7 +717,7 @@ ITCM_CODE void ExecZ80_Speccy(u32 RunToCycles)
               if (CPU.PC.W & 0x8000) // Must be 0xC000
               {
                   // For the ZX 128K bank, we contend if the bank is odd (1,3,5,7)
-                  if (zx_128k_mode && (portFD & 1)) CPU.TStates += AVERAGE_CONTEND_DELAY;
+                  if (zx_contend_upper_bank) CPU.TStates += AVERAGE_CONTEND_DELAY;
               }
               else // Must be 0x4000 - we contend on any video access (both 48K and 128K)
               {

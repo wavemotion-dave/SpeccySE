@@ -20,7 +20,7 @@
 #define MAX_TAPE_SIZE               (640*1024) // 640K is big enough for any .TAP/.TZX or Snapshot
 
 #define MAX_CONFIGS                 4096
-#define CONFIG_VERSION              0x0005
+#define CONFIG_VERSION              0x0006
 
 #define SPECCY_FILE                 0x01
 #define DIRECTORY                   0x02

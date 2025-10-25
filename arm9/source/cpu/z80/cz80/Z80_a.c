@@ -159,7 +159,7 @@ inline __attribute__((always_inline)) byte OpZ80(word A)
          else CPU.TStates += cpu_contended_delay_128[(CPU.TStates) % CYCLES_PER_SCANLINE_128];
     }
 
-    CPU.TStates += 4;  // OpCode reads and interpret are 4 cycles
+    CPU.TStates += 4;  // OpCode reads and process are 4 cycles
     
     return MemoryMap[(A)>>14][A];
 }
@@ -366,9 +366,10 @@ extern void Trap_Bad_Ops(char *, byte, word);
 extern void ResetZ80(Z80 *R);
 
 void    EI_Enable_128(void);
+void    EI_Enable_48(void);
 #define EI_Enable   EI_Enable_128
 
-#define IntZ80 IntZ80_a
+#define IntZ80      IntZ80_a
 
 /** IntZ80() *************************************************/
 /** This function will generate interrupt of given vector.  **/
@@ -647,9 +648,11 @@ void ExecZ80_Speccy_128(u32 RunToCycles)
 // ---------------------------------------------------------------------------------------
 // And yet ANOTHER copy of the core Z80 but this time optimized for 48K memory contention.
 // ---------------------------------------------------------------------------------------
-#define OpZ80 OpZ80_48
-#define RdZ80 RdZ80_48
-#define WrZ80 WrZ80_48
+#define OpZ80       OpZ80_48
+#define RdZ80       RdZ80_48
+#define WrZ80       WrZ80_48
+#undef  EI_Enable
+#define EI_Enable   EI_Enable_48
 
 inline __attribute__((always_inline)) byte OpZ80_48(word A)
 {
@@ -658,7 +661,7 @@ inline __attribute__((always_inline)) byte OpZ80_48(word A)
          if ((A & 0x8000) == 0)  CPU.TStates += cpu_contended_delay_48[(CPU.TStates) % CYCLES_PER_SCANLINE_48];
     }
 
-    CPU.TStates += 4;  // OpCode reads and interpret are 4 cycles
+    CPU.TStates += 4;  // OpCode reads and process are 4 cycles
     
     return MemoryMap[(A)>>14][A];
 }
@@ -819,6 +822,44 @@ static void CodesFD_Speccy_48(void)
         if(CPU.TrapBadOps)  Trap_Bad_Ops(" FD ", I, CPU.PC.W-2);
   }
 #undef XX
+}
+
+void ExecOneInstruction_48(void)
+{
+  register byte I;
+  register pair J;
+  u32 RunToCycles = CPU.TStates+1;
+
+  I=OpZ80(CPU.PC.W++);
+
+  /* R register incremented on each M1 cycle */
+  INCR(1);
+
+  /* Interpret opcode */
+  switch(I)
+  {
+#include "Codes.h"
+    case PFX_CB: CodesCB_Speccy_48();break;
+    case PFX_ED: CodesED_Speccy_48();break;
+    case PFX_FD: CodesFD_Speccy_48();break;
+    case PFX_DD: CodesDD_Speccy_48();break;
+  }
+}
+
+// ------------------------------------------------------------------------
+// The Enable Interrupt is delayed 1 M1 instruction and we must also check
+// to see if we are within the 32 TState period where the ZX Spectrum ULA
+// would hold the Interrupt Request pulse...
+// ------------------------------------------------------------------------
+void EI_Enable_48(void)
+{
+   ExecOneInstruction_48();
+   CPU.IFF=(CPU.IFF&~IFF_EI)|IFF_1;
+   if (CPU.IRequest != INT_NONE)
+   {
+       if ((CPU.TStates - CPU.TStates_IRequest) < 32) IntZ80(&CPU, CPU.IRequest); // Fire the interrupt
+       else CPU.IRequest = INT_NONE; // We missed the interrupt...
+   }
 }
 
 void ExecZ80_Speccy_48(u32 RunToCycles)

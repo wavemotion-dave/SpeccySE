@@ -29,8 +29,12 @@ extern "C" {
 
 //#define ZEXALL_TEST          /* Uncomment this to run the ZEXALL Z80 instruction test */
 
-#define CONTENDED_TSTATE        14361
-#define AVERAGE_CONTEND_DELAY   4
+#define AVERAGE_CONTEND_DELAY       4
+#define CYCLES_PER_SCANLINE_48      224
+#define CYCLES_PER_SCANLINE_128     228
+
+#define SCANLINES_PER_FRAME_128     311
+#define SCANLINES_PER_FRAME_48      312
 
                                /* Compilation options:       */
 #define LSB_FIRST              /* Compile for low-endian CPU */
@@ -105,9 +109,6 @@ typedef struct
   word EI_Delay;                    /* Enable Interrupt instruction delay   */
   u32  Reserved;                    /* For future use...                    */
 } Z80;
-
-#define CYCLES_PER_SCANLINE_48      224
-#define CYCLES_PER_SCANLINE_128     228
 
 extern u8 accurate_emulation;
 

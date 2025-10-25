@@ -304,7 +304,6 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
     // If we are rending the screen... we will return the Attribute byte mid-scanline which is
     // good enough for games like Sidewine and Short Circuit and Cobra, etc.
     // ---------------------------------------------------------------------------------------------
-    debug[7]++;
     if (zx_ScreenRendering)
     {
         u8 *floatBusPtr;
@@ -412,19 +411,16 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
     {
          if (accurate_emulation)
          {
-              if (myConfig.machine) // 128K
+              if ((Port & 0xC000) == 0x4000) // Does Port address look to the ULA like 'contended' memory?
               {
-                  if ((Port & 0xC000) == 0x4000)
+                  if (myConfig.machine) // 128K
                   {
                       CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+0) % CYCLES_PER_SCANLINE_128];
                       CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_128];
                       CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+2) % CYCLES_PER_SCANLINE_128];
                       CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+3) % CYCLES_PER_SCANLINE_128];
                   }
-              }
-              else // 48K
-              {
-                  if ((Port & 0xC000) == 0x4000)
+                  else // 48K
                   {
                       CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+0) % CYCLES_PER_SCANLINE_48];
                       CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_48];
@@ -494,6 +490,9 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
     }
 }
 
+// --------------------------------------------------------------------------------------
+// After we load a saved state, we need to re-apply the saved palette back to the DS LCD
+// --------------------------------------------------------------------------------------
 void apply_ula_plus_palette(void)
 {
     for (int reg=0; reg<64; reg++)
@@ -1093,7 +1092,7 @@ ITCM_CODE u32 speccy_run(void)
         // on every new frame to help us with the somewhat complex handling of
         // the memory contention which is heavily dependent on CPU Cycle counts.
         // -----------------------------------------------------------------------
-        if (zx_current_line == (zx_128k_mode ? 311:312))
+        if (zx_current_line == (zx_128k_mode ? SCANLINES_PER_FRAME_128:SCANLINES_PER_FRAME_48))
         {
             CPU.TStates = 0;
             last_edge = 0;
@@ -1117,7 +1116,7 @@ ITCM_CODE u32 speccy_run(void)
     // ------------------------------------------
     // Generate an interrupt only at end of frame
     // ------------------------------------------
-    if (zx_current_line == (zx_128k_mode ? 311:312))
+    if (zx_current_line == (zx_128k_mode ? SCANLINES_PER_FRAME_128:SCANLINES_PER_FRAME_48))
     {
         zx_current_line = 0;
         zx_ScreenRendering = 0;

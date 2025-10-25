@@ -818,7 +818,7 @@ void SetDefaultGlobalConfig(void)
     myGlobalConfig.showFPS        = 0;    // Don't show FPS counter by default
     myGlobalConfig.lastDir        = 0;    // Default is to start in /roms/speccy
     myGlobalConfig.debugger       = 0;    // Debugger is not shown by default
-    myGlobalConfig.defMachine     = 0;    // Default machine is 48K Spectrum
+    myGlobalConfig.defMachine     = 1;    // Default machine is 128K Spectrum
     myGlobalConfig.defULAplus     = 1;    // Default machine allows ULA Plus
 }
 
@@ -874,20 +874,6 @@ void LoadConfig(void)
             ReadFileCarefully("/data/SpeccySE.DAT", (u8*)&AllConfigs, 1000 * sizeof(struct Config_t), sizeof(myGlobalConfig)); // Read the full game array of configs
         }
         
-        // One time upgrade from 4 to 5 - patches in the ULA Plus support
-        if (myGlobalConfig.config_ver == 4)
-        {
-            myGlobalConfig.defULAplus = 1;
-            for (int i=0; i<MAX_CONFIGS; i++)
-            {
-                if (AllConfigs[i].game_crc != 0x00000000)
-                {
-                    AllConfigs[i].ULAplus = 1;
-                }
-            }
-            myGlobalConfig.config_ver = CONFIG_VERSION;
-        }
-
         // Wrong version... init the entire database
         if (myGlobalConfig.config_ver != CONFIG_VERSION)
         {
@@ -942,8 +928,34 @@ void FindConfig(void)
     // ------------------------------------------------------------------------
     // Now some basic overrides for certain games that need alternate settings
     // ------------------------------------------------------------------------
-    //zzz
-    
+    char *strcasestr(const char *haystack, const char *needle);
+
+    if      (strcasestr(gpFic[ucGameChoice].szName, "ATIC")         != 0) myConfig.machine = 0;
+    else if (strcasestr(gpFic[ucGameChoice].szName, "WULF")         != 0) myConfig.machine = 0;
+    else if (strcasestr(gpFic[ucGameChoice].szName, "SKOOL")        != 0) myConfig.machine = 0;
+    else if (strcasestr(gpFic[ucGameChoice].szName, "ELITE")        != 0) myConfig.machine = 0;
+    else if (strcasestr(gpFic[ucGameChoice].szName, "LUNARJET")     != 0) myConfig.machine = 0;
+    else if (strcasestr(gpFic[ucGameChoice].szName, "MANICMIN")     != 0) myConfig.machine = 0;
+    else if (strcasestr(gpFic[ucGameChoice].szName, "MANIC MIN")    != 0) myConfig.machine = 0;
+    else if (strcasestr(gpFic[ucGameChoice].szName, "LUNAR JET")    != 0) myConfig.machine = 0;
+    else if (strcasestr(gpFic[ucGameChoice].szName, "JETPAC")       != 0) myConfig.machine = 0;
+    else if (strcasestr(gpFic[ucGameChoice].szName, "JET-PAC")      != 0) myConfig.machine = 0;
+    else if (strcasestr(gpFic[ucGameChoice].szName, "JET PAC")      != 0) myConfig.machine = 0;
+    else if (strcasestr(gpFic[ucGameChoice].szName, "MACHINA")      != 0) myConfig.machine = 0;
+    else if (strcasestr(gpFic[ucGameChoice].szName, "GLUF")         != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 1;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "DREAMWALKER")  != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 1;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "DREAM WALKER") != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 1;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "BUZZSAW")      != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "RINGO")        != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "PLYUK")        != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "OLDTOWER")     != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "OLD TOWER")    != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "STORMFINCH")   != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "STOMPO")       != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "COMPLICA")     != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "SUNBUCKET")    != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "PUSH BOT")     != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "PUSHBOT")      != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
 }
 
 
@@ -969,7 +981,7 @@ const struct options_t Option_Table[2][20] =
         {"MACHINE",        {"48K SPECTRUM", "128K SPECTRUM"},                           &myConfig.machine,           2},
         {"ULA PLUS",       {"DISABLED",  "ENABLED"},                                    &myConfig.ULAplus,           2},
         {"ACCURACY",       {"NORMAL", "ENHANCED"},                                      &myConfig.accuracy,          2},
-        {"TIMING",         {"NORMAL", "LATE"},                                          &myConfig.lateTiming,        2},        
+        {"ULA TIMING",     {"NORMAL", "LATE"},                                          &myConfig.lateTiming,        2},        
         {"AUTO PLAY",      {"NO", "YES"},                                               &myConfig.autoLoad,          2},
         {"AUTO STOP",      {"NO", "YES", "AGGRESSIVE"},                                 &myConfig.autoStop,          3},
         {"AUTO FIRE",      {"OFF", "ON"},                                               &myConfig.autoFire,          2},
