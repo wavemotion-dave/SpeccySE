@@ -167,7 +167,6 @@ extern u8 zx_ula_plus_enabled;
 extern u8 zx_ula_plus_group;
 extern u8 zx_ula_plus_palette_reg;
 extern u8 zx_ula_plus_palette[64];
-extern int readwrite_count;
 extern void BottomScreenOptions(void);
 extern void BottomScreenCassette(void);
 extern void BottomScreenKeyboard(void);

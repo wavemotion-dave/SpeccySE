@@ -41,7 +41,6 @@ u8  rom_special_bank        __attribute__((section(".dtcm"))) = 0;
 u8  zx_ula_plus_enabled     __attribute__((section(".dtcm"))) = 0;
 u8  accurate_emulation      __attribute__((section(".dtcm"))) = 0;
 u8  zx_contend_upper_bank   __attribute__((section(".dtcm"))) = 0;
-int readwrite_count         __attribute__((section(".dtcm"))) = 0;
 
 u8  zx_ula_plus_palette[64] = {0};
 u8  zx_ula_plus_group = 0x00;
@@ -51,6 +50,7 @@ u8  backgroundRenderScreen = 0;
 u8  bRenderSkipOnce        = 1;
 
 extern u8 dandy_disabled;
+#define zzz 228
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
@@ -58,7 +58,7 @@ extern u8 dandy_disabled;
 ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
 {
     static u8 bNonSpecialKeyWasPressed = 0;
-
+    
     if ((Port & 1) == 0) // Any Even Address will cause the ULA to respond
     {
          // ----------------------------------------------------------------------------------------
@@ -71,14 +71,13 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
          {
              if (((Port & 0xC000) == 0x4000) || (((Port & 0xC000) == 0xC000) && (zx_contend_upper_bank)))
              {
-                 CPU.TStates += cpu_contended_delay[(((CPU.TStates+readwrite_count))+0) % 228];
-                 CPU.TStates += cpu_contended_delay[(((CPU.TStates+readwrite_count))+1) % 228];
+                 CPU.TStates += cpu_contended_delay[(((CPU.TStates))+0) % zzz];
+                 CPU.TStates += cpu_contended_delay[(((CPU.TStates))+1) % zzz];
              }
              else
              {
-                 CPU.TStates += cpu_contended_delay[(((CPU.TStates+readwrite_count))+1) % 228];
+                 CPU.TStates += cpu_contended_delay[(((CPU.TStates))+1) % zzz];
              }
-             readwrite_count += 4;
          }
          else if (zx_ScreenRendering)
          {
@@ -113,6 +112,8 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
             zx_special_key = 0; 
             return ~tape_pulse();
         }
+        
+        if (accurate_emulation)  CPU.TStates += 4;
 
         // -----------------------------
         // Otherwise normal handling...
@@ -242,41 +243,45 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
         return (u8)~key;
     }
     else
-    if ((Port & 0x3F) == 0x1F)  // Kempston Joystick interface... (only A5 driven low)
     {
-        u8 joy1 = 0x00;
-
-        if (JoyState & JST_RIGHT) joy1 |= 0x01;
-        if (JoyState & JST_LEFT)  joy1 |= 0x02;
-        if (JoyState & JST_DOWN)  joy1 |= 0x04;
-        if (JoyState & JST_UP)    joy1 |= 0x08;
-        if (JoyState & JST_FIRE)  joy1 |= 0x10;
-        return joy1;
-    }
-    else
-    if ((Port & 0xc002) == 0xc000) // AY input
-    {
-        return ay38910DataR(&myAY);
-    }
-    else
-    if ((Port & 0xBFFF) == 0xBF3B) // ULA+
-    {
-        // 0xBF3B is Register Port - write only (no read-back)
-        // 0xFF3B is the Data Port - read/write
-        if (myConfig.ULAplus)
+        if (accurate_emulation)  CPU.TStates += 4;
+        
+        if ((Port & 0x3F) == 0x1F)  // Kempston Joystick interface... (only A5 driven low)
         {
-            if (Port == 0xFF3B)
+            u8 joy1 = 0x00;
+
+            if (JoyState & JST_RIGHT) joy1 |= 0x01;
+            if (JoyState & JST_LEFT)  joy1 |= 0x02;
+            if (JoyState & JST_DOWN)  joy1 |= 0x04;
+            if (JoyState & JST_UP)    joy1 |= 0x08;
+            if (JoyState & JST_FIRE)  joy1 |= 0x10;
+            return joy1;
+        }
+        else
+        if ((Port & 0xc002) == 0xc000) // AY input
+        {
+            return ay38910DataR(&myAY);
+        }
+        else
+        if ((Port & 0xBFFF) == 0xBF3B) // ULA+
+        {
+            // 0xBF3B is Register Port - write only (no read-back)
+            // 0xFF3B is the Data Port - read/write
+            if (myConfig.ULAplus)
             {
-                if ((zx_ula_plus_group >> 6) == 0x00) // Palette Group
+                if (Port == 0xFF3B)
                 {
-                    return zx_ula_plus_palette[zx_ula_plus_palette_reg];
-                }
-                else if ((zx_ula_plus_group >> 6) == 0x01) // Mode Group
-                {
-                    return zx_ula_plus_enabled;
+                    if ((zx_ula_plus_group >> 6) == 0x00) // Palette Group
+                    {
+                        return zx_ula_plus_palette[zx_ula_plus_palette_reg];
+                    }
+                    else if ((zx_ula_plus_group >> 6) == 0x01) // Mode Group
+                    {
+                        return zx_ula_plus_enabled;
+                    }
                 }
             }
-        }
+         }
      }
 
     // ---------------------------------------------------------------------------------------------
@@ -285,6 +290,7 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
     // If we are rending the screen... we will return the Attribute byte mid-scanline which is
     // good enough for games like Sidewine and Short Circuit and Cobra, etc.
     // ---------------------------------------------------------------------------------------------
+    debug[7]++;
     if (zx_ScreenRendering)
     {
         u8 *floatBusPtr;
@@ -360,21 +366,34 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
          {
               if (((Port & 0xC000) == 0x4000) || (((Port & 0xC000) == 0xC000) && (zx_contend_upper_bank)))
               {
-                  CPU.TStates += cpu_contended_delay[(((CPU.TStates+readwrite_count))+0) % 228];
-                  CPU.TStates += cpu_contended_delay[(((CPU.TStates+readwrite_count))+1) % 228];
+                  CPU.TStates += cpu_contended_delay[(((CPU.TStates))+0) % zzz];
+                  CPU.TStates += cpu_contended_delay[(((CPU.TStates))+1) % zzz];
               }
               else
               {
-                  CPU.TStates += cpu_contended_delay[(((CPU.TStates+readwrite_count))+1) % 228];
+                  CPU.TStates += cpu_contended_delay[(((CPU.TStates))+1) % zzz];
               }
-              
-              readwrite_count += 4;
          }
          else if (zx_ScreenRendering)
          {
              CPU.TStates += AVERAGE_CONTEND_DELAY;
          }
     }
+    else
+    {
+         if (accurate_emulation)
+         {
+              if (((Port & 0xC000) == 0x4000) || (((Port & 0xC000) == 0xC000) && (zx_contend_upper_bank)))
+              {
+                  CPU.TStates += cpu_contended_delay[(((CPU.TStates))+0) % zzz]; 
+                  CPU.TStates += cpu_contended_delay[(((CPU.TStates))+1) % zzz];
+                  CPU.TStates += cpu_contended_delay[(((CPU.TStates))+2) % zzz];
+                  CPU.TStates += cpu_contended_delay[(((CPU.TStates))+3) % zzz];
+              }
+         }
+    }
+    
+    if (accurate_emulation)  CPU.TStates += 4;
 
     if (zx_128k_mode && ((Port & 0x8002) == 0x0000)) // 128K Bankswitch
     {
@@ -431,7 +450,6 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
             }
         }
     }
-    readwrite_count += 4;
 }
 
 void apply_ula_plus_palette(void)
@@ -1025,7 +1043,7 @@ ITCM_CODE u32 speccy_run(void)
         processDirectAudio();
 
         zx_ScreenRendering = 0; // On this final chunk we are drawing border and doing a horizontal sync... no contention
-        
+
         ExecZ80_Speccy((zx_128k_mode ? 228:224) * zx_current_line); // This puts us exactly where we should be for the scanline
 
         // -----------------------------------------------------------------------
@@ -1040,12 +1058,12 @@ ITCM_CODE u32 speccy_run(void)
         }
     }
 
-    accurate_emulation = 0;
     // -----------------------------------------------------------
     // Render one line if we're in the visible area of the screen
     // This is scalines 64 (first visible scanline) to 255 (last
     // visible scanline for a total of 192 scanlines).
     // -----------------------------------------------------------
+    accurate_emulation = 0;
     if ((zx_current_line >= starting_line) && (zx_current_line < 192+starting_line))
     {
         // Render one scanline...

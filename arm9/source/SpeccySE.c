@@ -1180,6 +1180,9 @@ void SpeccySE_main(void)
         // -------------------------------------------------------------
         if (TIMER1_DATA >= 32728)   //  1000MS (1 sec)
         {
+            if (keysCurrent() & KEY_X) debug[0]++;
+            if (keysCurrent() & KEY_Y) debug[0]--;
+            
             char szChai[4];
 
             TIMER1_CR = 0;

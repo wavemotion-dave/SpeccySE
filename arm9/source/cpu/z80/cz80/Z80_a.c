@@ -71,7 +71,7 @@ extern void cpu_writeport_speccy(register unsigned short Port,register unsigned 
 // ------------------------------------------------------------------------------
 u8 cpu_contended_delay[228] __attribute__((section(".dtcm"))) = 
 {
-    3,2,1,0,0,
+    0,0,
     6,5,4,3,2,1,0,0,
     6,5,4,3,2,1,0,0,
     6,5,4,3,2,1,0,0,
@@ -102,47 +102,30 @@ u8 cpu_contended_delay[228] __attribute__((section(".dtcm"))) =
     0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,
-    0,0,0,0,6,5,4
+    0,0,0,0,6,5,4,3,2,1,
 };
 
-u8 M1[256] __attribute__((section(".dtcm"))) =
-{
-    4,4,4,4,4,4,4,4,    4,4,4,4,4,4,4,4,    // 0x00
-    5,4,4,4,4,4,4,4,    4,4,4,4,4,4,4,4,    // 0x10
-    4,4,4,4,4,4,4,4,    4,4,4,4,4,4,4,4,    // 0x20
-    4,4,4,4,4,4,4,4,    4,4,4,4,4,4,4,4,    // 0x30
+#define T_INC(X)    CPU.TStates +=(X);
+#define J_ADJ       
+#define R_ADJ
+#define C_ADJ
+#define PhantomRdZ80(A) RdZ80(A)
 
-    4,4,4,4,4,4,4,4,    4,4,4,4,4,4,4,4,    // 0x40
-    4,4,4,4,4,4,4,4,    4,4,4,4,4,4,4,4,    // 0x50
-    4,4,4,4,4,4,4,4,    4,4,4,4,4,4,4,4,    // 0x60
-    4,4,4,4,4,4,4,4,    4,4,4,4,4,4,4,4,    // 0x70
-
-    4,4,4,4,4,4,4,4,    4,4,4,4,4,4,4,4,    // 0x80
-    4,4,4,4,4,4,4,4,    4,4,4,4,4,4,4,4,    // 0x90
-    4,4,4,4,4,4,4,4,    4,4,4,4,4,4,4,4,    // 0xA0
-    4,4,4,4,4,4,4,4,    4,4,4,4,4,4,4,4,    // 0xB0
-    
-    4,4,4,4,4,5,4,5,    5,4,4,4,4,4,4,5,    // 0xC0
-    4,4,4,4,4,5,4,5,    5,4,4,4,4,4,4,5,    // 0xD0
-    4,4,4,4,4,5,4,5,    5,4,4,4,4,4,4,5,    // 0xE0
-    4,4,4,4,4,5,4,5,    5,4,4,4,4,4,4,5,    // 0xF0
-};
-
-#define INC_RW  readwrite_count++;
-#define INC_RW3 readwrite_count+=3;
-#define INC_RW5 readwrite_count+=5;
+#define zzz 228
 
 inline __attribute__((always_inline)) byte OpZ80(word A)
 {
     if (A & 0x4000)
     {
-         if (A & 0x8000) // Must be upper bank 0xC000
+         if (A & 0x8000) // 128K contends on 0xC000 if odd bank mapped
          {
-              if (zx_contend_upper_bank) CPU.TStates += cpu_contended_delay[(CPU.TStates) % 228];
+              if (zx_contend_upper_bank) CPU.TStates += cpu_contended_delay[(CPU.TStates) % zzz];
          }
-         else CPU.TStates += cpu_contended_delay[(CPU.TStates) % 228];
+         else CPU.TStates += cpu_contended_delay[(CPU.TStates) % zzz];
     }
-    readwrite_count = 0;
+
+    CPU.TStates += 4;  // OpCode reads and interpret are 4 cycles
+    
     return MemoryMap[(A)>>14][A];
 }
 
@@ -150,16 +133,24 @@ inline __attribute__((always_inline)) static byte RdZ80(word A)
 {
     if (A & 0x4000)
     {
-         if (A & 0x8000) // Must be upper bank 0xC000
+         if (A & 0x8000) // 128K contends on 0xC000 if odd bank mapped
          {
-              if (zx_contend_upper_bank) CPU.TStates += cpu_contended_delay[((CPU.TStates+readwrite_count)) % 228];
+              if (zx_contend_upper_bank) CPU.TStates += cpu_contended_delay[((CPU.TStates)) % zzz];
          }
-         else CPU.TStates += cpu_contended_delay[((CPU.TStates+readwrite_count)) % 228];
+         else CPU.TStates += cpu_contended_delay[((CPU.TStates)) % zzz];
     }
-    readwrite_count += 3;
+
+    CPU.TStates += 3; // Memory reads are 3 cycles
+    
     return MemoryMap[(A)>>14][A];
 }
 
+inline __attribute__((always_inline)) static byte RdZ80_noc(word A)
+{
+    CPU.TStates += 3; // Memory reads are 3 cycles
+    
+    return MemoryMap[(A)>>14][A];
+}
 
 // -------------------------------------------------------------------------------------------
 // The only extra protection we have in writes is to ensure we don't write into the ROM area.
@@ -172,18 +163,17 @@ inline __attribute__((always_inline)) void WrZ80(word A, byte value)
     {
         if (A & 0x4000)
         {
-             if (A & 0x8000) // Must be upper bank 0xC000
+             if (A & 0x8000) // 128K contends on 0xC000 if odd bank mapped
              {
-                  if (zx_contend_upper_bank) CPU.TStates += cpu_contended_delay[((CPU.TStates+readwrite_count)) % 228];
+                  if (zx_contend_upper_bank) CPU.TStates += cpu_contended_delay[((CPU.TStates)) % zzz];
              }
-             else CPU.TStates += cpu_contended_delay[((CPU.TStates+readwrite_count)) % 228];
+             else CPU.TStates += cpu_contended_delay[((CPU.TStates)) % zzz];
         }
-        
         MemoryMap[(A)>>14][A] = value; 
     }
     else dandanator_flash_write(A,value);
-
-    readwrite_count += 3;
+    
+    CPU.TStates += 3; // Memory writes are 3 cycles
 }
 
 // -------------------------------------------------------------------
@@ -225,42 +215,34 @@ inline __attribute__((always_inline)) void WrZ80(word A, byte value)
     CPU.AF.B.l=PZSTable[Rg];        \
   }
 
-#define M_SLA(Rg)      \
-  CPU.AF.B.l=Rg>>7;Rg<<=1;CPU.AF.B.l|=PZSTable[Rg]
-#define M_SRA(Rg)      \
-  CPU.AF.B.l=Rg&C_FLAG;Rg=(Rg>>1)|(Rg&0x80);CPU.AF.B.l|=PZSTable[Rg]
+#define M_SLA(Rg)      CPU.AF.B.l=Rg>>7;Rg<<=1;CPU.AF.B.l|=PZSTable[Rg]
+#define M_SRA(Rg)      CPU.AF.B.l=Rg&C_FLAG;Rg=(Rg>>1)|(Rg&0x80);CPU.AF.B.l|=PZSTable[Rg]
 
-#define M_SLL(Rg)      \
-  CPU.AF.B.l=Rg>>7;Rg=(Rg<<1)|0x01;CPU.AF.B.l|=PZSTable[Rg]
-#define M_SRL(Rg)      \
-  CPU.AF.B.l=Rg&0x01;Rg>>=1;CPU.AF.B.l|=PZSTable[Rg]
+#define M_SLL(Rg)      CPU.AF.B.l=Rg>>7;Rg=(Rg<<1)|0x01;CPU.AF.B.l|=PZSTable[Rg]
+#define M_SRL(Rg)      CPU.AF.B.l=Rg&0x01;Rg>>=1;CPU.AF.B.l|=PZSTable[Rg]
 
-#define M_BIT(Bit,Rg)  \
-  CPU.AF.B.l=(CPU.AF.B.l&C_FLAG)|PZSHTable_BIT[Rg&(1<<Bit)]
+#define M_BIT(Bit,Rg)  CPU.AF.B.l=(CPU.AF.B.l&C_FLAG)|PZSHTable_BIT[Rg&(1<<Bit)]
 
-#define M_SET(Bit,Rg) Rg|=1<<Bit
-#define M_RES(Bit,Rg) Rg&=~(1<<Bit)
+#define M_SET(Bit,Rg)  Rg|=1<<Bit
+#define M_RES(Bit,Rg)  Rg&=~(1<<Bit)
 
-#define M_POP(Rg)      \
-  CPU.Rg.B.l=OpZ80(CPU.SP.W++);CPU.Rg.B.h=OpZ80(CPU.SP.W++)
-#define M_PUSH(Rg)     \
-  WrZ80(--CPU.SP.W,CPU.Rg.B.h);WrZ80(--CPU.SP.W,CPU.Rg.B.l)
 
 #define M_CALL         \
-  J.B.l=RdZ80(CPU.PC.W++);J.B.h=RdZ80(CPU.PC.W++); INC_RW;   \
+  J.B.l=RdZ80(CPU.PC.W++);J.B.h=RdZ80(CPU.PC.W++); T_INC(1); \
   WrZ80(--CPU.SP.W,CPU.PC.B.h);WrZ80(--CPU.SP.W,CPU.PC.B.l); \
   CPU.PC.W=J.W; \
   JumpZ80(J.W)
 
-#define M_JP  CPU.PC.W = (u32)RdZ80(CPU.PC.W) | ((u32)RdZ80(CPU.PC.W+1) << 8);
-#define M_JR  CPU.PC.W+=(offset)OpZ80(CPU.PC.W)+1;JumpZ80(CPU.PC.W)
-#define M_RET CPU.PC.B.l=OpZ80(CPU.SP.W++);CPU.PC.B.h=OpZ80(CPU.SP.W++);JumpZ80(CPU.PC.W)
+#define M_JP         CPU.PC.W = (u32)RdZ80(CPU.PC.W) | ((u32)RdZ80(CPU.PC.W+1) << 8);
+#define M_JR         CPU.PC.W+=(offset)RdZ80(CPU.PC.W)+1;JumpZ80(CPU.PC.W)
 
-#define M_RST(Ad)      \
-  WrZ80(--CPU.SP.W,CPU.PC.B.h);WrZ80(--CPU.SP.W,CPU.PC.B.l);CPU.PC.W=Ad;JumpZ80(Ad)
+#define M_RET        CPU.PC.B.l=RdZ80(CPU.SP.W++);CPU.PC.B.h=RdZ80_noc(CPU.SP.W++);JumpZ80(CPU.PC.W) // TBD: HACK!! Remove noc() when fixed.
+#define M_POP(Rg)    CPU.Rg.B.l=RdZ80(CPU.SP.W++);CPU.Rg.B.h=RdZ80_noc(CPU.SP.W++);                  // TBD: HACK!! Remove noc() when fixed.
 
-#define M_LDWORD(Rg)   \
-  CPU.Rg.B.l=RdZ80(CPU.PC.W++);CPU.Rg.B.h=RdZ80(CPU.PC.W++)
+#define M_PUSH(Rg)   WrZ80(--CPU.SP.W,CPU.Rg.B.h);WrZ80(--CPU.SP.W,CPU.Rg.B.l)
+#define M_RST(Ad)    WrZ80(--CPU.SP.W,CPU.PC.B.h);WrZ80(--CPU.SP.W,CPU.PC.B.l);CPU.PC.W=Ad;JumpZ80(Ad)
+
+#define M_LDWORD(Rg) CPU.Rg.B.l=RdZ80(CPU.PC.W++);CPU.Rg.B.h=RdZ80(CPU.PC.W++)
 
 #define M_ADD(Rg)      \
   J.W=CPU.AF.B.h+Rg;    \
@@ -347,10 +329,81 @@ inline __attribute__((always_inline)) void WrZ80(word A, byte value)
 
 extern void Trap_Bad_Ops(char *, byte, word);
 extern void ResetZ80(Z80 *R);
-extern void IntZ80(Z80 *R,word Vector);
 
 void    EI_Enable_a(void);
 #define EI_Enable   EI_Enable_a
+
+#define IntZ80 IntZ80_a
+
+/** IntZ80() *************************************************/
+/** This function will generate interrupt of given vector.  **/
+/*************************************************************/
+void IntZ80_a(Z80 *R,word Vector)
+{
+    /* If HALTed, take CPU off HALT instruction */
+    if(CPU.IFF&IFF_HALT) { CPU.PC.W++;CPU.IFF&=~IFF_HALT; }
+
+    if((CPU.IFF&IFF_1)||(Vector==INT_NMI))
+    {
+      CPU.TStates += 7; // 19:73333 for IM2...   13:733 for IM1
+
+      /* Save PC on stack */
+      M_PUSH(PC);
+
+      /* Automatically reset IRequest */
+      CPU.IRequest=INT_NONE;
+
+      /* If it is NMI... */
+      if(Vector==INT_NMI)
+      {
+          /* Clear IFF1 */
+          CPU.IFF&=~(IFF_1|IFF_EI);
+          /* Jump to hardwired NMI vector */
+          CPU.PC.W=0x0066;
+          JumpZ80(0x0066);
+          /* Done */
+          return;
+      }
+
+      /* Further interrupts off */
+      CPU.IFF&=~(IFF_1|IFF_2|IFF_EI);
+
+      /* If in IM2 mode... */
+      if(CPU.IFF&IFF_IM2)
+      {
+          /* Make up the vector address - technically the Vector is whatever is on the data bus but is usually 0xFF */
+          Vector=(0xFF)|((word)(CPU.I)<<8);
+          /* Read the vector */
+          CPU.PC.B.l=RdZ80(Vector++);
+          CPU.PC.B.h=RdZ80(Vector);
+          
+          CPU.TStates += 3;
+
+          JumpZ80(CPU.PC.W);
+
+          /* Done */
+          return;
+      }
+
+      /* If in IM1 mode, just jump to hardwired IRQ vector */
+      if(CPU.IFF&IFF_IM1) { CPU.PC.W=0x0038; CPU.TStates += 3; JumpZ80(0x0038); return; }
+
+      /* If in IM0 mode... Not used on ZX Spectrum but handled here anyway */
+
+      /* Jump to a vector */
+      switch(Vector)
+      {
+          case INT_RST00: CPU.PC.W=0x0000;JumpZ80(0x0000);break;
+          case INT_RST08: CPU.PC.W=0x0008;JumpZ80(0x0008);break;
+          case INT_RST10: CPU.PC.W=0x0010;JumpZ80(0x0010);break;
+          case INT_RST18: CPU.PC.W=0x0018;JumpZ80(0x0018);break;
+          case INT_RST20: CPU.PC.W=0x0020;JumpZ80(0x0020);break;
+          case INT_RST28: CPU.PC.W=0x0028;JumpZ80(0x0028);break;
+          case INT_RST30: CPU.PC.W=0x0030;JumpZ80(0x0030);break;
+          case INT_RST38: CPU.PC.W=0x0038;JumpZ80(0x0038);break;
+      }
+    }
+}
 
 
 static void CodesCB_Speccy(void)
@@ -359,8 +412,6 @@ static void CodesCB_Speccy(void)
 
   /* Read opcode and count cycles */
   I=OpZ80(CPU.PC.W++);
-  CPU.TStates += 4;
-  int instruction_full_cycle_count = (CyclesCB[I] - 4);
 
   /* R register incremented on each M1 cycle */
   INCR(1);
@@ -371,8 +422,6 @@ static void CodesCB_Speccy(void)
     default:
       if(CPU.TrapBadOps)  Trap_Bad_Ops(" CB ", I, CPU.PC.W-2);
   }
-  
-  CPU.TStates += instruction_full_cycle_count;
 }
 
 static void CodesDDCB_Speccy(void)
@@ -382,11 +431,8 @@ static void CodesDDCB_Speccy(void)
 
 #define XX IX
   /* Get offset, read opcode and count cycles */
-  J.W=CPU.XX.W+(offset)OpZ80(CPU.PC.W++);
-  CPU.TStates += 3;
+  J.W=CPU.XX.W+(offset)RdZ80(CPU.PC.W++);
   I=OpZ80(CPU.PC.W++);
-  CPU.TStates += 5;
-  int instruction_full_cycle_count = (CyclesXXCB[I] - 8);
 
   switch(I)
   {
@@ -395,7 +441,6 @@ static void CodesDDCB_Speccy(void)
       if(CPU.TrapBadOps)  Trap_Bad_Ops("DDCB", I, CPU.PC.W-4);
   }
 #undef XX
-  CPU.TStates += instruction_full_cycle_count;
 }
 
 static void CodesFDCB_Speccy(void)
@@ -405,11 +450,8 @@ static void CodesFDCB_Speccy(void)
 
 #define XX IY
   /* Get offset, read opcode and count cycles */
-  J.W=CPU.XX.W+(offset)OpZ80(CPU.PC.W++);
-  CPU.TStates += 3;
+  J.W=CPU.XX.W+(offset)RdZ80(CPU.PC.W++);
   I=OpZ80(CPU.PC.W++);
-  CPU.TStates += 5;
-  int instruction_full_cycle_count = (CyclesXXCB[I] - 8);
 
   switch(I)
   {
@@ -418,7 +460,6 @@ static void CodesFDCB_Speccy(void)
       if(CPU.TrapBadOps)  Trap_Bad_Ops("FDCB", I, CPU.PC.W-4);
   }
 #undef XX
-  CPU.TStates += instruction_full_cycle_count;
 }
 
 static void CodesED_Speccy(void)
@@ -428,8 +469,6 @@ static void CodesED_Speccy(void)
 
   /* Read opcode and count cycles */
   I=OpZ80(CPU.PC.W++);
-  CPU.TStates += 4;
-  int instruction_full_cycle_count = (CyclesED[I] - 4);
   
   /* R register incremented on each M1 cycle */
   INCR(1);
@@ -442,19 +481,16 @@ static void CodesED_Speccy(void)
     default:
       if(CPU.TrapBadOps) Trap_Bad_Ops(" ED ", I, CPU.PC.W-4);
   }
-  CPU.TStates += instruction_full_cycle_count;
 }
 
 static void CodesDD_Speccy(void)
 {
-  register byte I;
+  register byte I,K;
   register pair J;
 
 #define XX IX
   /* Read opcode and count cycles */
   I=OpZ80(CPU.PC.W++);
-  CPU.TStates += 4;
-  int instruction_full_cycle_count = (CyclesXX[I] - 4);
 
   /* R register incremented on each M1 cycle */
   INCR(1);
@@ -471,19 +507,16 @@ static void CodesDD_Speccy(void)
       if(CPU.TrapBadOps)  Trap_Bad_Ops(" DD ", I, CPU.PC.W-2);
   }
 #undef XX
-  CPU.TStates += instruction_full_cycle_count;
 }
 
 static void CodesFD_Speccy(void)
 {
-  register byte I;
+  register byte I,K;
   register pair J;
 
 #define XX IY
   /* Read opcode and count cycles */
   I=OpZ80(CPU.PC.W++);
-  CPU.TStates += 4;
-  int instruction_full_cycle_count = (CyclesXX[I] - 4);
 
   /* R register incremented on each M1 cycle */
   INCR(1);
@@ -500,7 +533,6 @@ static void CodesFD_Speccy(void)
         if(CPU.TrapBadOps)  Trap_Bad_Ops(" FD ", I, CPU.PC.W-2);
   }
 #undef XX
-  CPU.TStates += instruction_full_cycle_count;
 }
 
 // ------------------------------------------------------------------------------
@@ -517,8 +549,6 @@ void ExecOneInstruction_a(void)
   u32 RunToCycles = CPU.TStates+1;
 
   I=OpZ80(CPU.PC.W++);
-  CPU.TStates += M1[I];
-  int instruction_full_cycle_count = (Cycles_NoM1Wait[I] - M1[I]);
 
   /* R register incremented on each M1 cycle */
   INCR(1);
@@ -532,8 +562,6 @@ void ExecOneInstruction_a(void)
     case PFX_FD: CodesFD_Speccy();break;
     case PFX_DD: CodesDD_Speccy();break;
   }
-  
-  CPU.TStates += instruction_full_cycle_count;
 }
 
 // ------------------------------------------------------------------------
@@ -564,8 +592,6 @@ void ExecZ80_Speccy_a(u32 RunToCycles)
   while (CPU.TStates < RunToCycles)
   {
       I=OpZ80(CPU.PC.W++);
-      CPU.TStates += M1[I];
-      int instruction_full_cycle_count = (Cycles_NoM1Wait[I] - M1[I]);
 
       /* R register incremented on each M1 cycle */
       INCR(1);
@@ -579,7 +605,5 @@ void ExecZ80_Speccy_a(u32 RunToCycles)
         case PFX_FD: CodesFD_Speccy();break;
         case PFX_DD: CodesDD_Speccy();break;
       }
-      
-      CPU.TStates += instruction_full_cycle_count;
   }
 }

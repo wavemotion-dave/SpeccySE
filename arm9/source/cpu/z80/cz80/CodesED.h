@@ -25,279 +25,278 @@
 //case DB_FE:     PatchZ80(&CPU);break;
 /*************************************************************/
 
-case ADC_HL_BC: M_ADCW(BC);break;
-case ADC_HL_DE: M_ADCW(DE);break;
-case ADC_HL_HL: M_ADCW(HL);break;
-case ADC_HL_SP: M_ADCW(SP);break;
+case ADC_HL_BC: M_ADCW(BC); T_INC(7); break;   //15:4443
+case ADC_HL_DE: M_ADCW(DE); T_INC(7); break;   //15:4443
+case ADC_HL_HL: M_ADCW(HL); T_INC(7); break;   //15:4443
+case ADC_HL_SP: M_ADCW(SP); T_INC(7); break;   //15:4443
 
-case SBC_HL_BC: M_SBCW(BC);break;
-case SBC_HL_DE: M_SBCW(DE);break;
-case SBC_HL_HL: M_SBCW(HL);break;
-case SBC_HL_SP: M_SBCW(SP);break;
+case SBC_HL_BC: M_SBCW(BC); T_INC(7); break;   //15:4443
+case SBC_HL_DE: M_SBCW(DE); T_INC(7); break;   //15:4443
+case SBC_HL_HL: M_SBCW(HL); T_INC(7); break;   //15:4443
+case SBC_HL_SP: M_SBCW(SP); T_INC(7); break;   //15:4443
 
-case LD_xWORDe_HL: //20:443333
+case LD_xWORDe_HL:  //20:443333
   J.B.l=RdZ80(CPU.PC.W++);
   J.B.h=RdZ80(CPU.PC.W++);
   WrZ80(J.W++,CPU.HL.B.l);
   WrZ80(J.W,CPU.HL.B.h);
   break;
-case LD_xWORDe_DE: //20:443333
+  
+case LD_xWORDe_DE:  //20:443333
   J.B.l=RdZ80(CPU.PC.W++);
   J.B.h=RdZ80(CPU.PC.W++);
   WrZ80(J.W++,CPU.DE.B.l);
   WrZ80(J.W,CPU.DE.B.h);
   break;
-case LD_xWORDe_BC: //20:443333
+
+case LD_xWORDe_BC:  //20:443333
   J.B.l=RdZ80(CPU.PC.W++);
   J.B.h=RdZ80(CPU.PC.W++);
   WrZ80(J.W++,CPU.BC.B.l);
   WrZ80(J.W,CPU.BC.B.h);
   break;
-case LD_xWORDe_SP: //20:443333
+
+case LD_xWORDe_SP:  //20:443333
   J.B.l=RdZ80(CPU.PC.W++);
   J.B.h=RdZ80(CPU.PC.W++);
   WrZ80(J.W++,CPU.SP.B.l);
   WrZ80(J.W,CPU.SP.B.h);
   break;
 
-case LD_HL_xWORDe: //20:443333
+case LD_HL_xWORDe:  //20:443333
   J.B.l=RdZ80(CPU.PC.W++);
   J.B.h=RdZ80(CPU.PC.W++);
   CPU.HL.B.l=RdZ80(J.W++);
   CPU.HL.B.h=RdZ80(J.W);
   break;
-case LD_DE_xWORDe: //20:443333
+
+case LD_DE_xWORDe:  //20:443333
   J.B.l=RdZ80(CPU.PC.W++);
   J.B.h=RdZ80(CPU.PC.W++);
   CPU.DE.B.l=RdZ80(J.W++);
   CPU.DE.B.h=RdZ80(J.W);
   break;
-case LD_BC_xWORDe: //20:443333
+
+case LD_BC_xWORDe:  //20:443333
   J.B.l=RdZ80(CPU.PC.W++);
   J.B.h=RdZ80(CPU.PC.W++);
   CPU.BC.B.l=RdZ80(J.W++);
   CPU.BC.B.h=RdZ80(J.W);
   break;
-case LD_SP_xWORDe: //20:443333
+  
+case LD_SP_xWORDe:  //20:443333
   J.B.l=RdZ80(CPU.PC.W++);
   J.B.h=RdZ80(CPU.PC.W++);
   CPU.SP.B.l=RdZ80(J.W++);
   CPU.SP.B.h=RdZ80(J.W);
   break;
 
-case RRD: //18:44343
+case RRD:   //18:44343
   I=RdZ80(CPU.HL.W);
   J.B.l=(I>>4)|(CPU.AF.B.h<<4);
+  T_INC(4);
   WrZ80(CPU.HL.W,J.B.l);
   CPU.AF.B.h=(I&0x0F)|(CPU.AF.B.h&0xF0);
   CPU.AF.B.l=PZSTable[CPU.AF.B.h]|(CPU.AF.B.l&C_FLAG);
   break;
   
-case RLD: //18:44343
+case RLD:   //18:44343
   I=RdZ80(CPU.HL.W);
   J.B.l=(I<<4)|(CPU.AF.B.h&0x0F);
+  T_INC(4);
   WrZ80(CPU.HL.W,J.B.l);
   CPU.AF.B.h=(I>>4)|(CPU.AF.B.h&0xF0);
   CPU.AF.B.l=PZSTable[CPU.AF.B.h]|(CPU.AF.B.l&C_FLAG);
   break;
 
-case LD_A_I:
+case LD_A_I:  //9:45
   CPU.AF.B.h=CPU.I;
   CPU.AF.B.l=(CPU.AF.B.l&C_FLAG)|(CPU.IFF&IFF_2? P_FLAG:0)|ZSTable[CPU.AF.B.h];
+  T_INC(1);
   break;
 
-case LD_A_R:
+case LD_A_R:  //9:45
   CPU.AF.B.h=(CPU.R&0x7F) | CPU.R_HighBit;  // The R is a 7-bit refresh counter with a 'secret' flag at the high bit that a few odd games take advantage of
   CPU.AF.B.l=(CPU.AF.B.l&C_FLAG)|(CPU.IFF&IFF_2? P_FLAG:0)|ZSTable[CPU.AF.B.h];
+  T_INC(1);
   break;
 
-case LD_I_A:   CPU.I=CPU.AF.B.h;break;
-case LD_R_A:   CPU.R=CPU.AF.B.h;CPU.R_HighBit = (CPU.R & 0x80); break;
+case LD_I_A:   CPU.I=CPU.AF.B.h; T_INC(1); break; // 9:45
+case LD_R_A:   CPU.R=CPU.AF.B.h;CPU.R_HighBit = (CPU.R & 0x80); T_INC(1); break; // 9:45
 
-case IM_0:     CPU.IFF&=~(IFF_IM1|IFF_IM2);break;
-case IM_1:     CPU.IFF=(CPU.IFF&~IFF_IM2)|IFF_IM1;break;
-case IM_2:     CPU.IFF=(CPU.IFF&~IFF_IM1)|IFF_IM2;break;
+case IM_0:     CPU.IFF&=~(IFF_IM1|IFF_IM2);break;           //8:44
+case IM_1:     CPU.IFF=(CPU.IFF&~IFF_IM2)|IFF_IM1;break;    //8:44
+case IM_2:     CPU.IFF=(CPU.IFF&~IFF_IM1)|IFF_IM2;break;    //8:44
 
 case RETI:
-case RETN:     if(CPU.IFF&IFF_2) CPU.IFF|=IFF_1; else CPU.IFF&=~IFF_1;
+case RETN:     if(CPU.IFF&IFF_2) CPU.IFF|=IFF_1; else CPU.IFF&=~IFF_1;  //8:44
                M_RET;break;
 
-case NEG:      I=CPU.AF.B.h;CPU.AF.B.h=0;M_SUB(I);break;
+case NEG:      I=CPU.AF.B.h;CPU.AF.B.h=0;M_SUB(I);break;    //8:44
 
-case IN_B_xC:  M_IN(CPU.BC.B.h);break;
-case IN_C_xC:  M_IN(CPU.BC.B.l);break;
-case IN_D_xC:  M_IN(CPU.DE.B.h);break;
-case IN_E_xC:  M_IN(CPU.DE.B.l);break;
-case IN_H_xC:  M_IN(CPU.HL.B.h);break;
-case IN_L_xC:  M_IN(CPU.HL.B.l);break;
-case IN_A_xC:  M_IN(CPU.AF.B.h);break;
-case IN_F_xC:  M_IN(J.B.l);break;
+case IN_B_xC:  M_IN(CPU.BC.B.h);break;  //12:444
+case IN_C_xC:  M_IN(CPU.BC.B.l);break;  //12:444
+case IN_D_xC:  M_IN(CPU.DE.B.h);break;  //12:444
+case IN_E_xC:  M_IN(CPU.DE.B.l);break;  //12:444
+case IN_H_xC:  M_IN(CPU.HL.B.h);break;  //12:444
+case IN_L_xC:  M_IN(CPU.HL.B.l);break;  //12:444
+case IN_A_xC:  M_IN(CPU.AF.B.h);break;  //12:444
+case IN_F_xC:  M_IN(J.B.l);break;       //12:444
 
-case OUT_xC_B: OutZ80(CPU.BC.W,CPU.BC.B.h);break;
-case OUT_xC_C: OutZ80(CPU.BC.W,CPU.BC.B.l);break;
-case OUT_xC_D: OutZ80(CPU.BC.W,CPU.DE.B.h);break;
-case OUT_xC_E: OutZ80(CPU.BC.W,CPU.DE.B.l);break;
-case OUT_xC_H: OutZ80(CPU.BC.W,CPU.HL.B.h);break;
-case OUT_xC_L: OutZ80(CPU.BC.W,CPU.HL.B.l);break;
-case OUT_xC_A: OutZ80(CPU.BC.W,CPU.AF.B.h);break;
-case OUT_xC_F: OutZ80(CPU.BC.W,0);break;
+case OUT_xC_B: OutZ80(CPU.BC.W,CPU.BC.B.h);break;  //12:444
+case OUT_xC_C: OutZ80(CPU.BC.W,CPU.BC.B.l);break;  //12:444
+case OUT_xC_D: OutZ80(CPU.BC.W,CPU.DE.B.h);break;  //12:444
+case OUT_xC_E: OutZ80(CPU.BC.W,CPU.DE.B.l);break;  //12:444
+case OUT_xC_H: OutZ80(CPU.BC.W,CPU.HL.B.h);break;  //12:444
+case OUT_xC_L: OutZ80(CPU.BC.W,CPU.HL.B.l);break;  //12:444
+case OUT_xC_A: OutZ80(CPU.BC.W,CPU.AF.B.h);break;  //12:444
+case OUT_xC_F: OutZ80(CPU.BC.W,0);break;           //12:444
 
-case INI: ////16:4543
-  INC_RW;
+case INI:   //16:4543
+  T_INC(1);
   I = InZ80(CPU.BC.W);
   WrZ80(CPU.HL.W++,I);
   --CPU.BC.B.h;
   CPU.AF.B.l=(I&0x80 ? N_FLAG:0)|(CPU.BC.B.h? 0:Z_FLAG);
   break;
 
-case INIR: //21:45435, 16:4543
-  INC_RW;
+case INIR:  //21:45435, 16:4543
+  T_INC(1);
   I = InZ80(CPU.BC.W);
   WrZ80(CPU.HL.W++,I);
-  if(--CPU.BC.B.h)
-  { 
-      CPU.AF.B.l=N_FLAG;
-      CPU.PC.W-=2;
-      CPU.TStates+=5;
-  }   // N_FLAG is not correct here but will be corrected when loop exits below. Nothing relies on the intermediate value.
-  else
-  {
-      CPU.AF.B.l=Z_FLAG|(I&0x80 ? N_FLAG:0);
-  }
+  if(--CPU.BC.B.h) { CPU.AF.B.l=N_FLAG; CPU.PC.W-=2; T_INC(5); }   // N_FLAG is not correct here but will be corrected when loop exits below. Nothing relies on the intermediate value.
+  else            { CPU.AF.B.l=Z_FLAG|(I&0x80 ? N_FLAG:0); J_ADJ;}
   break;
 
-case IND: //16:4543
-  INC_RW;
+case IND:  //16:4543
+  T_INC(1);
   I = InZ80(CPU.BC.W);
   WrZ80(CPU.HL.W--,I);
   --CPU.BC.B.h;
   CPU.AF.B.l=(I&0x80 ? N_FLAG:0)|(CPU.BC.B.h? 0:Z_FLAG);
   break;
 
-case INDR: //21:45435, 16:4543
-  INC_RW;
+case INDR:  //21:45435, 16:4543
+  T_INC(1);
   I = InZ80(CPU.BC.W);
   WrZ80(CPU.HL.W--,I);
-  if(!--CPU.BC.B.h) 
-  { 
-      CPU.AF.B.l=N_FLAG; 
-      CPU.PC.W-=2;
-      CPU.TStates+=5;
-  }  // N_FLAG is not correct here but will be corrected when loop exits below. Nothing relies on the intermediate value.
-  else
-  {
-      CPU.AF.B.l=Z_FLAG|(I&0x80 ? N_FLAG:0);
-  }
+  if(!--CPU.BC.B.h) { CPU.AF.B.l=N_FLAG; CPU.PC.W-=2; T_INC(5); }  // N_FLAG is not correct here but will be corrected when loop exits below. Nothing relies on the intermediate value.
+  else             { CPU.AF.B.l=Z_FLAG|(I&0x80 ? N_FLAG:0); J_ADJ;}
   break;
 
-case OUTI: //16:4534
+case OUTI:  //16:4534
+  T_INC(1);
   --CPU.BC.B.h;
-  INC_RW;
   I=RdZ80(CPU.HL.W++);
   OutZ80(CPU.BC.W,I);
   CPU.AF.B.l = (CPU.AF.B.l & S_FLAG) | (I&0x80 ? N_FLAG:0) | (CPU.BC.B.h ? 0 : Z_FLAG) | (CPU.HL.B.l + I > 255 ? (C_FLAG | H_FLAG) : 0);
   break;
 
-case OTIR:  // 21:45345, 16:4534
+case OTIR: // 21:45345, 16:4534
+  T_INC(1);
   --CPU.BC.B.h;
-  INC_RW;
   I=RdZ80(CPU.HL.W++);
   OutZ80(CPU.BC.W,I);
   if(CPU.BC.B.h)
   {
     CPU.AF.B.l=N_FLAG|(CPU.HL.B.l+I>255? (C_FLAG|H_FLAG):0);  // N_FLAG is not correct here but will be corrected when loop exits below. Nothing relies on the intermediate value.
     CPU.PC.W-=2;
-    CPU.TStates+=5;
+    T_INC(5);
   }
   else
   {
     CPU.AF.B.l=(CPU.AF.B.l & S_FLAG) | Z_FLAG | (I&0x80 ? N_FLAG:0) | (CPU.HL.B.l+I>255? (C_FLAG|H_FLAG):0);
+    J_ADJ;
   }
   break;
 
-case OUTD: //16:4534
+case OUTD:  //16:4534
   --CPU.BC.B.h;
-  INC_RW;
+  T_INC(1);
   I=RdZ80(CPU.HL.W--);
   OutZ80(CPU.BC.W,I);
   CPU.AF.B.l=(CPU.AF.B.l & S_FLAG) | (I&0x80 ? N_FLAG:0) | (CPU.BC.B.h? 0:Z_FLAG) | (CPU.HL.B.l+I>255? (C_FLAG|H_FLAG):0);
   break;
 
-case OTDR: // 21:45345, 16:4534 
+case OTDR:  // 21:45345, 16:4534 
   --CPU.BC.B.h;
-  INC_RW;
+  T_INC(1);
   I=RdZ80(CPU.HL.W--);
   OutZ80(CPU.BC.W,I);
   if(CPU.BC.B.h)
   {
+    T_INC(5);
     CPU.AF.B.l=N_FLAG|(CPU.HL.B.l+I>255? (C_FLAG|H_FLAG):0);  // N_FLAG is not correct here but will be corrected when loop exits below. Nothing relies on the intermediate value.
     CPU.PC.W-=2;
-    CPU.TStates+=5;
   }
   else
   {
     CPU.AF.B.l=(CPU.AF.B.l & S_FLAG) | Z_FLAG | (I&0x80 ? N_FLAG:0) | (CPU.HL.B.l+I>255? (C_FLAG|H_FLAG):0);
+    J_ADJ;
   }
   break;
 
-case LDI: //16:4435
+case LDI: // 16:4435
   WrZ80(CPU.DE.W++,RdZ80(CPU.HL.W++));
   --CPU.BC.W;
   CPU.AF.B.l=(CPU.AF.B.l&~(N_FLAG|H_FLAG|P_FLAG))|(CPU.BC.W? P_FLAG:0);
+  T_INC(2);
   break;
 
-case LDIR: //21:44355, 16:4435
+case LDIR: // 21:44355, 16:4435
   WrZ80(CPU.DE.W++,RdZ80(CPU.HL.W++));
   if(--CPU.BC.W)
   {
     CPU.AF.B.l=(CPU.AF.B.l&~(H_FLAG|P_FLAG))|N_FLAG;
     CPU.PC.W-=2;
-    CPU.TStates+=5;
+    T_INC(7);
   }
   else
   {
     CPU.AF.B.l&=~(N_FLAG|H_FLAG|P_FLAG);
+    J_ADJ;
+    T_INC(2);
   }
   break;
 
-case LDD: //16:4435 
+case LDD:  //16:4435
   WrZ80(CPU.DE.W--,RdZ80(CPU.HL.W--));
   --CPU.BC.W;
   CPU.AF.B.l=(CPU.AF.B.l&~(N_FLAG|H_FLAG|P_FLAG))|(CPU.BC.W? P_FLAG:0);
+  T_INC(2);
   break;
 
-case LDDR: //21:44355, 16:4435 
+case LDDR:  //21:44355, 16:4435
   WrZ80(CPU.DE.W--,RdZ80(CPU.HL.W--));
   CPU.AF.B.l&=~(N_FLAG|H_FLAG|P_FLAG);
   if(--CPU.BC.W)
   {
     CPU.AF.B.l=(CPU.AF.B.l&~(H_FLAG|P_FLAG))|N_FLAG;
     CPU.PC.W-=2;
-    CPU.TStates+=5;
+    T_INC(7);
   }
   else
   {
     CPU.AF.B.l&=~(N_FLAG|H_FLAG|P_FLAG);
+    J_ADJ;
+    T_INC(2);
   }
   break;
 
-case CPI: //16:4435 
+case CPI:   // 16:4435 
   I=RdZ80(CPU.HL.W++);
   J.B.l=CPU.AF.B.h-I;
   --CPU.BC.W;
   CPU.AF.B.l =
     N_FLAG|(CPU.AF.B.l&C_FLAG)|ZSTable[J.B.l]|
     ((CPU.AF.B.h^I^J.B.l)&H_FLAG)|(CPU.BC.W? P_FLAG:0);
+  T_INC(5);
   break;
 
-case CPIR: //21:44355, 16:4435 
+case CPIR:  //21:44355, 16:4435 
   I=RdZ80(CPU.HL.W++);
   J.B.l=CPU.AF.B.h-I;
-  if(--CPU.BC.W&&J.B.l) 
-  { 
-      CPU.PC.W-=2; 
-      CPU.TStates+=5;
-  }
+  if(--CPU.BC.W&&J.B.l) { T_INC(10); CPU.PC.W-=2; } else {  T_INC(5); J_ADJ;}
   CPU.AF.B.l =
     N_FLAG|(CPU.AF.B.l&C_FLAG)|ZSTable[J.B.l]|
     ((CPU.AF.B.h^I^J.B.l)&H_FLAG)|(CPU.BC.W? P_FLAG:0);
@@ -307,6 +306,7 @@ case CPD: // 16:4435
   I=RdZ80(CPU.HL.W--);
   J.B.l=CPU.AF.B.h-I;
   --CPU.BC.W;
+  T_INC(5);
   CPU.AF.B.l =
     N_FLAG|(CPU.AF.B.l&C_FLAG)|ZSTable[J.B.l]|
     ((CPU.AF.B.h^I^J.B.l)&H_FLAG)|(CPU.BC.W? P_FLAG:0);
@@ -315,11 +315,7 @@ case CPD: // 16:4435
 case CPDR: // 21:44355, 16:4435
   I=RdZ80(CPU.HL.W--);
   J.B.l=CPU.AF.B.h-I;
-  if(--CPU.BC.W&&J.B.l)
-  { 
-      CPU.PC.W-=2; 
-      CPU.TStates+=5;
-  }
+  if(--CPU.BC.W&&J.B.l) {   T_INC(10); CPU.PC.W-=2; } else {  T_INC(5); J_ADJ;}
   CPU.AF.B.l =
     N_FLAG|(CPU.AF.B.l&C_FLAG)|ZSTable[J.B.l]|
     ((CPU.AF.B.h^I^J.B.l)&H_FLAG)|(CPU.BC.W? P_FLAG:0);

@@ -40,9 +40,11 @@ void ResetZ80(Z80 *R);
 void ExecZ80_Speccy_a(u32 RunToCycles);
 void EI_Enable_a(void);
 
-#define INC_RW
-#define INC_RW3
-#define INC_RW5
+#define T_INC(X)
+#define PhantomRdZ80(A)
+#define J_ADJ   CPU.TStates -= 5;
+#define R_ADJ   CPU.TStates += 6;
+#define C_ADJ   CPU.TStates += 7;
 
 #define INLINE static inline
 
@@ -80,6 +82,7 @@ inline byte OpZ80(word A)
 }
 
 #define RdZ80       OpZ80 // Nothing unique about a memory read - same as an OpZ80 opcode fetch
+#define RdZ80_noc   OpZ80 // Nothing unique about a memory read - same as an OpZ80 opcode fetch
 
 // -------------------------------------------------------------------------------------------------------------
 // ZX-Dandanator support is fairly basic - we're not supporting the full set of Dandanator functionality, only
@@ -304,7 +307,7 @@ static void WrZ80(word A, byte value)   {if (A & 0xC000) MemoryMap[(A)>>14][A] =
 #define M_PUSH(Rg)  WrZ80(--CPU.SP.W,CPU.Rg.B.h);WrZ80(--CPU.SP.W,CPU.Rg.B.l)
 
 #define M_CALL         \
-  J.B.l=RdZ80(CPU.PC.W++);J.B.h=RdZ80(CPU.PC.W++);         \
+  J.B.l=RdZ80(CPU.PC.W++);J.B.h=RdZ80(CPU.PC.W++); T_INC(1); \
   WrZ80(--CPU.SP.W,CPU.PC.B.h);WrZ80(--CPU.SP.W,CPU.PC.B.l); \
   CPU.PC.W=J.W; \
   JumpZ80(J.W)
@@ -396,6 +399,7 @@ static void WrZ80(word A, byte value)   {if (A & 0xC000) MemoryMap[(A)>>14][A] =
     ((CPU.HL.W^CPU.Rg.W^J.W)&0x1000? H_FLAG:0)|                  \
     (J.W? 0:Z_FLAG)|(J.B.h&S_FLAG);                            \
   CPU.HL.W=J.W
+
 
 extern void Trap_Bad_Ops(char *, byte, word);
 
@@ -586,7 +590,7 @@ ITCM_CODE static void CodesED_Speccy(void)
 
 static void CodesDD_Speccy(void)
 {
-  register byte I;
+  register byte I,K;
   register pair J;
 
 #define XX IX
@@ -613,7 +617,7 @@ static void CodesDD_Speccy(void)
 
 static void CodesFD_Speccy(void)
 {
-  register byte I;
+  register byte I,K;
   register pair J;
 
 #define XX IY
