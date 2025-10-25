@@ -106,7 +106,13 @@ typedef struct
   u32  Reserved;                    /* For future use...                    */
 } Z80;
 
+#define CYCLES_PER_SCANLINE_48      224
+#define CYCLES_PER_SCANLINE_128     228
+
 extern u8 accurate_emulation;
+
+void ExecZ80_Speccy_128(u32 RunToCycles);
+void ExecZ80_Speccy_48(u32 RunToCycles);
 
 /** ResetZ80() ***********************************************/
 /** This function can be used to reset the registers before **/

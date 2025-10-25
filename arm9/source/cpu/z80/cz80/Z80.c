@@ -37,8 +37,6 @@ extern u8 zx_ScreenRendering, zx_128k_mode, portFD;
 extern void EI_Enable(void);
 void ExecOneInstruction(void);
 void ResetZ80(Z80 *R);
-void ExecZ80_Speccy_a(u32 RunToCycles);
-void EI_Enable_a(void);
 
 #define T_INC(X)
 #define PhantomRdZ80(A)
@@ -694,7 +692,11 @@ ITCM_CODE void EI_Enable(void)
 // -----------------------------------------------------------------------------------
 ITCM_CODE void ExecZ80_Speccy(u32 RunToCycles)
 {
-  if (accurate_emulation) return ExecZ80_Speccy_a(RunToCycles);
+  if (accurate_emulation)
+  {
+      if (myConfig.machine) return ExecZ80_Speccy_128(RunToCycles);
+      else                  return ExecZ80_Speccy_48(RunToCycles);
+  }
   
   register byte I;
   register pair J;

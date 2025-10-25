@@ -834,7 +834,7 @@ void SetDefaultGameConfig(void)
     myConfig.dpad        = DPAD_NORMAL;                 // Normal DPAD use - mapped to joystick
     myConfig.autoLoad    = 1;                           // Default is to to auto-load TAP and TZX games
     myConfig.machine     = myGlobalConfig.defMachine;   // Default machine is 48K but can be changed globally
-    myConfig.accuracy    = 0;                           // Normal Accuracy (1 = Enhanced)
+    myConfig.accuracy    = (isDSiMode() ? 1:0);         // Normal Accuracy (1 = Enhanced and default for DSi)
     myConfig.gameSpeed   = 0;                           // Default is 100% game speed
     myConfig.ULAplus     = myGlobalConfig.defULAplus;   // Default is to allow ULA Plus but can be changed globally
     myConfig.lateTiming  = 0;                           // Normal timing
@@ -931,11 +931,19 @@ void FindConfig(void)
         }
     }
     
+    // ------------------------------------------------------------------------
     // If we didn't find a match and we are ZX81 mode, default to cursor keys
+    // ------------------------------------------------------------------------
     if (!bFound && (speccy_mode == MODE_ZX81))
     {
         Cursors();
     }
+    
+    // ------------------------------------------------------------------------
+    // Now some basic overrides for certain games that need alternate settings
+    // ------------------------------------------------------------------------
+    //zzz
+    
 }
 
 

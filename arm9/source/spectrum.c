@@ -50,7 +50,6 @@ u8  backgroundRenderScreen = 0;
 u8  bRenderSkipOnce        = 1;
 
 extern u8 dandy_disabled;
-#define zzz 228
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
@@ -69,14 +68,29 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
          // ----------------------------------------------------------------------------------------
          if (accurate_emulation)
          {
-             if (((Port & 0xC000) == 0x4000) || (((Port & 0xC000) == 0xC000) && (zx_contend_upper_bank)))
+             if (myConfig.machine) // 128K
              {
-                 CPU.TStates += cpu_contended_delay[(((CPU.TStates))+0) % zzz];
-                 CPU.TStates += cpu_contended_delay[(((CPU.TStates))+1) % zzz];
+                 if (((Port & 0xC000) == 0x4000) || (((Port & 0xC000) == 0xC000) && (zx_contend_upper_bank)))
+                 {
+                     CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+0) % (myConfig.machine ? CYCLES_PER_SCANLINE_128:CYCLES_PER_SCANLINE_48)];
+                     CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+1) % (myConfig.machine ? CYCLES_PER_SCANLINE_128:CYCLES_PER_SCANLINE_48)];
+                 }
+                 else
+                 {
+                     CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+1) % (myConfig.machine ? CYCLES_PER_SCANLINE_128:CYCLES_PER_SCANLINE_48)];
+                 }
              }
-             else
+             else // 48K
              {
-                 CPU.TStates += cpu_contended_delay[(((CPU.TStates))+1) % zzz];
+                 if ((Port & 0xC000) == 0x4000)
+                 {
+                     CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+0) % CYCLES_PER_SCANLINE_48];
+                     CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_48];
+                 }
+                 else
+                 {
+                     CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_48];
+                 }
              }
          }
          else if (zx_ScreenRendering)
@@ -364,14 +378,29 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
         
          if (accurate_emulation)
          {
-              if (((Port & 0xC000) == 0x4000) || (((Port & 0xC000) == 0xC000) && (zx_contend_upper_bank)))
+              if (myConfig.machine) // 128K
               {
-                  CPU.TStates += cpu_contended_delay[(((CPU.TStates))+0) % zzz];
-                  CPU.TStates += cpu_contended_delay[(((CPU.TStates))+1) % zzz];
+                  if (((Port & 0xC000) == 0x4000) || (((Port & 0xC000) == 0xC000) && (zx_contend_upper_bank)))
+                  {
+                      CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+0) % CYCLES_PER_SCANLINE_128];
+                      CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_128];
+                  }
+                  else
+                  {
+                      CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_128];
+                  }
               }
-              else
+              else // 48K
               {
-                  CPU.TStates += cpu_contended_delay[(((CPU.TStates))+1) % zzz];
+                  if ((Port & 0xC000) == 0x4000)
+                  {
+                      CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+0) % CYCLES_PER_SCANLINE_48];
+                      CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_48];
+                  }
+                  else
+                  {
+                      CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_48];
+                  }
               }
          }
          else if (zx_ScreenRendering)
@@ -383,12 +412,25 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
     {
          if (accurate_emulation)
          {
-              if (((Port & 0xC000) == 0x4000) || (((Port & 0xC000) == 0xC000) && (zx_contend_upper_bank)))
+              if (myConfig.machine) // 128K
               {
-                  CPU.TStates += cpu_contended_delay[(((CPU.TStates))+0) % zzz]; 
-                  CPU.TStates += cpu_contended_delay[(((CPU.TStates))+1) % zzz];
-                  CPU.TStates += cpu_contended_delay[(((CPU.TStates))+2) % zzz];
-                  CPU.TStates += cpu_contended_delay[(((CPU.TStates))+3) % zzz];
+                  if ((Port & 0xC000) == 0x4000)
+                  {
+                      CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+0) % CYCLES_PER_SCANLINE_128];
+                      CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_128];
+                      CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+2) % CYCLES_PER_SCANLINE_128];
+                      CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+3) % CYCLES_PER_SCANLINE_128];
+                  }
+              }
+              else // 48K
+              {
+                  if ((Port & 0xC000) == 0x4000)
+                  {
+                      CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+0) % CYCLES_PER_SCANLINE_48];
+                      CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_48];
+                      CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+2) % CYCLES_PER_SCANLINE_48];
+                      CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+3) % CYCLES_PER_SCANLINE_48];
+                  }
               }
          }
     }
@@ -1023,7 +1065,7 @@ ITCM_CODE u32 speccy_run(void)
     {
         // If we are playing back the tape - just run the emulation as fast as possible
         zx_ScreenRendering = 0;
-        ExecZ80_Speccy(CPU.TStates + (zx_128k_mode ? 228:224));
+        ExecZ80_Speccy(CPU.TStates + (zx_128k_mode ? CYCLES_PER_SCANLINE_128:CYCLES_PER_SCANLINE_48));
 
         if (CPU.TStates > 0xFFFE0000) // Too close to the wrap point, should never happen but trap it out so we don't crash the emulation
         {
@@ -1044,7 +1086,7 @@ ITCM_CODE u32 speccy_run(void)
 
         zx_ScreenRendering = 0; // On this final chunk we are drawing border and doing a horizontal sync... no contention
 
-        ExecZ80_Speccy((zx_128k_mode ? 228:224) * zx_current_line); // This puts us exactly where we should be for the scanline
+        ExecZ80_Speccy((zx_128k_mode ? CYCLES_PER_SCANLINE_128:CYCLES_PER_SCANLINE_48) * zx_current_line); // This puts us exactly where we should be for the scanline
 
         // -----------------------------------------------------------------------
         // If we are not playing the tape, we want to reset the TStates counter

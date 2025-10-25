@@ -1939,8 +1939,8 @@ void debug_init()
         }
         else
         {
-            MAX_DEBUG_BUF_SIZE = (1024*16);     // 16K only
-            debug_buffer = malloc(MAX_DEBUG_BUF_SIZE);
+            MAX_DEBUG_BUF_SIZE = (1024*32);     // 32K only - back end of compression buffer
+            debug_buffer = (char *)(CompressBuffer+(150*1024));
         }
     }
     memset(debug_buffer, 0x00, MAX_DEBUG_BUF_SIZE);

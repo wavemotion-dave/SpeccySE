@@ -144,7 +144,8 @@ extern int uNbRoms;
 extern int ucGameAct;
 extern int ucGameChoice;
 extern u8 CompressBuffer[];
-extern u8 cpu_contended_delay[228];
+extern u8 cpu_contended_delay_128[228];
+extern u8 cpu_contended_delay_48[224];
 extern u8 zx_contend_upper_bank;
 
 extern void LoadConfig(void);

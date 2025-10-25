@@ -53,7 +53,7 @@ struct RomOffset Offsets[4];
 static char szLoadFile[256];        // We build the filename out of the base filename and tack on .sav, .ee, etc.
 static char tmpStr[32];
 
-u8 CompressBuffer[200*1024];        // Big enough to handle compression of even full 128K games - we also steal this memory for screen snapshot use
+u8 CompressBuffer[(150+32)*1024];        // Big enough to handle compression of even full 128K games - we also steal this memory for screen snapshot use
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
