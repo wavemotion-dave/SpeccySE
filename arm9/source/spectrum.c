@@ -40,7 +40,6 @@ u8  tape_play_skip_frame    __attribute__((section(".dtcm"))) = 0;
 u8  rom_special_bank        __attribute__((section(".dtcm"))) = 0;
 u8  zx_ula_plus_enabled     __attribute__((section(".dtcm"))) = 0;
 u8  accurate_emulation      __attribute__((section(".dtcm"))) = 0;
-u8  zx_contend_upper_bank   __attribute__((section(".dtcm"))) = 0;
 
 u32  pre_render_lookup[16][16][16];
 
@@ -342,8 +341,8 @@ ITCM_CODE void zx_bank(u8 new_bank)
     
     portFD = new_bank;
 
-    zx_contend_upper_bank = (zx_128k_mode && (portFD & 1));
-    ContendMap[3]=zx_contend_upper_bank;
+    // Set the upper bank of memory to 'contended' if we are swapping in an 'odd' 128K bank
+    ContendMap[3] = (zx_128k_mode && (portFD & 1));
 }
 
 // A fast look-up table when we are rendering background pixels
@@ -808,7 +807,8 @@ void speccy_reset(void)
             {
                 pre_render_lookup[paper][ink][pixel] = (((pixel & 0x08) ? ink:paper)) | (((pixel & 0x04) ? ink:paper) << 8) | (((pixel & 0x02) ? ink:paper) << 16) | (((pixel & 0x01) ? ink:paper) << 24);
             }
-    ContendMap[3]=0;
+    
+    ContendMap[3] = 0; // Assume no contention on upper memory until 128K odd bank mapped in
     
     // Restore the original palette (in case ULA+ changed it)
     spectrumSetPalette();
@@ -830,7 +830,6 @@ void speccy_reset(void)
     rom_special_bank    = 0;   // Assume no special ROM in SLOT0 until proven otherwise below
     
     accurate_emulation  = 0;   // Set to 1 when we need to handle more accurate TState accounting / Contended Memory
-    zx_contend_upper_bank = 0; // No contention until an odd bank is mapped
     
     zx_ula_plus_enabled     = 0;   // Assume no ULA+ (normal Spectrum ULA)
     zx_ula_plus_group       = 0x00;

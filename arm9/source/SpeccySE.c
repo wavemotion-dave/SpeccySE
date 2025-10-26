@@ -254,7 +254,7 @@ ITCM_CODE mm_word OurSoundMixer(mm_word len, mm_addr dest, mm_stream_formats for
 // over-sampled and smoothed someday to make it really shine... good enough for now.
 // --------------------------------------------------------------------------------------------
 s16 mixbufAY[4]     __attribute__((section(".dtcm"))) = { 0x000, 0x000, 0x000, 0x000 };
-s16 volume_decay[6] __attribute__((section(".dtcm"))) = { 0x000, 0x200, 0x400, 0x600, 0x800, 0xA00 }; // Simulate the volume decay of the beeper
+s16 volume_decay[6] __attribute__((section(".dtcm"))) = { 0x000, 0x080, 0x180, 0x300, 0x600, 0xA00 }; // Simulate the volume decay of the beeper
 s32 vol __attribute__((section(".dtcm"))) = 0;
 ITCM_CODE void processDirectAudio(void)
 {
@@ -262,16 +262,16 @@ ITCM_CODE void processDirectAudio(void)
     {
         ay38910Mixer(2, mixbufAY, &myAY);
     }
+    
+    if (portFE & 0x10) vol = 5;
+    else if (vol) vol--;
 
     for (u8 i=0; i<2; i++)
     {
-        if (portFE & 0x10) vol = 5;
-        else if (vol) vol--;
-        
         if (breather) {return;}
         
         s16 beeper_volume = 0;
-        if (vol)  beeper_volume = volume_decay[vol] + (8 - (int)(rand() & 0xF)); // Sample plus a bit of white noise to break up aliasing
+        if (vol)  beeper_volume = volume_decay[vol] + (8 - (int)(CPU.R & 0xF)); // Sample plus a bit of white noise to break up aliasing
         s16 sample = mixbufAY[i] + beeper_volume;
         mixer[mixer_write] = sample;
         mixer_write++; mixer_write &= WAVE_DIRECT_BUF_SIZE;

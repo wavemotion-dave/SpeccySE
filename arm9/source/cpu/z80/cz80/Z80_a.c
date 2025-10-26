@@ -58,18 +58,8 @@ typedef u8 (*patchFunc)(void);
 extern unsigned char cpu_readport_speccy(register unsigned short Port);
 extern void cpu_writeport_speccy(register unsigned short Port,register unsigned char Value);
 
-// ------------------------------------------------------------------------------
-// This is how we access the Z80 memory. We indirect through the MemoryMap[] to
-// allow for easy mapping by the 128K machines. It's slightly slower than direct
-// RAM access but much faster than having to move around chunks of bank memory.
-//
-// Note that the MemoryMap[] here has each of the 4 segments offset by the
-// segment * 16K. This allows us to not have to mask the Address with 0x3FFF
-// and can instead just index directly knowing that MemoryMap[] has been offset
-// properly when it was setup (e.g. on a 48K machine, each MemoryMap[] segment
-// would point to the start of RAM_Memory[] such that this just turns into a 
-// simple index by the address without having to mask. This buys us 10% speed.
-// ------------------------------------------------------------------------------
+// The contended delay table is specific for the 48K Spectrum vs the 128K Spectrum.
+// This table is offset to provide the best timing I can muster with imperfect emulation.
 u8 cpu_contended_delay_128[228] __attribute__((section(".dtcm"))) = 
 {
     0,0,
@@ -157,6 +147,18 @@ ITCM_CODE __attribute__((noinline)) void ContendMemory(void)
     CPU.TStates += cpu_contended_delay_128[(CPU.TStates) % CYCLES_PER_SCANLINE_128];
 }
 
+// ------------------------------------------------------------------------------
+// This is how we access the Z80 memory. We indirect through the MemoryMap[] to
+// allow for easy mapping by the 128K machines. It's slightly slower than direct
+// RAM access but much faster than having to move around chunks of bank memory.
+//
+// Note that the MemoryMap[] here has each of the 4 segments offset by the
+// segment * 16K. This allows us to not have to mask the Address with 0x3FFF
+// and can instead just index directly knowing that MemoryMap[] has been offset
+// properly when it was setup (e.g. on a 48K machine, each MemoryMap[] segment
+// would point to the start of RAM_Memory[] such that this just turns into a 
+// simple index by the address without having to mask. This buys us 10% speed.
+// ------------------------------------------------------------------------------
 inline __attribute__((always_inline)) byte OpZ80(word A)
 {
     if (ContendMap[(A)>>14]) ContendMemory();
