@@ -33,7 +33,7 @@ extern Z80 CPU;
 
 extern u32 debug[];
 extern u32 DX,DY;
-extern u8 zx_ScreenRendering, zx_contend_delay, zx_128k_mode, portFD;
+extern u8 zx_ScreenRendering, zx_128k_mode, portFD;
 extern void EI_Enable(void);
 void ExecOneInstruction(void);
 void ResetZ80(Z80 *R);
@@ -46,6 +46,7 @@ void dandanator_flash_write(word A, byte value);
 /** up. It has to stay inlined to be fast.                  **/
 /*************************************************************/
 extern u8 *MemoryMap[4];
+u8 ContendMap[4] = {0,1,0,0};
 
 typedef u8 (*patchFunc)(void);
 #define PatchLookup ((patchFunc*)0x06860000)
@@ -148,42 +149,31 @@ u8 cpu_contended_delay_48[224] __attribute__((section(".dtcm"))) =
 #define C_ADJ
 #define PhantomRdZ80(A) RdZ80(A)
 
+// ------------------------------------------------------------------------------------------
+// This happens only 5-10% of the time so we don't inline to provide better ARM code density
+// ------------------------------------------------------------------------------------------
+ITCM_CODE __attribute__((noinline)) void ContendMemory(void)
+{
+    CPU.TStates += cpu_contended_delay_128[(CPU.TStates) % CYCLES_PER_SCANLINE_128];
+}
+
 inline __attribute__((always_inline)) byte OpZ80(word A)
 {
-    if (A & 0x4000)
-    {
-         if (A & 0x8000) // 128K contends on 0xC000 if odd bank mapped
-         {
-              if (zx_contend_upper_bank) CPU.TStates += cpu_contended_delay_128[(CPU.TStates) % CYCLES_PER_SCANLINE_128];
-         }
-         else CPU.TStates += cpu_contended_delay_128[(CPU.TStates) % CYCLES_PER_SCANLINE_128];
-    }
-
-    CPU.TStates += 4;  // OpCode reads and process are 4 cycles
-    
+    if (ContendMap[(A)>>14]) ContendMemory();
+    CPU.TStates += 4;  // OpCode reads and process are 4 cycles    
     return MemoryMap[(A)>>14][A];
 }
 
 inline __attribute__((always_inline)) static byte RdZ80(word A)
 {
-    if (A & 0x4000)
-    {
-         if (A & 0x8000) // 128K contends on 0xC000 if odd bank mapped
-         {
-              if (zx_contend_upper_bank) CPU.TStates += cpu_contended_delay_128[((CPU.TStates)) % CYCLES_PER_SCANLINE_128];
-         }
-         else CPU.TStates += cpu_contended_delay_128[((CPU.TStates)) % CYCLES_PER_SCANLINE_128];
-    }
-
+    if (ContendMap[(A)>>14]) ContendMemory();
     CPU.TStates += 3; // Memory reads are 3 cycles
-    
     return MemoryMap[(A)>>14][A];
 }
 
 inline __attribute__((always_inline)) static byte RdZ80_noc(word A)
 {
     CPU.TStates += 3; // Memory reads are 3 cycles
-    
     return MemoryMap[(A)>>14][A];
 }
 
@@ -196,14 +186,7 @@ inline __attribute__((always_inline)) void WrZ80(word A, byte value)
 {
     if (A & 0xC000)
     {
-        if (A & 0x4000)
-        {
-             if (A & 0x8000) // 128K contends on 0xC000 if odd bank mapped
-             {
-                  if (zx_contend_upper_bank) CPU.TStates += cpu_contended_delay_128[((CPU.TStates)) % CYCLES_PER_SCANLINE_128];
-             }
-             else CPU.TStates += cpu_contended_delay_128[((CPU.TStates)) % CYCLES_PER_SCANLINE_128];
-        }
+        if (ContendMap[(A)>>14]) ContendMemory();
         MemoryMap[(A)>>14][A] = value; 
     }
     else dandanator_flash_write(A,value);
@@ -654,27 +637,23 @@ void ExecZ80_Speccy_128(u32 RunToCycles)
 #undef  EI_Enable
 #define EI_Enable   EI_Enable_48
 
+ITCM_CODE __attribute__((noinline)) void ContendMemory_48(void)
+{
+    CPU.TStates += cpu_contended_delay_48[(CPU.TStates) % CYCLES_PER_SCANLINE_48];
+}
+
+
 inline __attribute__((always_inline)) byte OpZ80_48(word A)
 {
-    if (A & 0x4000)
-    {
-         if ((A & 0x8000) == 0)  CPU.TStates += cpu_contended_delay_48[(CPU.TStates) % CYCLES_PER_SCANLINE_48];
-    }
-
+    if (ContendMap[(A)>>14]) ContendMemory_48();
     CPU.TStates += 4;  // OpCode reads and process are 4 cycles
-    
     return MemoryMap[(A)>>14][A];
 }
 
 inline __attribute__((always_inline)) static byte RdZ80_48(word A)
 {
-    if (A & 0x4000)
-    {
-         if ((A & 0x8000) == 0)  CPU.TStates += cpu_contended_delay_48[(CPU.TStates) % CYCLES_PER_SCANLINE_48];
-    }
-
+    if (ContendMap[(A)>>14]) ContendMemory_48();
     CPU.TStates += 3; // Memory reads are 3 cycles
-    
     return MemoryMap[(A)>>14][A];
 }
 
@@ -682,10 +661,7 @@ inline __attribute__((always_inline)) void WrZ80_48(word A, byte value)
 {
     if (A & 0xC000)
     {
-        if (A & 0x4000)
-        {
-             if ((A & 0x8000) == 0)  CPU.TStates += cpu_contended_delay_48[(CPU.TStates) % CYCLES_PER_SCANLINE_48];
-        }
+        if (ContendMap[(A)>>14]) ContendMemory_48();
         MemoryMap[(A)>>14][A] = value; 
     }
     else dandanator_flash_write(A,value);

@@ -181,6 +181,7 @@ void spectrumSaveState()
         if (retVal) retVal = fwrite(&zx_ula_plus_group,         sizeof(zx_ula_plus_group),          1, handle);
         if (retVal) retVal = fwrite(&zx_ula_plus_palette_reg,   sizeof(zx_ula_plus_palette_reg),    1, handle);
         if (retVal) retVal = fwrite(&zx_ula_plus_palette,       sizeof(zx_ula_plus_palette),        1, handle);
+        if (retVal) retVal = fwrite(ContendMap,                 sizeof(ContendMap),                 1, handle);
         if (retVal) retVal = fwrite(spare,                      300,                                1, handle);
 
         // Save Z80 Memory Map... either 48K or 128K
@@ -333,6 +334,7 @@ void spectrumLoadState()
         if (retVal) retVal = fread(&zx_ula_plus_group,         sizeof(zx_ula_plus_group),          1, handle);
         if (retVal) retVal = fread(&zx_ula_plus_palette_reg,   sizeof(zx_ula_plus_palette_reg),    1, handle);
         if (retVal) retVal = fread(&zx_ula_plus_palette,       sizeof(zx_ula_plus_palette),        1, handle);
+        if (retVal) retVal = fread(ContendMap,                 sizeof(ContendMap),                 1, handle);
         if (retVal) retVal = fread(spare,                      300,                                1, handle);
 
         if (zx_ula_plus_enabled)

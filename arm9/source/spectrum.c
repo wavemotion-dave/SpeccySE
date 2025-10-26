@@ -63,28 +63,25 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
     if ((Port & 1) == 0) // Any Even Address will cause the ULA to respond
     {
          // ----------------------------------------------------------------------------------------
-         // If we are rendering the screen, a read from the ULA supplied port will produce
-         // a cycle penalty. This is not cycle accurate but we simply use an 'average'
-         // penalty of 3 cycles if we are in contended memory while the screen is rendering. It's
-         // rough but gets us close enough to play games. We can improve this later...
+         // When we are in the accurate emulation mode, we must deal with ULA memory contention.
          // ----------------------------------------------------------------------------------------
          if (accurate_emulation)
          {
              if (myConfig.machine) // 128K
              {
-                 if (((Port & 0xC000) == 0x4000) || (((Port & 0xC000) == 0xC000) && (zx_contend_upper_bank)))
+                 if (ContendMap[Port>>14])
                  {
-                     CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+0) % (myConfig.machine ? CYCLES_PER_SCANLINE_128:CYCLES_PER_SCANLINE_48)];
-                     CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+1) % (myConfig.machine ? CYCLES_PER_SCANLINE_128:CYCLES_PER_SCANLINE_48)];
+                     CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+0) % CYCLES_PER_SCANLINE_128];
+                     CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_128];
                  }
                  else
                  {
-                     CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+1) % (myConfig.machine ? CYCLES_PER_SCANLINE_128:CYCLES_PER_SCANLINE_48)];
+                     CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_128];
                  }
              }
              else // 48K
              {
-                 if ((Port & 0xC000) == 0x4000)
+                 if (ContendMap[Port>>14])
                  {
                      CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+0) % CYCLES_PER_SCANLINE_48];
                      CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_48];
@@ -94,10 +91,6 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
                      CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_48];
                  }
              }
-         }
-         else if (zx_ScreenRendering)
-         {
-             CPU.TStates += AVERAGE_CONTEND_DELAY;
          }
          
         // --------------------------------------------------------
@@ -350,6 +343,7 @@ ITCM_CODE void zx_bank(u8 new_bank)
     portFD = new_bank;
 
     zx_contend_upper_bank = (zx_128k_mode && (portFD & 1));
+    ContendMap[3]=zx_contend_upper_bank;
 }
 
 // A fast look-up table when we are rendering background pixels
@@ -381,7 +375,7 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
          {
               if (myConfig.machine) // 128K
               {
-                  if (((Port & 0xC000) == 0x4000) || (((Port & 0xC000) == 0xC000) && (zx_contend_upper_bank)))
+                  if (ContendMap[Port>>14])
                   {
                       CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+0) % CYCLES_PER_SCANLINE_128];
                       CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_128];
@@ -393,7 +387,7 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
               }
               else // 48K
               {
-                  if ((Port & 0xC000) == 0x4000)
+                  if (ContendMap[Port>>14])
                   {
                       CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+0) % CYCLES_PER_SCANLINE_48];
                       CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_48];
@@ -404,16 +398,12 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
                   }
               }
          }
-         else if (zx_ScreenRendering)
-         {
-             CPU.TStates += AVERAGE_CONTEND_DELAY;
-         }
     }
     else
     {
          if (accurate_emulation)
          {
-              if ((Port & 0xC000) == 0x4000) // Does Port address look to the ULA like 'contended' memory?
+              if (ContendMap[Port>>14])
               {
                   if (myConfig.machine) // 128K
                   {
@@ -818,6 +808,7 @@ void speccy_reset(void)
             {
                 pre_render_lookup[paper][ink][pixel] = (((pixel & 0x08) ? ink:paper)) | (((pixel & 0x04) ? ink:paper) << 8) | (((pixel & 0x02) ? ink:paper) << 16) | (((pixel & 0x01) ? ink:paper) << 24);
             }
+    ContendMap[3]=0;
     
     // Restore the original palette (in case ULA+ changed it)
     spectrumSetPalette();
@@ -1061,7 +1052,7 @@ void speccy_reset(void)
 ITCM_CODE u32 speccy_run(void)
 {
     ++zx_current_line; // This is the pixel line we're working on...
-    int starting_line = (myConfig.machine ? 63:64)+myConfig.lateTiming; // And this is the first line we draw (48K machines start 1 line later)
+    int starting_line = (myConfig.machine ? 63:64)+myConfig.ULAtiming; // And this is the first line we draw (48K machines start 1 line later)
 
     // ----------------------------------------------
     // Execute 1 scanline worth of CPU instructions.
@@ -1120,7 +1111,7 @@ ITCM_CODE u32 speccy_run(void)
         // Render one scanline...
         speccy_render_screen_line(zx_current_line - starting_line);
         zx_ScreenRendering = 1;
-        accurate_emulation = (tape_state ? 0 : myConfig.accuracy); // If tape playing, skip accurate emulation
+        accurate_emulation = (tape_state ? 0 : 1); // If tape playing, skip accurate emulation
     }
 
     // ------------------------------------------

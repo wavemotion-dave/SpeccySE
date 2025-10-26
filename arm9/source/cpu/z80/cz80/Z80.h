@@ -29,7 +29,6 @@ extern "C" {
 
 //#define ZEXALL_TEST          /* Uncomment this to run the ZEXALL Z80 instruction test */
 
-#define AVERAGE_CONTEND_DELAY       4
 #define CYCLES_PER_SCANLINE_48      224
 #define CYCLES_PER_SCANLINE_128     228
 

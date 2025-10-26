@@ -20,7 +20,7 @@
 #define MAX_TAPE_SIZE               (640*1024) // 640K is big enough for any .TAP/.TZX or Snapshot
 
 #define MAX_CONFIGS                 4096
-#define CONFIG_VERSION              0x0006
+#define CONFIG_VERSION              0x0007
 
 #define SPECCY_FILE                 0x01
 #define DIRECTORY                   0x02
@@ -83,7 +83,6 @@ struct __attribute__((__packed__)) Config_t
 {
     u32 game_crc;
     u8  keymap[12];
-    u8  accuracy;
     u8  autoStop;
     u8  autoFire;
     u8  tapeSpeed;
@@ -92,7 +91,8 @@ struct __attribute__((__packed__)) Config_t
     u8  machine;
     u8  gameSpeed;
     u8  ULAplus;
-    u8  lateTiming;
+    u8  ULAtiming;
+    u8  reserved4;
     u8  reserved5;
     u8  reserved6;
     u8  reserved7;
@@ -106,6 +106,8 @@ extern struct GlobalConfig_t myGlobalConfig;
 
 extern u8 last_special_key;
 extern u8 last_special_key_dampen;
+
+extern u8 ContendMap[4];
 
 extern u16 JoyState;
 

@@ -834,10 +834,10 @@ void SetDefaultGameConfig(void)
     myConfig.dpad        = DPAD_NORMAL;                 // Normal DPAD use - mapped to joystick
     myConfig.autoLoad    = 1;                           // Default is to to auto-load TAP and TZX games
     myConfig.machine     = myGlobalConfig.defMachine;   // Default machine is 48K but can be changed globally
-    myConfig.accuracy    = (isDSiMode() ? 1:0);         // Normal Accuracy (1 = Enhanced and default for DSi)
     myConfig.gameSpeed   = 0;                           // Default is 100% game speed
     myConfig.ULAplus     = myGlobalConfig.defULAplus;   // Default is to allow ULA Plus but can be changed globally
-    myConfig.lateTiming  = 0;                           // Normal timing
+    myConfig.ULAtiming  = 0;                           // Normal timing
+    myConfig.reserved4   = 0;
     myConfig.reserved5   = 0;
     myConfig.reserved6   = 0;
     myConfig.reserved7   = 0;
@@ -948,37 +948,19 @@ void FindConfig(void)
     else if (strcasestr(gpFic[ucGameChoice].szName, "PSSST")        != 0) myConfig.machine = 0;
     else if (strcasestr(gpFic[ucGameChoice].szName, "UNDERWURLDE")  != 0) myConfig.machine = 0;
         
-    else if (strcasestr(gpFic[ucGameChoice].szName, "GLUF")         != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 1;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "DREAMWALKER")  != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 1;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "DREAM WALKER") != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 1;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "MANICPIE")     != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 1;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "MANIC PIE")    != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 1;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "YAZZIE")       != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 1;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "OUTOFMARS")    != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 1;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "OUT OF MARS")  != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 1;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "BUZZSAW")      != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "JET-POWER")    != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "JETPOWER")     != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "BRICKSVSFRU")  != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "RINGO")        != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "PLYUK")        != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "MULTIDUDE")    != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "OLDTOWER")     != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "OLD TOWER")    != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "STORMFINCH")   != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "STOMPO")       != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "COMPLICA")     != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "SUNBUCKET")    != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "PUSH BOT")     != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "PUSHBOT")      != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "SNAKEESC")     != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "SNAKE ESC")    != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "SPLOIDS")      != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "REDBIRD")      != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "ZOOMBLOX")     != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "ZOOM BLOX")    != 0) {myConfig.machine = 1; myConfig.accuracy = 1; myConfig.lateTiming = 0;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "GLUF")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "DREAMWALKER")  != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "DREAM WALKER") != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "MANICPIE")     != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "MANIC PIE")    != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "YAZZIE")       != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "OUTOFMARS")    != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "OUT OF MARS")  != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "GANDALF")      != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "PANGOLIN")     != 0) {myConfig.machine = 0; myConfig.ULAtiming = 0;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "ALTER EGO")    != 0) myConfig.machine = 0; // Do this after checks above for DREAMWALKER
+    else if (strcasestr(gpFic[ucGameChoice].szName, "ALTEREGO")     != 0) myConfig.machine = 0; // Do this after checks above for DREAMWALKER
 }
-
 
 // ------------------------------------------------------------------------------
 // Options are handled here... we have a number of things the user can tweak
@@ -1001,8 +983,7 @@ const struct options_t Option_Table[2][20] =
     {
         {"MACHINE",        {"48K SPECTRUM", "128K SPECTRUM"},                           &myConfig.machine,           2},
         {"ULA PLUS",       {"DISABLED",  "ENABLED"},                                    &myConfig.ULAplus,           2},
-        {"ACCURACY",       {"NORMAL", "ENHANCED"},                                      &myConfig.accuracy,          2},
-        {"ULA TIMING",     {"NORMAL", "LATE"},                                          &myConfig.lateTiming,        2},        
+        {"ULA TIMING",     {"NORMAL", "LATE"},                                          &myConfig.ULAtiming,        2},
         {"AUTO PLAY",      {"NO", "YES"},                                               &myConfig.autoLoad,          2},
         {"AUTO STOP",      {"NO", "YES", "AGGRESSIVE"},                                 &myConfig.autoStop,          3},
         {"AUTO FIRE",      {"OFF", "ON"},                                               &myConfig.autoFire,          2},
