@@ -251,6 +251,7 @@ Known Issues :
 -----------------------
 * Not all Dandanator compilation games run properly - support is preliminary (but good enough for the few games that really need it).
 * Gandalf DLX does not run correctly. Timing is tight on that game and the accuracy of Speccy-SE is not up to the task.
+* Arcadia has some strange jittering of the player ship even when you don't touch keys. Cause unknown.
 * TRD disk files are not supported yet. Most games have TAP or Dandanator alternatives - but not all.
 
 Why? :
@@ -267,6 +268,14 @@ you're likely going to want ZXDS.
 
 Version History :
 -----------------------
+Version 1.6 - 27-Oct-2025 by wavemotion-dave
+* Revamped Z80 CPU core to provide more accurate timing and memory contention/floating bus. Multi-color games (aka Nirvana+, BiFrost, etc) now play and look reasonably correct and CPU speed is generally correct.
+* Fix for AY music not restoring properly on some Load States.
+* Smoother beeper sound for improved fidelity.
+* Added Kempston 2nd Fire button which can be mapped in.
+* Default machine is now the ZX Spectrum 128K but it will revert to 48K for common games with compatibility issues.
+* Other minor cleanups and improvements as time permitted.
+
 Version 1.5 - 20-Oct-2025 by wavemotion-dave
 * Added ULAplus support for games that support the extended color palette.
 * Improved beeper sound accuracy.

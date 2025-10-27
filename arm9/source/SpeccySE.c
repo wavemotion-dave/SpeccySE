@@ -254,25 +254,38 @@ ITCM_CODE mm_word OurSoundMixer(mm_word len, mm_addr dest, mm_stream_formats for
 // to make the direct beeper sound a bit less harsh - but this really needs to be properly
 // over-sampled and smoothed someday to make it really shine... good enough for now.
 // --------------------------------------------------------------------------------------------
-s16 mixbufAY[4]     __attribute__((section(".dtcm"))) = { 0x000, 0x000, 0x000, 0x000 };
-s16 volume_decay[6] __attribute__((section(".dtcm"))) = { 0x000, 0x080, 0x180, 0x300, 0x600, 0xA00 }; // Simulate the volume decay of the beeper
-s32 vol __attribute__((section(".dtcm"))) = 0;
+s16 mixbufAY[8]         __attribute__((section(".dtcm"))) = { 0x000, 0x000, 0x000, 0x000, 0x000 , 0x000 , 0x000 , 0x000  };
+s16 volume_decay[6]     __attribute__((section(".dtcm"))) = { 0x000, 0x080, 0x180, 0x300, 0x600, 0xA00 }; // Simulate the volume decay of the beeper
+s32 beeper_vol          __attribute__((section(".dtcm"))) = 0;
+u16 beeper_on_pulses    __attribute__((section(".dtcm"))) = 0;
+u16 beeper_off_pulses   __attribute__((section(".dtcm"))) = 0;
+
 ITCM_CODE void processDirectAudio(void)
 {
     if (zx_AY_enabled)
     {
-        ay38910Mixer(2, mixbufAY, &myAY);
+        ay38910Mixer(4, mixbufAY, &myAY);
     }
     
-    if (portFE & 0x10) vol = 5;
-    else if (vol) vol--;
+    if (beeper_on_pulses && beeper_off_pulses)
+    {
+        if (beeper_on_pulses == beeper_off_pulses) beeper_vol = 3;
+        else if (beeper_on_pulses > beeper_off_pulses) beeper_vol = 4;
+        else beeper_vol = 2;
+    }
+    else
+    {
+        if (portFE & 0x10) beeper_vol = 5;
+        else if (beeper_vol) beeper_vol--;
+    }
+    beeper_on_pulses = beeper_off_pulses = 0;
 
-    for (u8 i=0; i<2; i++)
+    for (u8 i=0; i<4; i++)
     {
         if (breather) {return;}
         
         s16 beeper_volume = 0;
-        if (vol)  beeper_volume = volume_decay[vol] + (8 - (int)(CPU.R & 0xF)); // Sample plus a bit of white noise to break up aliasing
+        if (beeper_vol)  beeper_volume = volume_decay[beeper_vol] + (8 - (int)(CPU.R & 0xF)); // Sample plus a bit of white noise to break up aliasing
         s16 sample = mixbufAY[i] + beeper_volume;
         mixer[mixer_write] = sample;
         mixer_write++; mixer_write &= WAVE_DIRECT_BUF_SIZE;
