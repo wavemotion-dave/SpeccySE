@@ -153,6 +153,7 @@ void spectrumSaveState()
         if (retVal) retVal = fwrite(&zx_128k_mode,              sizeof(zx_128k_mode),               1, handle);
         if (retVal) retVal = fwrite(&zx_ScreenRendering,        sizeof(zx_ScreenRendering),         1, handle);
         if (retVal) retVal = fwrite(&zx_current_line,           sizeof(zx_current_line),            1, handle);
+        if (retVal) retVal = fwrite(&last_line_drawn,           sizeof(last_line_drawn),            1, handle);        
         if (retVal) retVal = fwrite(&emuActFrames,              sizeof(emuActFrames),               1, handle);
         if (retVal) retVal = fwrite(&timingFrames,              sizeof(timingFrames),               1, handle);
         if (retVal) retVal = fwrite(&num_blocks_available,      sizeof(num_blocks_available),       1, handle);
@@ -306,6 +307,7 @@ void spectrumLoadState()
         if (retVal) retVal = fread(&zx_128k_mode,              sizeof(zx_128k_mode),               1, handle);
         if (retVal) retVal = fread(&zx_ScreenRendering,        sizeof(zx_ScreenRendering),         1, handle);
         if (retVal) retVal = fread(&zx_current_line,           sizeof(zx_current_line),            1, handle);
+        if (retVal) retVal = fread(&last_line_drawn,           sizeof(last_line_drawn),            1, handle);
         if (retVal) retVal = fread(&emuActFrames,              sizeof(emuActFrames),               1, handle);
         if (retVal) retVal = fread(&timingFrames,              sizeof(timingFrames),               1, handle);
         if (retVal) retVal = fread(&num_blocks_available,      sizeof(num_blocks_available),       1, handle);

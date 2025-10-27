@@ -70,8 +70,9 @@ const char szKeyName[MAX_KEY_OPTIONS][16] = {
   "KEMPSTON LEFT",
   "KEMPSTON RIGHT",
   "KEMPSTON FIRE",
+  "KEMPSTON FIRE2",
 
-  "KEYBOARD A", //5
+  "KEYBOARD A", //6
   "KEYBOARD B",
   "KEYBOARD C",
   "KEYBOARD D",
@@ -96,9 +97,9 @@ const char szKeyName[MAX_KEY_OPTIONS][16] = {
   "KEYBOARD W",
   "KEYBOARD X",
   "KEYBOARD Y",
-  "KEYBOARD Z", // 30
+  "KEYBOARD Z", // 31
 
-  "KEYBOARD 1", // 31
+  "KEYBOARD 1", // 32
   "KEYBOARD 2",
   "KEYBOARD 3",
   "KEYBOARD 4",
@@ -107,12 +108,12 @@ const char szKeyName[MAX_KEY_OPTIONS][16] = {
   "KEYBOARD 7",
   "KEYBOARD 8",
   "KEYBOARD 9",
-  "KEYBOARD 0", // 40
+  "KEYBOARD 0", // 41
 
   "KEYBOARD SHIFT",
   "KEYBOARD SYMBOL",
   "KEYBOARD SPACE",
-  "KEYBOARD RETURN", // 44
+  "KEYBOARD RETURN", // 45
 };
 
 
@@ -717,61 +718,61 @@ void MapPlayer1(void)
     myConfig.keymap[4]   = 4;    // NDS A Button mapped to Kempston Fire
 
     myConfig.keymap[5]   = 0;    // NDS B Button mapped to Kempston Joystick UP (jump)
-    myConfig.keymap[6]   = 43;   // NDS X Button mapped to SPACE
-    myConfig.keymap[7]   = 44;   // NDS Y Button mapped to RETURN
-    myConfig.keymap[8]   = 41;   // NDS R Button mapped to SHIFT
-    myConfig.keymap[9]   = 42;   // NDS L Button mapped to SYMBOL
-    myConfig.keymap[10]  = 40;   // NDS START mapped to '0'
-    myConfig.keymap[11]  = 31;   // NDS SELECT mapped to '1'
+    myConfig.keymap[6]   = 44;   // NDS X Button mapped to SPACE
+    myConfig.keymap[7]   = 45;   // NDS Y Button mapped to RETURN
+    myConfig.keymap[8]   = 42;   // NDS R Button mapped to SHIFT
+    myConfig.keymap[9]   = 43;   // NDS L Button mapped to SYMBOL
+    myConfig.keymap[10]  = 41;   // NDS START mapped to '0'
+    myConfig.keymap[11]  = 32;   // NDS SELECT mapped to '1'
 }
 
 
 void MapQAOP(void)
 {
-    myConfig.keymap[0]   = 21;   // Q
-    myConfig.keymap[1]   =  5;   // A
-    myConfig.keymap[2]   = 19;   // O
-    myConfig.keymap[3]   = 20;   // P
-    myConfig.keymap[4]   = 43;   // Space
-    myConfig.keymap[5]   = 43;   // Space
-    myConfig.keymap[6]   = 30;   // Z
-    myConfig.keymap[7]   = 30;   // Z
-    myConfig.keymap[8]   = 41;   // NDS R Button mapped to SHIFT
-    myConfig.keymap[9]   = 42;   // NDS L Button mapped to SYMBOL
-    myConfig.keymap[10]  = 40;   // NDS START mapped to '0'
-    myConfig.keymap[11]  = 31;   // NDS SELECT mapped to '1'
+    myConfig.keymap[0]   = 22;   // Q
+    myConfig.keymap[1]   =  6;   // A
+    myConfig.keymap[2]   = 20;   // O
+    myConfig.keymap[3]   = 21;   // P
+    myConfig.keymap[4]   = 44;   // Space
+    myConfig.keymap[5]   = 44;   // Space
+    myConfig.keymap[6]   = 31;   // Z
+    myConfig.keymap[7]   = 31;   // Z
+    myConfig.keymap[8]   = 42;   // NDS R Button mapped to SHIFT
+    myConfig.keymap[9]   = 43;   // NDS L Button mapped to SYMBOL
+    myConfig.keymap[10]  = 41;   // NDS START mapped to '0'
+    myConfig.keymap[11]  = 32;   // NDS SELECT mapped to '1'
 }
 
 void MapWASD(void)
 {
-    myConfig.keymap[0]   = 27;    // W (up)
-    myConfig.keymap[1]   = 23;    // S (down)
-    myConfig.keymap[2]   =  5;    // A (left)
-    myConfig.keymap[3]   =  8;    // D (right)
-    myConfig.keymap[4]   = 43;   // Space
-    myConfig.keymap[5]   = 43;   // Space
-    myConfig.keymap[6]   = 30;   // Z
-    myConfig.keymap[7]   = 30;   // Z
-    myConfig.keymap[8]   = 41;   // NDS R Button mapped to SHIFT
-    myConfig.keymap[9]   = 42;   // NDS L Button mapped to SYMBOL
-    myConfig.keymap[10]  = 40;   // NDS START mapped to '0'
-    myConfig.keymap[11]  = 31;   // NDS SELECT mapped to '1'
+    myConfig.keymap[0]   = 28;    // W (up)
+    myConfig.keymap[1]   = 24;    // S (down)
+    myConfig.keymap[2]   =  6;    // A (left)
+    myConfig.keymap[3]   =  9;    // D (right)
+    myConfig.keymap[4]   = 44;   // Space
+    myConfig.keymap[5]   = 44;   // Space
+    myConfig.keymap[6]   = 31;   // Z
+    myConfig.keymap[7]   = 31;   // Z
+    myConfig.keymap[8]   = 42;   // NDS R Button mapped to SHIFT
+    myConfig.keymap[9]   = 43;   // NDS L Button mapped to SYMBOL
+    myConfig.keymap[10]  = 41;   // NDS START mapped to '0'
+    myConfig.keymap[11]  = 32;   // NDS SELECT mapped to '1'
 }
 
 void MapZXSpace(void)
 {
-    myConfig.keymap[0]   = 43;   // Space
-    myConfig.keymap[1]   = 18;   // N
-    myConfig.keymap[2]   = 30;   // Z
-    myConfig.keymap[3]   = 28;   // X
-    myConfig.keymap[4]   = 43;   // Space
-    myConfig.keymap[5]   = 43;   // Space
-    myConfig.keymap[6]   = 44;   // Return
-    myConfig.keymap[7]   = 44;   // Return
-    myConfig.keymap[8]   = 41;   // NDS R Button mapped to SHIFT
-    myConfig.keymap[9]   = 42;   // NDS L Button mapped to SYMBOL
-    myConfig.keymap[10]  = 40;   // NDS START mapped to '0'
-    myConfig.keymap[11]  = 31;   // NDS SELECT mapped to '1'
+    myConfig.keymap[0]   = 44;   // Space
+    myConfig.keymap[1]   = 19;   // N
+    myConfig.keymap[2]   = 31;   // Z
+    myConfig.keymap[3]   = 29;   // X
+    myConfig.keymap[4]   = 44;   // Space
+    myConfig.keymap[5]   = 44;   // Space
+    myConfig.keymap[6]   = 45;   // Return
+    myConfig.keymap[7]   = 45;   // Return
+    myConfig.keymap[8]   = 42;   // NDS R Button mapped to SHIFT
+    myConfig.keymap[9]   = 43;   // NDS L Button mapped to SYMBOL
+    myConfig.keymap[10]  = 41;   // NDS START mapped to '0'
+    myConfig.keymap[11]  = 32;   // NDS SELECT mapped to '1'
 }
 
 
@@ -779,35 +780,35 @@ void MapZXSpace(void)
 // 1 (left), 2 (right), 3 (down), 4 (up) and 5 (fire) for Sinclair 2
 void Sinclair1(void)
 {
-    myConfig.keymap[0]   = 39;   // UP
-    myConfig.keymap[1]   = 38;   // DOWN
-    myConfig.keymap[2]   = 36;   // LEFT
-    myConfig.keymap[3]   = 37;   // RIGHT
-    myConfig.keymap[4]   = 40;   // FIRE
-    myConfig.keymap[5]   = 43;   // Space
-    myConfig.keymap[6]   = 43;   // Space
-    myConfig.keymap[7]   = 43;   // Space
-    myConfig.keymap[8]   = 41;   // NDS R Button mapped to SHIFT
-    myConfig.keymap[9]   = 42;   // NDS L Button mapped to SYMBOL
-    myConfig.keymap[10]  = 40;   // NDS START mapped to '0'
-    myConfig.keymap[11]  = 31;   // NDS SELECT mapped to '1'
+    myConfig.keymap[0]   = 40;   // UP
+    myConfig.keymap[1]   = 39;   // DOWN
+    myConfig.keymap[2]   = 37;   // LEFT
+    myConfig.keymap[3]   = 38;   // RIGHT
+    myConfig.keymap[4]   = 41;   // FIRE
+    myConfig.keymap[5]   = 44;   // Space
+    myConfig.keymap[6]   = 44;   // Space
+    myConfig.keymap[7]   = 44;   // Space
+    myConfig.keymap[8]   = 42;   // NDS R Button mapped to SHIFT
+    myConfig.keymap[9]   = 43;   // NDS L Button mapped to SYMBOL
+    myConfig.keymap[10]  = 41;   // NDS START mapped to '0'
+    myConfig.keymap[11]  = 32;   // NDS SELECT mapped to '1'
 }
 
 // 5 (left), 6 (down), 7 (up), 8 (right)
 void Cursors(void)
 {
-    myConfig.keymap[0]   = 37;   // UP
-    myConfig.keymap[1]   = 36;   // DOWN
-    myConfig.keymap[2]   = 35;   // LEFT
-    myConfig.keymap[3]   = 38;   // RIGHT
-    myConfig.keymap[4]   = 44;   // Return
-    myConfig.keymap[5]   = 43;   // Space
-    myConfig.keymap[6]   = 43;   // Space
-    myConfig.keymap[7]   = 43;   // Space
-    myConfig.keymap[8]   = 41;   // NDS R Button mapped to SHIFT
-    myConfig.keymap[9]   = 42;   // NDS L Button mapped to SYMBOL
-    myConfig.keymap[10]  = 40;   // NDS START mapped to '0'
-    myConfig.keymap[11]  = 31;   // NDS SELECT mapped to '1'
+    myConfig.keymap[0]   = 38;   // UP
+    myConfig.keymap[1]   = 37;   // DOWN
+    myConfig.keymap[2]   = 36;   // LEFT
+    myConfig.keymap[3]   = 39;   // RIGHT
+    myConfig.keymap[4]   = 45;   // Return
+    myConfig.keymap[5]   = 44;   // Space
+    myConfig.keymap[6]   = 44;   // Space
+    myConfig.keymap[7]   = 44;   // Space
+    myConfig.keymap[8]   = 42;   // NDS R Button mapped to SHIFT
+    myConfig.keymap[9]   = 43;   // NDS L Button mapped to SYMBOL
+    myConfig.keymap[10]  = 41;   // NDS START mapped to '0'
+    myConfig.keymap[11]  = 42;   // NDS SELECT mapped to '1'
 }
 
 

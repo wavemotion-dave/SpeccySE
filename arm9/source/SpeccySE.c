@@ -113,8 +113,8 @@ u16 NDS_keyMap[12] __attribute__((section(".dtcm"))) = {KEY_UP, KEY_DOWN, KEY_LE
 
 // ----------------------------------------------------------------------
 // The key map for the ZX Spectrum... mapped into the NDS controller
-// We allow mapping of the 5 joystick 'presses' (up, down, left, right
-// and fire) along with all 40 of the possible ZX Spectrum keyboard keys.
+// We allow mapping of the 6 joystick 'presses' (up, down, left, right
+// and fire1/fire2) along with all 40 of the possible ZX Spectrum keyboard keys.
 // ----------------------------------------------------------------------
 u16 keyCoresp[MAX_KEY_OPTIONS] __attribute__((section(".dtcm"))) = {
     JST_UP,     //0
@@ -122,8 +122,9 @@ u16 keyCoresp[MAX_KEY_OPTIONS] __attribute__((section(".dtcm"))) = {
     JST_LEFT,
     JST_RIGHT,
     JST_FIRE,
+    JST_FIRE2,  //5
 
-    META_KBD_A, //5
+    META_KBD_A, //6
     META_KBD_B,
     META_KBD_C,
     META_KBD_D,
@@ -132,25 +133,25 @@ u16 keyCoresp[MAX_KEY_OPTIONS] __attribute__((section(".dtcm"))) = {
     META_KBD_G,
     META_KBD_H,
     META_KBD_I,
-    META_KBD_J,
-    META_KBD_K, //15
+    META_KBD_J, //15
+    META_KBD_K,
     META_KBD_L,
     META_KBD_M,
     META_KBD_N,
-    META_KBD_O,
-    META_KBD_P, //20
+    META_KBD_O, //20
+    META_KBD_P,
     META_KBD_Q,
     META_KBD_R,
     META_KBD_S,
-    META_KBD_T,
-    META_KBD_U, //25
+    META_KBD_T, //25
+    META_KBD_U,
     META_KBD_V,
     META_KBD_W,
     META_KBD_X,
-    META_KBD_Y,
-    META_KBD_Z, //30
+    META_KBD_Y, //30
+    META_KBD_Z, //31
 
-    META_KBD_1, //31
+    META_KBD_1, //32
     META_KBD_2,
     META_KBD_3,
     META_KBD_4,
@@ -159,7 +160,7 @@ u16 keyCoresp[MAX_KEY_OPTIONS] __attribute__((section(".dtcm"))) = {
     META_KBD_7,
     META_KBD_8,
     META_KBD_9,
-    META_KBD_0, //40
+    META_KBD_0, //41
 
     META_KBD_SHIFT,
     META_KBD_SYMBOL,

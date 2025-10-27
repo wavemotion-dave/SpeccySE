@@ -35,6 +35,9 @@ extern "C" {
 #define SCANLINES_PER_FRAME_128     311
 #define SCANLINES_PER_FRAME_48      312
 
+#define CONTENTION_START_CYCLE_48   14335
+#define CONTENTION_START_CYCLE_128  14361
+
                                /* Compilation options:       */
 #define LSB_FIRST              /* Compile for low-endian CPU */
 #define EXECZ80                /* Call Z80 each scanline     */

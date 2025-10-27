@@ -39,6 +39,7 @@ extern u32 DX, DY;
 #define JST_DOWN            0x0004
 #define JST_LEFT            0x0008
 #define JST_FIRE            0x0010
+#define JST_FIRE2           0x0020
 
 // -----------------------------------------------------------------------------------
 // And these are meta keys for mapping NDS keys to keyboard keys (many of the computer
@@ -87,7 +88,7 @@ extern u32 DX, DY;
 #define META_KBD_SPACE      0xF029
 #define META_KBD_RETURN     0xF02A
 
-#define MAX_KEY_OPTIONS     45
+#define MAX_KEY_OPTIONS     46
 
 // -----------------------------
 // For the Full Keyboard...
@@ -137,6 +138,7 @@ extern int bg0, bg1, bg0b, bg1b;
 extern u32 last_file_size;
 extern u8  zx_special_key;
 extern u32 zx_current_line;
+extern u8  last_line_drawn;
 extern u16 num_blocks_available;
 extern u16 current_block;
 extern u8  tape_state;

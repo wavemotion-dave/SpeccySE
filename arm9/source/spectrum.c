@@ -40,6 +40,7 @@ u8  tape_play_skip_frame    __attribute__((section(".dtcm"))) = 0;
 u8  rom_special_bank        __attribute__((section(".dtcm"))) = 0;
 u8  zx_ula_plus_enabled     __attribute__((section(".dtcm"))) = 0;
 u8  accurate_emulation      __attribute__((section(".dtcm"))) = 0;
+u8  last_line_drawn         __attribute__((section(".dtcm"))) = 0;
 
 u32  pre_render_lookup[16][16][16];
 
@@ -263,6 +264,8 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
             if (JoyState & JST_DOWN)  joy1 |= 0x04;
             if (JoyState & JST_UP)    joy1 |= 0x08;
             if (JoyState & JST_FIRE)  joy1 |= 0x10;
+            if (JoyState & JST_FIRE2) joy1 |= 0x20;
+            
             return joy1;
         }
         else
@@ -293,23 +296,41 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
      }
 
     // ---------------------------------------------------------------------------------------------
-    // Poor Man's floating bus. Very few games use this - so we basically handle it very roughly.
+    // Poor Man's floating bus. Very few games use this - so we basically handle it a bit roughly.
     // If we are not drawing the screen - the ULA will be idle and we will return 0xFF (below).
     // If we are rending the screen... we will return the Attribute byte mid-scanline which is
     // good enough for games like Sidewine and Short Circuit and Cobra, etc.
     // ---------------------------------------------------------------------------------------------
-    if (zx_ScreenRendering)
+    if (myConfig.machine) // 128K
     {
-        u8 *floatBusPtr;
+        if (CPU.TStates >= CONTENTION_START_CYCLE_128 && CPU.TStates < (CONTENTION_START_CYCLE_128+(192*CYCLES_PER_SCANLINE_128)))
+        {
+            u8 *floatBusPtr;
 
-        // For the ZX 128K, we might be using page 7 for video display... it's rare, but possible...
-        if (zx_128k_mode) floatBusPtr = RAM_Memory128 + (((portFD & 0x08) ? 7:5) * 0x4000) + 0x1800;
-        else floatBusPtr = RAM_Memory + 0x5800;
+            // For the ZX 128K, we might be using page 7 for video display... it's rare, but possible...
+            if (zx_128k_mode) floatBusPtr = RAM_Memory128 + (((portFD & 0x08) ? 7:5) * 0x4000) + 0x1800;
+            else floatBusPtr = RAM_Memory + 0x5800;
 
-        u8 *attrPtr = &floatBusPtr[((zx_current_line - 64)/8)*32];
+            u8 *attrPtr = &floatBusPtr[(last_line_drawn/8)*32];
 
-        static u8 floating_fetcher = 0;
-        return attrPtr[floating_fetcher++ % 32];
+            if (((CPU.TStates-CONTENTION_START_CYCLE_128) % CYCLES_PER_SCANLINE_128) < 128)
+            {
+                return attrPtr[((CPU.TStates-CONTENTION_START_CYCLE_128) % CYCLES_PER_SCANLINE_128) / 4];
+            }
+        }
+    }
+    else // 48K
+    {
+        if (CPU.TStates >= CONTENTION_START_CYCLE_48 && CPU.TStates < (CONTENTION_START_CYCLE_48+(192*CYCLES_PER_SCANLINE_48)))
+        {
+            u8 *floatBusPtr = RAM_Memory + 0x5800;
+            u8 *attrPtr = &floatBusPtr[(last_line_drawn/8)*32];
+
+            if (((CPU.TStates-CONTENTION_START_CYCLE_48) % CYCLES_PER_SCANLINE_48) < 128)
+            {
+                return attrPtr[((CPU.TStates-CONTENTION_START_CYCLE_48) % CYCLES_PER_SCANLINE_48) / 4];
+            }
+        }
     }
 
     return 0xFF;  // Unused port returns 0xFF when ULA is idle
@@ -1109,9 +1130,10 @@ ITCM_CODE u32 speccy_run(void)
     {
         // Render one scanline...
         speccy_render_screen_line(zx_current_line - starting_line);
+        last_line_drawn++;
         zx_ScreenRendering = 1;
         accurate_emulation = (tape_state ? 0 : 1); // If tape playing, skip accurate emulation
-    }
+    } else last_line_drawn = 0;
 
     // ------------------------------------------
     // Generate an interrupt only at end of frame
