@@ -389,35 +389,45 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
         {
              BG_PALETTE_SUB[1] = zx_border_colors[Value & 0x07];
         }
+
+        // -------------------------------------------------------------------------------
+        // For rapid pulsing... Mojon Twin games and games like Multidude will hit the 
+        // speaker hard in the intro screens so we just respond as fast as we can here...
+        // -------------------------------------------------------------------------------
+        if ((portFE ^ Value) & 0x10)
+        {
+            if (portFE & 0x10) beeper_on_pulses++; else beeper_off_pulses++;
+        }
+
         portFE = Value;
         
-         if (accurate_emulation)
-         {
-              if (myConfig.machine) // 128K
-              {
-                  if (ContendMap[Port>>14])
-                  {
-                      CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+0) % CYCLES_PER_SCANLINE_128];
-                      CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_128];
-                  }
-                  else
-                  {
-                      CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_128];
-                  }
-              }
-              else // 48K
-              {
-                  if (ContendMap[Port>>14])
-                  {
-                      CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+0) % CYCLES_PER_SCANLINE_48];
-                      CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_48];
-                  }
-                  else
-                  {
-                      CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_48];
-                  }
-              }
-         }
+        if (accurate_emulation)
+        {
+             if (myConfig.machine) // 128K
+             {
+                 if (ContendMap[Port>>14])
+                 {
+                     CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+0) % CYCLES_PER_SCANLINE_128];
+                     CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_128];
+                 }
+                 else
+                 {
+                     CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_128];
+                 }
+             }
+             else // 48K
+             {
+                if (ContendMap[Port>>14])
+                 {
+                     CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+0) % CYCLES_PER_SCANLINE_48];
+                     CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_48];
+                 }
+                 else
+                 {
+                     CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_48];
+                 }
+             }
+        }
     }
     else
     {
@@ -1096,17 +1106,14 @@ ITCM_CODE u32 speccy_run(void)
     }
     else
     {
-        // Grab 2 samples worth of AY sound to mix with the beeper
-        processDirectAudio();
-
         ExecZ80_Speccy(CPU.TStates + 128); // Execute CPU for the visible portion of the scanline
-
-        // Grab 2 more samples worth of AY sound to mix with the beeper
-        processDirectAudio();
 
         zx_ScreenRendering = 0; // On this final chunk we are drawing border and doing a horizontal sync... no contention
 
         ExecZ80_Speccy((zx_128k_mode ? CYCLES_PER_SCANLINE_128:CYCLES_PER_SCANLINE_48) * zx_current_line); // This puts us exactly where we should be for the scanline
+        
+        // Grab 4 samples worth of AY sound to mix with the beeper
+        processDirectAudio();
 
         // -----------------------------------------------------------------------
         // If we are not playing the tape, we want to reset the TStates counter
