@@ -150,6 +150,7 @@ extern u8 cpu_contended_delay_128[228];
 extern u8 cpu_contended_delay_48[224];
 
 extern void LoadConfig(void);
+extern void LoadFavorites(void);
 extern u8   showMessage(char *szCh1, char *szCh2);
 extern void speccySEFindFiles(u8 bTapeOnly);
 extern void speccySEChangeOptions(void);

@@ -1837,6 +1837,9 @@ int main(int argc, char **argv)
   // with the game that was selected later...
   // -----------------------------------------------------------------
   LoadConfig();
+  
+  // Do an initial load of the Favorites file
+  LoadFavorites();
 
   //  Handle command line argument... mostly for TWL++
   if  (argc > 1)

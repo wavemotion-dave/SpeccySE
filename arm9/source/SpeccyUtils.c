@@ -42,6 +42,15 @@ struct Config_t AllConfigs[MAX_CONFIGS];
 struct Config_t myConfig __attribute((aligned(4))) __attribute__((section(".dtcm")));
 struct GlobalConfig_t myGlobalConfig;
 
+typedef struct
+{
+  u32   name_hash;  // Repurpose the lower bit for love vs like
+} Favorites_t;
+
+#define MAX_FAVS  1024
+
+Favorites_t myFavs[MAX_FAVS]; // Total of 4K of space with 32 bit hash
+
 // -----------------------------------------------------------------------
 // Used by our system to map into 8K memory chunks which allows for very
 // rapid banking of memory - mostly useful for the ZX Spectrum 128K
@@ -227,8 +236,91 @@ u8 showMessage(char *szCh1, char *szCh2)
   return uRet;
 }
 
+// --------------------------------------------------------------
+// Provide an array of filename hashes to store game "Favorites"
+// --------------------------------------------------------------
+void LoadFavorites(void)
+{
+    memset(myFavs, 0x00, sizeof(myFavs));
+    FILE *fp = fopen("/data/SpeccySE.fav", "rb");
+    if (fp)
+    {
+        fread(&myFavs, sizeof(myFavs), 1, fp);
+        fclose(fp);
+    }
+}
+
+void SaveFavorites(void)
+{
+    // --------------------------------------------------
+    // Now save the config file out o the SD card...
+    // --------------------------------------------------
+    DIR* dir = opendir("/data");
+    if (dir)
+    {
+        closedir(dir);  // directory exists.
+    }
+    else
+    {
+        mkdir("/data", 0777);   // Doesn't exist - make it...
+    }
+        
+    FILE *fp = fopen("/data/SpeccySE.fav", "wb");
+    if (fp)
+    {
+        fwrite(&myFavs, sizeof(myFavs), 1, fp);
+        fclose(fp);
+    }
+}
+
+u8 IsFavorite(char *name)
+{
+    u32 filename_crc32 = getCRC32((u8 *)name, strlen(name));
+    
+    for (int i=0; i<MAX_FAVS; i++)
+    {
+        if ((myFavs[i].name_hash & 0xFFFFFFFE) == (filename_crc32 & 0xFFFFFFFE)) return (1 + (myFavs[i].name_hash&1));
+    }
+    return 0;
+}
+
+void ToggleFavorite(char *name)
+{
+    int firstZero = 0;
+    u32 filename_crc32 = getCRC32((u8 *)name, strlen(name));
+    
+    for (int i=0; i<MAX_FAVS; i++)
+    {
+        // We use the lower bit of the filename hash (CRC32) as the flag for 'like' vs 'love'
+        // Basically there are 3 states:
+        //    - No hash found... not a favorite
+        //    - Hash found with lower bit 0... Love
+        //    - Hash found with lower bit 1... Like
+        if ((myFavs[i].name_hash & 0xFFFFFFFE) == (filename_crc32 & 0xFFFFFFFE))
+        {
+            if ((myFavs[i].name_hash & 1) == 0)
+            {
+                myFavs[i].name_hash |= 1;
+                return;
+            }
+            else
+            {
+                myFavs[i].name_hash = 0x00000000;
+                return;
+            }
+        }
+        
+        if (myFavs[i].name_hash == 0x00000000)
+        {
+            if (!firstZero) firstZero = i;
+        }
+    }
+    
+    myFavs[firstZero].name_hash = (filename_crc32 & 0xFFFFFFFE);
+}
+
 /*********************************************************************************
- * Show The 14 games on the list to allow the user to choose a new game.
+ * Show the games on the list to allow the user to choose a new game.
  ********************************************************************************/
 static char szName2[40];
 void dsDisplayFiles(u16 NoDebGame, u8 ucSel)
@@ -253,16 +345,25 @@ void dsDisplayFiles(u16 NoDebGame, u8 ucSel)
         sprintf(szName2, "[%s]",szName);
         sprintf(szName,"%-30s",szName2);
         DSPrint(1,5+ucBcl,(ucSel == ucBcl ? 2 :  0),szName);
+        DSPrint(0,5+ucBcl,0,(char*)" ");
       }
       else
       {
         sprintf(szName,"%-30s",strupr(szName));
         DSPrint(1,5+ucBcl,(ucSel == ucBcl ? 2 : 0 ),szName);
+        if (IsFavorite(gpFic[ucGame].szName))
+        {
+            DSPrint(0,5+ucBcl,(IsFavorite(gpFic[ucGame].szName) == 1) ? 0:2,(char*)"@");
+        }
+        else
+        {
+            DSPrint(0,5+ucBcl,0,(char*)" ");
+        }
       }
     }
     else
     {
-        DSPrint(1,5+ucBcl,(ucSel == ucBcl ? 2 : 0 ),"                              ");
+        DSPrint(0,5+ucBcl,(ucSel == ucBcl ? 2 : 0 ),"                               ");
     }
   }
 }
@@ -405,7 +506,7 @@ u8 speccySELoadFile(u8 bTapeOnly)
 
   BottomScreenOptions();
 
-  DSPrint(1,3,0,"A=LOAD 48K, B=EXIT, Y=128K");
+  DSPrint(3,3,0,"A=LOAD, SELECT=FAV, B=EXIT");
 
   speccySEFindFiles(bTapeOnly);
 
@@ -545,10 +646,25 @@ u8 speccySELoadFile(u8 bTapeOnly)
       ucSHaut = 0;
     }
 
+    // The SELECT key will toggle favorites
+    if (keysCurrent() & KEY_SELECT)
+    {
+        if (gpFic[ucGameAct].uType != DIRECTORY)
+        {
+            ToggleFavorite(gpFic[ucGameAct].szName);
+            dsDisplayFiles(firstRomDisplay,romSelected);
+            SaveFavorites();
+            while (keysCurrent() & KEY_SELECT)
+            {
+                WAITVBL;
+            }
+        }
+    }
+    
     // -------------------------------------------------------------------------
     // They B key will exit out of the ROM selection without picking a new game
     // -------------------------------------------------------------------------
-    if ( keysCurrent() & KEY_B )
+    if (keysCurrent() & KEY_B)
     {
       bDone=true;
       while (keysCurrent() & KEY_B);
@@ -557,7 +673,7 @@ u8 speccySELoadFile(u8 bTapeOnly)
     // -------------------------------------------------------------------
     // Any of these keys will pick the current ROM and try to load it...
     // -------------------------------------------------------------------
-    if (keysCurrent() & KEY_A || keysCurrent() & KEY_Y || keysCurrent() & KEY_X)
+    if (keysCurrent() & KEY_A)
     {
       if (gpFic[ucGameAct].uType != DIRECTORY)
       {
@@ -948,6 +1064,7 @@ void FindConfig(void)
     else if (strcasestr(gpFic[ucGameChoice].szName, "ALIEN 8")      != 0) myConfig.machine = 0;
     else if (strcasestr(gpFic[ucGameChoice].szName, "PSSST")        != 0) myConfig.machine = 0;
     else if (strcasestr(gpFic[ucGameChoice].szName, "UNDERWURLDE")  != 0) myConfig.machine = 0;
+    else if (strcasestr(gpFic[ucGameChoice].szName, "CHUCKIE")      != 0) {myConfig.machine = 0; myConfig.dpad = 2;}
         
     else if (strcasestr(gpFic[ucGameChoice].szName, "GLUF")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
     else if (strcasestr(gpFic[ucGameChoice].szName, "DREAMWALKER")  != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
@@ -1765,7 +1882,7 @@ void spectrumRun(void)
 {
   ResetZ80(&CPU);                       // Reset the CZ80 core CPU
   speccy_reset();                       // Ensure the Spectrum Emulation is ready
-  BottomScreenKeyboard();                 // Show the game-related screen with keypad / keyboard
+  BottomScreenKeyboard();               // Show the game-related screen with keypad / keyboard
 }
 
 u8 ZX_Spectrum_palette[16*3] = {

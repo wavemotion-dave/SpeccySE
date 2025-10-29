@@ -62,36 +62,38 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
     
     if ((Port & 1) == 0) // Any Even Address will cause the ULA to respond
     {
-         // ----------------------------------------------------------------------------------------
-         // When we are in the accurate emulation mode, we must deal with ULA memory contention.
-         // ----------------------------------------------------------------------------------------
-         if (accurate_emulation)
-         {
-             if (myConfig.machine) // 128K
-             {
-                 if (ContendMap[Port>>14])
-                 {
-                     CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+0) % CYCLES_PER_SCANLINE_128];
-                     CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_128];
-                 }
-                 else
-                 {
-                     CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_128];
-                 }
-             }
-             else // 48K
-             {
-                 if (ContendMap[Port>>14])
-                 {
-                     CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+0) % CYCLES_PER_SCANLINE_48];
-                     CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_48];
-                 }
-                 else
-                 {
-                     CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_48];
-                 }
-             }
-         }
+        // ----------------------------------------------------------------------------------------
+        // When we are in the accurate emulation mode, we must deal with ULA memory contention.
+        // ----------------------------------------------------------------------------------------
+        if (accurate_emulation)
+        {
+            if (myConfig.machine) // 128K
+            {
+                if (ContendMap[Port>>14])
+                {
+                    CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+0) % CYCLES_PER_SCANLINE_128];
+                    CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_128];
+                }
+                else
+                {
+                    CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_128];
+                }
+            }
+            else // 48K
+            {
+                if (ContendMap[Port>>14])
+                {
+                    CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+0) % CYCLES_PER_SCANLINE_48];
+                    CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_48];
+                }
+                else
+                {
+                    CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_48];
+                }
+            }
+            
+            CPU.TStates += 4; // The IO takes 4 cycles
+        }
          
         // --------------------------------------------------------
         // If we are not playing the tape but we got a hit on the
@@ -122,8 +124,6 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
             return ~tape_pulse();
         }
         
-        if (accurate_emulation)  CPU.TStates += 4;
-
         // -----------------------------
         // Otherwise normal handling...
         // -----------------------------
@@ -251,7 +251,7 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
 
         return (u8)~key;
     }
-    else
+    else // Odd port... not ULA
     {
         if (accurate_emulation)  CPU.TStates += 4;
         
