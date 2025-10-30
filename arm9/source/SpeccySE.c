@@ -255,10 +255,9 @@ ITCM_CODE mm_word OurSoundMixer(mm_word len, mm_addr dest, mm_stream_formats for
 // over-sampled and smoothed someday to make it really shine... good enough for now.
 // --------------------------------------------------------------------------------------------
 s16 mixbufAY[8]         __attribute__((section(".dtcm"))) = { 0x000, 0x000, 0x000, 0x000, 0x000 , 0x000 , 0x000 , 0x000  };
-s16 volume_decay[6]     __attribute__((section(".dtcm"))) = { 0x000, 0x080, 0x180, 0x300, 0x600, 0xA00 }; // Simulate the volume decay of the beeper
 s32 beeper_vol          __attribute__((section(".dtcm"))) = 0;
-u16 beeper_on_pulses    __attribute__((section(".dtcm"))) = 0;
-u16 beeper_off_pulses   __attribute__((section(".dtcm"))) = 0;
+u8  beeper_pulses_idx   __attribute__((section(".dtcm"))) = 0;
+u8  beeper_pulses[256] = {0};
 
 ITCM_CODE void processDirectAudio(void)
 {
@@ -267,30 +266,23 @@ ITCM_CODE void processDirectAudio(void)
         ay38910Mixer(4, mixbufAY, &myAY);
     }
     
-    if (beeper_on_pulses && beeper_off_pulses)
-    {
-        if (beeper_on_pulses == beeper_off_pulses) beeper_vol = 3;
-        else if (beeper_on_pulses > beeper_off_pulses) beeper_vol = 4;
-        else beeper_vol = 2;
-    }
-    else
-    {
-        if (portFE & 0x10) beeper_vol = 5;
-        else if (beeper_vol) beeper_vol--;
-    }
-    beeper_on_pulses = beeper_off_pulses = 0;
-
     for (u8 i=0; i<4; i++)
     {
         if (breather) {return;}
         
-        s16 beeper_volume = 0;
-        if (beeper_vol)  beeper_volume = volume_decay[beeper_vol] + (8 - (int)(CPU.R & 0xF)); // Sample plus a bit of white noise to break up aliasing
-        s16 sample = mixbufAY[i] + beeper_volume;
+        if (beeper_pulses_idx)
+        {
+            if (beeper_pulses[i]) beeper_vol = 0xA00 + (8 - (int)(CPU.R & 0xF)); // Sample plus a bit of white noise to break up aliasing
+            else beeper_vol = 0x000;
+            beeper_pulses_idx--;
+        }
+        s16 sample = mixbufAY[i] + beeper_vol;
         mixer[mixer_write] = sample;
         mixer_write++; mixer_write &= WAVE_DIRECT_BUF_SIZE;
         if (((mixer_write+1)&WAVE_DIRECT_BUF_SIZE) == mixer_read) {breather = 2048;}
     }
+
+    beeper_pulses_idx = 0;
 }
 
 // -----------------------------------------------------------------------------------------------

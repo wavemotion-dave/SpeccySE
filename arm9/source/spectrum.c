@@ -396,7 +396,7 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
         // -------------------------------------------------------------------------------
         if ((portFE ^ Value) & 0x10)
         {
-            if (portFE & 0x10) beeper_on_pulses++; else beeper_off_pulses++;
+            beeper_pulses[beeper_pulses_idx++] = (Value & 0x10);
         }
 
         portFE = Value;
