@@ -23,6 +23,7 @@ Features :
 * ULAPlus support for enhanced 64 color mode (from a palette of 256 colors)
 * Slide-n-Glide style Joystick configuration to make climbing ladders in games like Chuckie-Egg more forgiving (try it - you'll like it!)
 * High Score saving for 10 scores with initials, date/time.
+* Favorites list so you can mark games as 'like' or 'love' - a yellow or red heart icon will mark your favorite games.
 * Solid Z80 core that passes the ZEXDOC test suite (covering everything but not undocumented flags).
 * Minimal design asthetic - pick game, play game. Runs unpached from your SD card via TWL++ or similar.
 
@@ -122,6 +123,15 @@ that includes START, SELECT and the L/R shoulder buttons). By default,
 the DPad and 'A' button is set to the Kempston standard.
 
 ![image](./png/keymap.bmp)
+
+Loading Games :
+-----------------------
+You can have no more than 1024 game files in any directory but you can have as many directories as you wish.
+When you are picking a game, you can use the SELECT button to toggle a favorites icon - there are three levels... 
+No icon (not a favorite), Yellow Heart (like) and Red Heart (love). This will help you sift and sort through 
+the games that you want to come back to more regularly.
+
+![image](./png/favs.png)
 
 Joystick Support :
 -----------------------
