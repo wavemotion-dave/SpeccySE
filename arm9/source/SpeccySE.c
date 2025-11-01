@@ -272,12 +272,11 @@ ITCM_CODE void processDirectAudio(void)
         
         if (beeper_pulses_idx)
         {
-            if (beeper_pulses[i]) beeper_vol = 0xA00 + (8 - (int)(CPU.R & 0xF)); // Sample plus a bit of white noise to break up aliasing
+            if (beeper_pulses[i]) beeper_vol = 0x1F00 + (8 - (int)(CPU.R & 0xF)); // Sample plus a bit of white noise to break up aliasing
             else beeper_vol = 0x000;
             beeper_pulses_idx--;
         }
-        s16 sample = mixbufAY[i] + beeper_vol;
-        mixer[mixer_write] = sample;
+        mixer[mixer_write] = (s16)(mixbufAY[i] + beeper_vol);
         mixer_write++; mixer_write &= WAVE_DIRECT_BUF_SIZE;
         if (((mixer_write+1)&WAVE_DIRECT_BUF_SIZE) == mixer_read) {breather = 2048;}
     }

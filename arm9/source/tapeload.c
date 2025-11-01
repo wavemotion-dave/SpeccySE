@@ -585,7 +585,7 @@ ITCM_CODE void tape_frame(void)
             static int frames_without_loading = 0;
             if (tape_pulses_this_frame < 25)
             {
-                if (++frames_without_loading > (myConfig.autoStop == 2 ? 150:1000)) // 20 "accelerated" seconds of no load... stop tape. This is roughly 4-5 seconds of real-time.
+                if (++frames_without_loading > (myConfig.autoStop == 2 ? 150:500)) // 10 "accelerated" seconds of no load... stop tape. This is roughly 2-3 seconds of real-time.
                 {
                     // If the previous block was a header block, move back to that one...
                     if (!(TapeBlocks[current_block-1].block_flag & 0x80)) current_block--;

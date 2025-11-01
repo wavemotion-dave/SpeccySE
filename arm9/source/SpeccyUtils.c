@@ -1070,6 +1070,8 @@ void FindConfig(void)
     else if (strcasestr(gpFic[ucGameChoice].szName, "GLUF")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
     else if (strcasestr(gpFic[ucGameChoice].szName, "DREAMWALKER")  != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
     else if (strcasestr(gpFic[ucGameChoice].szName, "DREAM WALKER") != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "MULTIDUDE")    != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+    else if (strcasestr(gpFic[ucGameChoice].szName, "MULTI DUDE")   != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
     else if (strcasestr(gpFic[ucGameChoice].szName, "MANICPIE")     != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
     else if (strcasestr(gpFic[ucGameChoice].szName, "MANIC PIE")    != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
     else if (strcasestr(gpFic[ucGameChoice].szName, "YAZZIE")       != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
