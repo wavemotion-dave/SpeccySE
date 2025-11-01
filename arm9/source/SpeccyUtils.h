@@ -92,7 +92,7 @@ struct __attribute__((__packed__)) Config_t
     u8  gameSpeed;
     u8  ULAplus;
     u8  ULAtiming;
-    u8  reserved4;
+    u8  turbo;
     u8  reserved5;
     u8  reserved6;
     u8  reserved7;

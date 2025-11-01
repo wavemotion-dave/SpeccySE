@@ -39,9 +39,7 @@ extern "C" {
 #define CONTENTION_START_CYCLE_128  14361
 
                                /* Compilation options:       */
-#define LSB_FIRST              /* Compile for low-endian CPU */
-#define EXECZ80                /* Call Z80 each scanline     */
-
+                               
                                /* LoopZ80() may return:      */
 #define INT_RST00   0x00C7     /* RST 00h                    */
 #define INT_RST08   0x00CF     /* RST 08h                    */
@@ -129,9 +127,7 @@ void ResetZ80(register Z80 *R);
 /** It will then return the number of cycles left, possibly **/
 /** negative, and current register values in R.             **/
 /*************************************************************/
-#ifdef EXECZ80
 void ExecZ80_Speccy(u32 RunToCycles);
-#endif
 
 /** IntZ80() *************************************************/
 /** This function will generate interrupt of given vector.  **/

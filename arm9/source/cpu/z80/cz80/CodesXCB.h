@@ -79,3 +79,21 @@ case SET4_xHL: T_INC(1);  I=RdZ80(J.W);  M_SET(4,I); T_INC(1);   WrZ80(J.W,I);br
 case SET5_xHL: T_INC(1);  I=RdZ80(J.W);  M_SET(5,I); T_INC(1);   WrZ80(J.W,I);break;  //23:443543
 case SET6_xHL: T_INC(1);  I=RdZ80(J.W);  M_SET(6,I); T_INC(1);   WrZ80(J.W,I);break;  //23:443543
 case SET7_xHL: T_INC(1);  I=RdZ80(J.W);  M_SET(7,I); T_INC(1);   WrZ80(J.W,I);break;  //23:443543
+
+case SET0_A: T_INC(1);  I=RdZ80(J.W);  M_SET(0,I); T_INC(1);   WrZ80(J.W,I); CPU.AF.B.h = I; break;  //23:443543
+case SET1_A: T_INC(1);  I=RdZ80(J.W);  M_SET(1,I); T_INC(1);   WrZ80(J.W,I); CPU.AF.B.h = I; break;  //23:443543
+case SET2_A: T_INC(1);  I=RdZ80(J.W);  M_SET(2,I); T_INC(1);   WrZ80(J.W,I); CPU.AF.B.h = I; break;  //23:443543
+case SET3_A: T_INC(1);  I=RdZ80(J.W);  M_SET(3,I); T_INC(1);   WrZ80(J.W,I); CPU.AF.B.h = I; break;  //23:443543
+case SET4_A: T_INC(1);  I=RdZ80(J.W);  M_SET(4,I); T_INC(1);   WrZ80(J.W,I); CPU.AF.B.h = I; break;  //23:443543
+case SET5_A: T_INC(1);  I=RdZ80(J.W);  M_SET(5,I); T_INC(1);   WrZ80(J.W,I); CPU.AF.B.h = I; break;  //23:443543
+case SET6_A: T_INC(1);  I=RdZ80(J.W);  M_SET(6,I); T_INC(1);   WrZ80(J.W,I); CPU.AF.B.h = I; break;  //23:443543
+case SET7_A: T_INC(1);  I=RdZ80(J.W);  M_SET(7,I); T_INC(1);   WrZ80(J.W,I); CPU.AF.B.h = I; break;  //23:443543
+
+case RES0_A: T_INC(1);  I=RdZ80(J.W);  M_RES(0,I); T_INC(1);   WrZ80(J.W,I); CPU.AF.B.h = I; break;  //23:443543
+case RES1_A: T_INC(1);  I=RdZ80(J.W);  M_RES(1,I); T_INC(1);   WrZ80(J.W,I); CPU.AF.B.h = I; break;  //23:443543
+case RES2_A: T_INC(1);  I=RdZ80(J.W);  M_RES(2,I); T_INC(1);   WrZ80(J.W,I); CPU.AF.B.h = I; break;  //23:443543
+case RES3_A: T_INC(1);  I=RdZ80(J.W);  M_RES(3,I); T_INC(1);   WrZ80(J.W,I); CPU.AF.B.h = I; break;  //23:443543
+case RES4_A: T_INC(1);  I=RdZ80(J.W);  M_RES(4,I); T_INC(1);   WrZ80(J.W,I); CPU.AF.B.h = I; break;  //23:443543
+case RES5_A: T_INC(1);  I=RdZ80(J.W);  M_RES(5,I); T_INC(1);   WrZ80(J.W,I); CPU.AF.B.h = I; break;  //23:443543
+case RES6_A: T_INC(1);  I=RdZ80(J.W);  M_RES(6,I); T_INC(1);   WrZ80(J.W,I); CPU.AF.B.h = I; break;  //23:443543
+case RES7_A: T_INC(1);  I=RdZ80(J.W);  M_RES(7,I); T_INC(1);   WrZ80(J.W,I); CPU.AF.B.h = I; break;  //23:443543

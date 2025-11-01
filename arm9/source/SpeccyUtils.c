@@ -953,8 +953,8 @@ void SetDefaultGameConfig(void)
     myConfig.machine     = myGlobalConfig.defMachine;   // Default machine is 48K but can be changed globally
     myConfig.gameSpeed   = 0;                           // Default is 100% game speed
     myConfig.ULAplus     = myGlobalConfig.defULAplus;   // Default is to allow ULA Plus but can be changed globally
-    myConfig.ULAtiming  = 0;                           // Normal timing
-    myConfig.reserved4   = 0;
+    myConfig.ULAtiming   = 0;                           // Normal timing
+    myConfig.turbo       = 0;                           // Normal Z80 clock (1=TURBO 7MHz)
     myConfig.reserved5   = 0;
     myConfig.reserved6   = 0;
     myConfig.reserved7   = 0;
@@ -1064,6 +1064,7 @@ void FindConfig(void)
     else if (strcasestr(gpFic[ucGameChoice].szName, "ALIEN 8")      != 0) myConfig.machine = 0;
     else if (strcasestr(gpFic[ucGameChoice].szName, "PSSST")        != 0) myConfig.machine = 0;
     else if (strcasestr(gpFic[ucGameChoice].szName, "UNDERWURLDE")  != 0) myConfig.machine = 0;
+    else if (strcasestr(gpFic[ucGameChoice].szName, "ARCADIA")      != 0) myConfig.machine = 0;
     else if (strcasestr(gpFic[ucGameChoice].szName, "CHUCKIE")      != 0) {myConfig.machine = 0; myConfig.dpad = 2;}
         
     else if (strcasestr(gpFic[ucGameChoice].szName, "GLUF")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
@@ -1101,25 +1102,26 @@ const struct options_t Option_Table[2][20] =
     {
         {"MACHINE",        {"48K SPECTRUM", "128K SPECTRUM"},                           &myConfig.machine,           2},
         {"ULA PLUS",       {"DISABLED",  "ENABLED"},                                    &myConfig.ULAplus,           2},
-        {"ULA TIMING",     {"NORMAL", "LATE"},                                          &myConfig.ULAtiming,        2},
+        {"ULA TIMING",     {"NORMAL", "LATE"},                                          &myConfig.ULAtiming,         2},
         {"AUTO PLAY",      {"NO", "YES"},                                               &myConfig.autoLoad,          2},
         {"AUTO STOP",      {"NO", "YES", "AGGRESSIVE"},                                 &myConfig.autoStop,          3},
         {"AUTO FIRE",      {"OFF", "ON"},                                               &myConfig.autoFire,          2},
         {"TAPE SPEED",     {"NORMAL", "ACCELERATED"},                                   &myConfig.tapeSpeed,         2},
         {"GAME SPEED",     {"100%","102%","105%","110%","120%","98%","95%","90%","80%"},&myConfig.gameSpeed,         9},
+        {"Z80 MODE",       {"3.5MHZ NORMAL", "7MHZ TURBO"},                             &myConfig.turbo,             2},
         {"NDS D-PAD",      {"NORMAL", "DIAGONALS", "SLIDE-N-GLIDE"},                    &myConfig.dpad,              3},
         
         {NULL,             {"",      ""},                                               NULL,                        1},
     },
     // Global Options
     {
-        {"DEF MACHINE",    {"48K SPECTRUM",  "128K SPECTRUM"},                         &myGlobalConfig.defMachine,  2},
-        {"ULA PLUS",       {"DISABLED",  "ENABLED"},                                   &myGlobalConfig.defULAplus,  2},
-        {"FPS",            {"OFF", "ON", "ON FULLSPEED"},                              &myGlobalConfig.showFPS,     3},
-        {"START DIR",      {"/ROMS/SPECCY",  "LAST USED DIR"},                         &myGlobalConfig.lastDir,     2},
-        {"KEYBD BRIGHT",   {"MAX BRIGHT", "DIM", "DIMMER", "DIMMEST"},                 &myGlobalConfig.brightness,  4},        
-        {"DEBUGGER",       {"OFF", "BAD OPS", "DEBUG", "FULL DEBUG"},                  &myGlobalConfig.debugger,    4},
-        {NULL,             {"",      ""},                                              NULL,                        1},
+        {"DEF MACHINE",    {"48K SPECTRUM",  "128K SPECTRUM"},                         &myGlobalConfig.defMachine,   2},
+        {"ULA PLUS",       {"DISABLED",  "ENABLED"},                                   &myGlobalConfig.defULAplus,   2},
+        {"FPS",            {"OFF", "ON", "ON FULLSPEED"},                              &myGlobalConfig.showFPS,      3},
+        {"START DIR",      {"/ROMS/SPECCY",  "LAST USED DIR"},                         &myGlobalConfig.lastDir,      2},
+        {"KEYBD BRIGHT",   {"MAX BRIGHT", "DIM", "DIMMER", "DIMMEST"},                 &myGlobalConfig.brightness,   4},        
+        {"DEBUGGER",       {"OFF", "BAD OPS", "DEBUG", "FULL DEBUG"},                  &myGlobalConfig.debugger,     4},
+        {NULL,             {"",      ""},                                              NULL,                         1},
     }
 };
 

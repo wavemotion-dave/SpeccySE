@@ -45,11 +45,11 @@ u8  last_line_drawn         __attribute__((section(".dtcm"))) = 0;
 u32  pre_render_lookup[16][16][16];
 
 u8  zx_ula_plus_palette[64] = {0};
-u8  zx_ula_plus_group = 0x00;
+u8  zx_ula_plus_group       = 0x00;
 u8  zx_ula_plus_palette_reg = 0x00;
 
-u8  backgroundRenderScreen = 0;
-u8  bRenderSkipOnce        = 1;
+u8  backgroundRenderScreen  = 0;
+u8  bRenderSkipOnce         = 1;
 
 extern u8 dandy_disabled;
 
@@ -292,6 +292,10 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
                     }
                 }
             }
+         } 
+         else if (Port == 0x007f) // Fuller Joystick - non-responsive (Arcadia hits this one)
+         {
+             return 0xFF;
          }
      }
 
@@ -1110,7 +1114,7 @@ ITCM_CODE u32 speccy_run(void)
 
         zx_ScreenRendering = 0; // On this final chunk we are drawing border and doing a horizontal sync... no contention
 
-        ExecZ80_Speccy((zx_128k_mode ? CYCLES_PER_SCANLINE_128:CYCLES_PER_SCANLINE_48) * zx_current_line); // This puts us exactly where we should be for the scanline
+        ExecZ80_Speccy((zx_128k_mode ? (CYCLES_PER_SCANLINE_128<<myConfig.turbo):(CYCLES_PER_SCANLINE_48<<myConfig.turbo)) * zx_current_line); // This puts us exactly where we should be for the scanline
         
         // Grab 4 samples worth of AY sound to mix with the beeper
         processDirectAudio();

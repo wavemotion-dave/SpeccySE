@@ -261,7 +261,7 @@ Known Issues :
 -----------------------
 * Not all Dandanator compilation games run properly - support is preliminary (but good enough for the few games that really need it).
 * Gandalf DLX does not run correctly. Timing is tight on that game and the accuracy of Speccy-SE is not up to the task.
-* Arcadia has some strange jittering of the player ship even when you don't touch keys. Cause unknown.
+* Genesis has graphical glitching (screen jitter) during gameplay. Likely timing issue.
 * TRD disk files are not supported yet. Most games have TAP or Dandanator alternatives - but not all.
 
 Why? :
@@ -278,6 +278,14 @@ you're likely going to want ZXDS.
 
 Version History :
 -----------------------
+Version 1.7 - ??-???-2025 by wavemotion-dave
+* Implemented Favorites system - use SELECT in game selection screen to toggle Like/Love
+* Improved beeper audio handling to smooth out sound in some games
+* Fixed Arcadia input so the ship doesn't jitter across the bottom of the screen.
+* Added more undocumented Z80 opcodes to fix Nothing (that's the game of a game!)
+* Added Z80 7MHz Turbo Mode for the few games that take advantage of it (e.g Nothing)
+* An additional frame or two of performance - mostly to help out on the DS-Lite/Phat.
+
 Version 1.6 - 27-Oct-2025 by wavemotion-dave
 * Revamped Z80 CPU core to provide more accurate timing and memory contention/floating bus. Multi-color games (aka Nirvana+, BiFrost, etc) now play and look reasonably correct and CPU speed is generally correct.
 * Fix for AY music not restoring properly on some Load States.
