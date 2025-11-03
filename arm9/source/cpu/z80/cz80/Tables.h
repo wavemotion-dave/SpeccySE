@@ -23,7 +23,7 @@
 /**     changes to this file.                               **/
 /*************************************************************/
 
-extern const byte Cycles_NoM1Wait[256];
+extern const byte Cycles[256];
 extern const byte CyclesCB[256];
 extern const byte CyclesED[256];
 extern const byte CyclesXX[256];

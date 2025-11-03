@@ -34,7 +34,7 @@
 // Note, this table builds in the assumption that the jump is taken
 // and we will compensate the cycles if the jump is not taken. 
 // -----------------------------------------------------------------
-const byte Cycles_NoM1Wait[256] __attribute__((section(".dtcm"))) =
+const byte Cycles[256] __attribute__((section(".dtcm"))) =
 {
   //00 01  02  03  04  05  06  07       08  09  0A  0B   0C  0D  0E  0F
     4, 10,  7,  6,  4,  4,  7,  4,       4, 11,  7,  6,  4,  4,  7,  4,  // 0x00

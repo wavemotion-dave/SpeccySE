@@ -244,6 +244,7 @@ __attribute__((noinline)) void dandanator_flash_write(word A, byte value)
 // of the ROM space ($0000 to $0003) and that's handled by dandanator_flash_write().
 // -------------------------------------------------------------------------------------------
 static void WrZ80(word A, byte value)   {if (A & 0xC000) MemoryMap[(A)>>14][A] = value; else dandanator_flash_write(A,value);}
+static void WrZ80_fast(word A, byte value)   {MemoryMap[(A)>>14][A] = value;} // For Stack Writes, assume no flash/dandanator handling needed
 
 // -------------------------------------------------------------------
 // And these two macros will give us access to the Z80 I/O ports...
@@ -302,18 +303,18 @@ static void WrZ80(word A, byte value)   {if (A & 0xC000) MemoryMap[(A)>>14][A] =
 #define M_RES(Bit,Rg) Rg&=~(1<<Bit)
 
 #define M_POP(Rg)   CPU.Rg.B.l=RdZ80(CPU.SP.W++);CPU.Rg.B.h=RdZ80(CPU.SP.W++)
-#define M_PUSH(Rg)  WrZ80(--CPU.SP.W,CPU.Rg.B.h);WrZ80(--CPU.SP.W,CPU.Rg.B.l)
+#define M_PUSH(Rg)  WrZ80_fast(--CPU.SP.W,CPU.Rg.B.h);WrZ80_fast(--CPU.SP.W,CPU.Rg.B.l)
 
 #define M_CALL         \
   J.B.l=RdZ80(CPU.PC.W++);J.B.h=RdZ80(CPU.PC.W++); T_INC(1); \
-  WrZ80(--CPU.SP.W,CPU.PC.B.h);WrZ80(--CPU.SP.W,CPU.PC.B.l); \
+  WrZ80_fast(--CPU.SP.W,CPU.PC.B.h);WrZ80_fast(--CPU.SP.W,CPU.PC.B.l); \
   CPU.PC.W=J.W; \
   JumpZ80(J.W)
 
 #define M_JP  CPU.PC.W = (u32)RdZ80(CPU.PC.W) | ((u32)RdZ80(CPU.PC.W+1) << 8);
 #define M_JR  CPU.PC.W+=(offset)RdZ80(CPU.PC.W)+1;JumpZ80(CPU.PC.W)
 #define M_RET CPU.PC.B.l=RdZ80(CPU.SP.W++);CPU.PC.B.h=RdZ80(CPU.SP.W++);JumpZ80(CPU.PC.W)
-#define M_RST(Ad)    WrZ80(--CPU.SP.W,CPU.PC.B.h);WrZ80(--CPU.SP.W,CPU.PC.B.l);CPU.PC.W=Ad;JumpZ80(Ad)
+#define M_RST(Ad)    WrZ80_fast(--CPU.SP.W,CPU.PC.B.h);WrZ80_fast(--CPU.SP.W,CPU.PC.B.l);CPU.PC.W=Ad;JumpZ80(Ad)
 #define M_LDWORD(Rg) CPU.Rg.B.l=RdZ80(CPU.PC.W++);CPU.Rg.B.h=RdZ80(CPU.PC.W++)
 
 #define M_ADD(Rg)      \
@@ -446,7 +447,7 @@ ITCM_CODE void IntZ80(Z80 *R,word Vector)
 
     if((CPU.IFF&IFF_1)||(Vector==INT_NMI))
     {
-      CPU.TStates += 19; // Z80 takes 19 cycles to acknowledge interrupt, setup stack and read vector
+      CPU.TStates = 19; // 19:73333 for IM2...   13:733 for IM1
 
       /* Save PC on stack */
       M_PUSH(PC);
@@ -477,7 +478,7 @@ ITCM_CODE void IntZ80(Z80 *R,word Vector)
           /* Read the vector */
           CPU.PC.B.l=RdZ80(Vector++);
           CPU.PC.B.h=RdZ80(Vector);
-
+          
           JumpZ80(CPU.PC.W);
 
           /* Done */
@@ -485,7 +486,7 @@ ITCM_CODE void IntZ80(Z80 *R,word Vector)
       }
 
       /* If in IM1 mode, just jump to hardwired IRQ vector */
-      if(CPU.IFF&IFF_IM1) { CPU.PC.W=0x0038; JumpZ80(0x0038); return; }
+      if(CPU.IFF&IFF_IM1) { CPU.TStates -= 6; CPU.PC.W=0x0038; JumpZ80(0x0038); return; }
 
       /* If in IM0 mode... Not used on ZX Spectrum but handled here anyway */
 
@@ -654,7 +655,7 @@ void ExecOneInstruction(void)
   u32 RunToCycles = CPU.TStates+1;
 
   I=OpZ80(CPU.PC.W++);
-  CPU.TStates += Cycles_NoM1Wait[I];
+  CPU.TStates += Cycles[I];
 
   /* R register incremented on each M1 cycle */
   INCR(1);
@@ -704,7 +705,7 @@ ITCM_CODE void ExecZ80_Speccy(u32 RunToCycles)
   while (CPU.TStates < RunToCycles)
   {
       I=OpZ80(CPU.PC.W++);
-      CPU.TStates += Cycles_NoM1Wait[I];
+      CPU.TStates += Cycles[I];
 
       /* R register incremented on each M1 cycle */
       INCR(1);

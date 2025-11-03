@@ -33,7 +33,7 @@ extern Z80 CPU;
 
 extern u32 debug[];
 extern u32 DX,DY;
-extern u8 zx_ScreenRendering, zx_128k_mode, portFD;
+extern u8 zx_128k_mode, portFD;
 extern void EI_Enable(void);
 void ExecOneInstruction(void);
 void ResetZ80(Z80 *R);
@@ -46,10 +46,11 @@ void dandanator_flash_write(word A, byte value);
 /** up. It has to stay inlined to be fast.                  **/
 /*************************************************************/
 extern u8 *MemoryMap[4];
-u8 ContendMap[4] = {0,1,0,0};
+u8 ContendMap[4] __attribute__((section(".dtcm"))) = {0,1,0,0};
 
 typedef u8 (*patchFunc)(void);
 #define PatchLookup ((patchFunc*)0x06860000)
+extern void IntZ80(Z80 *R,word Vector);
 
 // ------------------------------------------------------
 // These defines and inline functions are to map maximum
@@ -188,13 +189,25 @@ inline __attribute__((always_inline)) void WrZ80(word A, byte value)
 {
     if (A & 0xC000)
     {
-        if (ContendMap[(A)>>14]) ContendMemory();
+        if (ContendMap[(A)>>14]) CPU.TStates += cpu_contended_delay_128[(CPU.TStates) % CYCLES_PER_SCANLINE_128];
         MemoryMap[(A)>>14][A] = value; 
     }
     else dandanator_flash_write(A,value);
     
     CPU.TStates += 3; // Memory writes are 3 cycles
 }
+
+// ----------------------------------------------------------------------
+// For Stack Writes, we are assuming there would be no possibility of a 
+// flash/dandanator write (otherwise something really bad has happened).
+// ----------------------------------------------------------------------
+inline __attribute__((always_inline)) void WrZ80_fast(word A, byte value)
+{
+    if (ContendMap[(A)>>14]) CPU.TStates += cpu_contended_delay_128[(CPU.TStates) % CYCLES_PER_SCANLINE_128];
+    MemoryMap[(A)>>14][A] = value; 
+    CPU.TStates += 3; // Memory writes are 3 cycles
+}
+
 
 // -------------------------------------------------------------------
 // And these two macros will give us access to the Z80 I/O ports...
@@ -249,7 +262,7 @@ inline __attribute__((always_inline)) void WrZ80(word A, byte value)
 
 #define M_CALL         \
   J.B.l=RdZ80(CPU.PC.W++);J.B.h=RdZ80(CPU.PC.W++); T_INC(1); \
-  WrZ80(--CPU.SP.W,CPU.PC.B.h);WrZ80(--CPU.SP.W,CPU.PC.B.l); \
+  WrZ80_fast(--CPU.SP.W,CPU.PC.B.h);WrZ80_fast(--CPU.SP.W,CPU.PC.B.l); \
   CPU.PC.W=J.W; \
   JumpZ80(J.W)
 
@@ -259,8 +272,8 @@ inline __attribute__((always_inline)) void WrZ80(word A, byte value)
 #define M_RET        CPU.PC.B.l=RdZ80(CPU.SP.W++);CPU.PC.B.h=RdZ80_noc(CPU.SP.W++);JumpZ80(CPU.PC.W) // TBD: HACK!! Remove noc() when fixed.
 #define M_POP(Rg)    CPU.Rg.B.l=RdZ80(CPU.SP.W++);CPU.Rg.B.h=RdZ80_noc(CPU.SP.W++);                  // TBD: HACK!! Remove noc() when fixed.
 
-#define M_PUSH(Rg)   WrZ80(--CPU.SP.W,CPU.Rg.B.h);WrZ80(--CPU.SP.W,CPU.Rg.B.l)
-#define M_RST(Ad)    WrZ80(--CPU.SP.W,CPU.PC.B.h);WrZ80(--CPU.SP.W,CPU.PC.B.l);CPU.PC.W=Ad;JumpZ80(Ad)
+#define M_PUSH(Rg)   WrZ80_fast(--CPU.SP.W,CPU.Rg.B.h);WrZ80_fast(--CPU.SP.W,CPU.Rg.B.l)
+#define M_RST(Ad)    WrZ80_fast(--CPU.SP.W,CPU.PC.B.h);WrZ80_fast(--CPU.SP.W,CPU.PC.B.l);CPU.PC.W=Ad;JumpZ80(Ad)
 
 #define M_LDWORD(Rg) CPU.Rg.B.l=RdZ80(CPU.PC.W++);CPU.Rg.B.h=RdZ80(CPU.PC.W++)
 
@@ -353,79 +366,6 @@ extern void ResetZ80(Z80 *R);
 void    EI_Enable_128(void);
 void    EI_Enable_48(void);
 #define EI_Enable   EI_Enable_128
-
-#define IntZ80      IntZ80_a
-
-/** IntZ80() *************************************************/
-/** This function will generate interrupt of given vector.  **/
-/*************************************************************/
-void IntZ80_a(Z80 *R,word Vector)
-{
-    /* If HALTed, take CPU off HALT instruction */
-    if(CPU.IFF&IFF_HALT) { CPU.PC.W++;CPU.IFF&=~IFF_HALT; }
-
-    if((CPU.IFF&IFF_1)||(Vector==INT_NMI))
-    {
-      CPU.TStates += 7; // 19:73333 for IM2...   13:733 for IM1
-
-      /* Save PC on stack */
-      M_PUSH(PC);
-
-      /* Automatically reset IRequest */
-      CPU.IRequest=INT_NONE;
-
-      /* If it is NMI... */
-      if(Vector==INT_NMI)
-      {
-          /* Clear IFF1 */
-          CPU.IFF&=~(IFF_1|IFF_EI);
-          /* Jump to hardwired NMI vector */
-          CPU.PC.W=0x0066;
-          JumpZ80(0x0066);
-          /* Done */
-          return;
-      }
-
-      /* Further interrupts off */
-      CPU.IFF&=~(IFF_1|IFF_2|IFF_EI);
-
-      /* If in IM2 mode... */
-      if(CPU.IFF&IFF_IM2)
-      {
-          /* Make up the vector address - technically the Vector is whatever is on the data bus but is usually 0xFF */
-          Vector=(0xFF)|((word)(CPU.I)<<8);
-          /* Read the vector */
-          CPU.PC.B.l=RdZ80(Vector++);
-          CPU.PC.B.h=RdZ80(Vector);
-          
-          CPU.TStates += 3;
-
-          JumpZ80(CPU.PC.W);
-
-          /* Done */
-          return;
-      }
-
-      /* If in IM1 mode, just jump to hardwired IRQ vector */
-      if(CPU.IFF&IFF_IM1) { CPU.PC.W=0x0038; CPU.TStates += 3; JumpZ80(0x0038); return; }
-
-      /* If in IM0 mode... Not used on ZX Spectrum but handled here anyway */
-
-      /* Jump to a vector */
-      switch(Vector)
-      {
-          case INT_RST00: CPU.PC.W=0x0000;JumpZ80(0x0000);break;
-          case INT_RST08: CPU.PC.W=0x0008;JumpZ80(0x0008);break;
-          case INT_RST10: CPU.PC.W=0x0010;JumpZ80(0x0010);break;
-          case INT_RST18: CPU.PC.W=0x0018;JumpZ80(0x0018);break;
-          case INT_RST20: CPU.PC.W=0x0020;JumpZ80(0x0020);break;
-          case INT_RST28: CPU.PC.W=0x0028;JumpZ80(0x0028);break;
-          case INT_RST30: CPU.PC.W=0x0030;JumpZ80(0x0030);break;
-          case INT_RST38: CPU.PC.W=0x0038;JumpZ80(0x0038);break;
-      }
-    }
-}
-
 
 static void CodesCB_Speccy_128(void)
 {
@@ -636,6 +576,7 @@ void ExecZ80_Speccy_128(u32 RunToCycles)
 #define OpZ80       OpZ80_48
 #define RdZ80       RdZ80_48
 #define WrZ80       WrZ80_48
+#define WrZ80_fast  WrZ80_48
 #undef  EI_Enable
 #define EI_Enable   EI_Enable_48
 
