@@ -30,7 +30,6 @@ u8  zx_AY_index_written     __attribute__((section(".dtcm"))) = 0;
 u32 flash_timer             __attribute__((section(".dtcm"))) = 0;
 u8  bFlash                  __attribute__((section(".dtcm"))) = 0;
 u8  zx_128k_mode            __attribute__((section(".dtcm"))) = 0;
-u8  zx_ScreenRendering      __attribute__((section(".dtcm"))) = 0;
 u8  zx_force_128k_mode      __attribute__((section(".dtcm"))) = 0;
 u32 zx_current_line         __attribute__((section(".dtcm"))) = 0;
 u8  zx_special_key          __attribute__((section(".dtcm"))) = 0;
@@ -400,7 +399,10 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
         // -------------------------------------------------------------------------------
         if ((portFE ^ Value) & 0x10)
         {
-            beeper_pulses[beeper_pulses_idx++] = (Value & 0x10);
+            if (beeper_pulses_idx < 8)
+            {
+                beeper_pulses[beeper_pulses_idx++] = (Value & 0x10);
+            }
         }
 
         portFE = Value;
@@ -574,6 +576,12 @@ ITCM_CODE void speccy_render_screen_line_ula_plus(u32 *vidBuf, u8* attrPtr, u8*p
     }
 }
 
+u8 skip_frames __attribute__((section(".dtcm")))  = 0;
+
+// Ping-pong screen buffers to avoid tearing...
+u8 screen_buffer_A[256*192];
+u8 screen_buffer_B[256*192];
+
 // ----------------------------------------------------------------------------
 // Render one screen line of pixels. This is called on every visible scanline
 // and is heavily optimized to draw as fast as possible. Since the screen is
@@ -583,27 +591,61 @@ ITCM_CODE void speccy_render_screen_line(u8 line)
 {
     u32 *vidBuf;
     u8 *zx_ScreenPage = 0;
-
+    
     if (line == 0) // At start of each new frame, handle the flashing 'timer'
     {
-        if (isDSiMode() && !tape_is_playing()) // For the DSi we can double-buffer and draw the screen in the background
+        if (!tape_is_playing()) // Double-buffer and draw the screen in the background - reduces tearing
         {
             if (bRenderSkipOnce) bRenderSkipOnce=0;
-            else backgroundRenderScreen = 0x80 | (flash_timer & 1);
+            else
+            {
+                if (skip_frames)
+                {
+                    skip_frames--;
+                }
+                else
+                {
+                    backgroundRenderScreen = 0x80 | (flash_timer & 1); // Since flash_timer is incremented below, this will render the buffer just drawn...
+                }                
+                
+                if (!isDSiMode())
+                {
+                    // ------------------------------------------------------------------------------
+                    // For the DS-Lite/Phat, we skip 1 frames out of 8 frames to help the speed.
+                    // This allows the older handheld to still double-buffer (to reduce tearing)
+                    // and provides an 83% render rate which is smooth enough.
+                    // ------------------------------------------------------------------------------
+                    if ((tape_play_skip_frame & 0x7) == 7)
+                    {
+                        skip_frames = 1;
+                    }
+                }                   
+            }
         }
+        else skip_frames = 0; // Playing tape... which has its own frame skip handling...
+        
         tape_play_skip_frame++;
         if (++flash_timer & 0x10) {flash_timer=0; bFlash ^= 1;} // Same timing as real ULA - 16 frames on and 16 frames off
     }
-
-    if (isDSiMode() && !tape_is_playing())
+    
+    // If the tape isn't playing, we double-buffer to ensure smooth reasonably tear-free display output
+    if (!tape_is_playing())
     {
-        vidBuf = (u32*) ((flash_timer & 1 ? 0x06820000:0x06830000) + (line << 8));    // Video buffer... write 32-bits at a time for maximum speed
+        if (skip_frames) return;
+
+        // ------------------------------------------------------------------------------------
+        // Video buffer... write 32-bits at a time for maximum speed. Note these ping-pong 
+        // buffers are reversed from what you see in SpeccySE.c where we render the screen.
+        // While we are building up buffer A, we want to output buffer B and vice-versa.
+        // ------------------------------------------------------------------------------------
+        vidBuf = (u32*) ((flash_timer & 1 ? screen_buffer_A:screen_buffer_B) + (line << 8));
     }
-    else // For the DS-Lite/Phat we direct render for speed - also when tape is loading...
+    else // When tape is loading, we direct render for speed
     {
         vidBuf = (u32*)(0x06000000 + (line << 8));    // Video buffer... write 32-bits at a time for maximum speed
         bRenderSkipOnce = 1; // When we stop the tape, we want to allow the first frame to re-draw before rendering
     }
+    
 
     // -----------------------------------------------------------------------------
     // Only draw one out of every 16 frames when we are loading tape. We want to
@@ -614,11 +656,6 @@ ITCM_CODE void speccy_render_screen_line(u8 line)
     {
         if (tape_play_skip_frame & 0x0F) return;
     }
-
-    // -----------------------------------------------------------
-    // For DS-Lite/Phat, we draw every other frame to gain speed.
-    // -----------------------------------------------------------
-    if (!isDSiMode() && (flash_timer & 1)) return;
 
     // -----------------------------------------------------------------------
     // Render the current line into our NDS video memory. For the ZX 128K, we
@@ -634,7 +671,10 @@ ITCM_CODE void speccy_render_screen_line(u8 line)
     word offset = ((line&0x07) << 8) | ((line&0x38) << 2) | ((line&0xC0) << 5);
     u8 *pixelPtr = zx_ScreenPage+offset;
     
-    if (zx_ula_plus_enabled) speccy_render_screen_line_ula_plus(vidBuf, attrPtr, pixelPtr);
+    if (zx_ula_plus_enabled)
+    {
+        speccy_render_screen_line_ula_plus(vidBuf, attrPtr, pixelPtr);
+    }
     else
     // ---------------------------------------------------------------------
     // With 8 pixels per byte, there are 32 bytes of horizontal screen data
@@ -1098,7 +1138,6 @@ ITCM_CODE u32 speccy_run(void)
     if (tape_state)
     {
         // If we are playing back the tape - just run the emulation as fast as possible
-        zx_ScreenRendering = 0;
         ExecZ80_Speccy(CPU.TStates + (zx_128k_mode ? CYCLES_PER_SCANLINE_128:CYCLES_PER_SCANLINE_48));
 
         if (CPU.TStates > 0xFFFE0000) // Too close to the wrap point, should never happen but trap it out so we don't crash the emulation
@@ -1110,14 +1149,11 @@ ITCM_CODE u32 speccy_run(void)
     }
     else
     {
-        ExecZ80_Speccy(CPU.TStates + 128); // Execute CPU for the visible portion of the scanline
-
-        zx_ScreenRendering = 0; // On this final chunk we are drawing border and doing a horizontal sync... no contention
-
-        ExecZ80_Speccy((zx_128k_mode ? (CYCLES_PER_SCANLINE_128<<myConfig.turbo):(CYCLES_PER_SCANLINE_48<<myConfig.turbo)) * zx_current_line); // This puts us exactly where we should be for the scanline
+        // This puts the CPU exactly where we should be for the end of the scanline
+        ExecZ80_Speccy((zx_128k_mode ? (CYCLES_PER_SCANLINE_128<<myConfig.turbo):(CYCLES_PER_SCANLINE_48<<myConfig.turbo)) * zx_current_line);
         
         // Grab 4 samples worth of AY sound to mix with the beeper
-        processDirectAudio();
+        if (isDSiMode()) processDirectAudioDSI(); else processDirectAudio();
 
         // -----------------------------------------------------------------------
         // If we are not playing the tape, we want to reset the TStates counter
@@ -1136,15 +1172,18 @@ ITCM_CODE u32 speccy_run(void)
     // This is scalines 64 (first visible scanline) to 255 (last
     // visible scanline for a total of 192 scanlines).
     // -----------------------------------------------------------
-    accurate_emulation = 0;
     if ((zx_current_line >= starting_line) && (zx_current_line < 192+starting_line))
     {
         // Render one scanline...
         speccy_render_screen_line(zx_current_line - starting_line);
-        last_line_drawn++;
-        zx_ScreenRendering = 1;
+        last_line_drawn++;  // Used for floating bus handling
         accurate_emulation = (tape_state ? 0 : 1); // If tape playing, skip accurate emulation
-    } else last_line_drawn = 0;
+    } 
+    else
+    {
+        last_line_drawn = 0;
+        accurate_emulation = 0; // If in top/bottom border areas, skip accurate cycle emulation (no contention)
+    }
 
     // ------------------------------------------
     // Generate an interrupt only at end of frame
@@ -1152,7 +1191,6 @@ ITCM_CODE u32 speccy_run(void)
     if (zx_current_line == (zx_128k_mode ? SCANLINES_PER_FRAME_128:SCANLINES_PER_FRAME_48))
     {
         zx_current_line = 0;
-        zx_ScreenRendering = 0;
         CPU.IRequest = INT_RST38;
         CPU.TStates_IRequest = CPU.TStates;
         IntZ80(&CPU, CPU.IRequest);

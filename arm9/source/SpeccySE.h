@@ -183,6 +183,7 @@ extern void DisplayStatusLine(bool bForce);
 extern void CassetteInsert(char *filename);
 extern void ResetSpectrum(void);
 extern void processDirectAudio(void);
+extern void processDirectAudioDSI(void);
 extern u8   speccyTapePosition(void);
 extern void tape_frame(void);
 extern void apply_ula_plus_palette(void);

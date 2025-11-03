@@ -195,20 +195,19 @@ void SoundUnPause(void)
 // We were using the normal ARM7 sound core but it sounded "scratchy" and so with the help
 // of FluBBa, we've swiched over to the maxmod sound core which performs much better.
 // --------------------------------------------------------------------------------------------
-#define sample_rate     (31000)    // To roughly match how many samples per frame (2x per scanline x 312 scanlines x 50.08 frames)
-#define buffer_size     (512+16)   // Enough buffer that we don't have to fill it too often. Must be multiple of 16.
+#define buffer_size     (256+16)   // Enough buffer that we don't have to fill it too often. Must be multiple of 16.
 
 mm_ds_system sys    __attribute__((section(".dtcm")));
 mm_stream myStream  __attribute__((section(".dtcm")));
 
-#define WAVE_DIRECT_BUF_SIZE 4095
+#define WAVE_DIRECT_BUF_SIZE 2047
 u16 mixer_read      __attribute__((section(".dtcm"))) = 0;
 u16 mixer_write     __attribute__((section(".dtcm"))) = 0;
-s16 mixer[WAVE_DIRECT_BUF_SIZE+1];
+s16 mixer[WAVE_DIRECT_BUF_SIZE+1] __attribute__((section(".dtcm")));
 
 
 // The games normally run at the proper 100% speed, but user can override from 80% to 120%
-u16 GAME_SPEED_PAL[]  __attribute__((section(".dtcm"))) = {653, 640, 623, 594, 545, 666, 686, 725, 815};
+u16 GAME_SPEED_PAL[]  __attribute__((section(".dtcm"))) = {654, 640, 623, 594, 545, 666, 686, 725, 815};
 
 // -------------------------------------------------------------------------------------------
 // maxmod will call this routine when the buffer is half-empty and requests that
@@ -226,13 +225,12 @@ ITCM_CODE mm_word OurSoundMixer(mm_word len, mm_addr dest, mm_stream_formats for
         for (int i=0; i<len; i++)
         {
            *p++ = last_sample;      // To prevent pops and clicks... just keep outputting the last sample
-           *p++ = last_sample;      // To prevent pops and clicks... just keep outputting the last sample
         }
     }
     else
     {
         s16 *p = (s16*)dest;
-        for (int i=0; i<len*2; i++)
+        for (int i=0; i<len; i++)
         {
             if (mixer_read == mixer_write) {*p++ = last_sample;}
             else
@@ -242,7 +240,7 @@ ITCM_CODE mm_word OurSoundMixer(mm_word len, mm_addr dest, mm_stream_formats for
                 mixer_read = (mixer_read + 1) & WAVE_DIRECT_BUF_SIZE;
             }
         }
-        if (breather) {breather -= (len*2); if (breather < 0) breather = 0;}
+        if (breather) {breather -= len; if (breather < 0) breather = 0;}
     }
 
     return  len;
@@ -254,8 +252,9 @@ ITCM_CODE mm_word OurSoundMixer(mm_word len, mm_addr dest, mm_stream_formats for
 // to make the direct beeper sound a bit less harsh - but this really needs to be properly
 // over-sampled and smoothed someday to make it really shine... good enough for now.
 // --------------------------------------------------------------------------------------------
-s16 mixbufAY[8]         __attribute__((section(".dtcm"))) = { 0x000, 0x000, 0x000, 0x000, 0x000 , 0x000 , 0x000 , 0x000  };
+s16 mixbufAY[16]        __attribute__((section(".dtcm"))) = { 0x000, 0x000, 0x000, 0x000, 0x000 , 0x000 , 0x000 , 0x000, 0x000, 0x000, 0x000, 0x000, 0x000 , 0x000 , 0x000 , 0x000 };
 s32 beeper_vol          __attribute__((section(".dtcm"))) = 0;
+u8  ay_sample_idx       __attribute__((section(".dtcm"))) = 0;
 u8  beeper_pulses_idx   __attribute__((section(".dtcm"))) = 0;
 u8  beeper_pulses[256] = {0};
 
@@ -263,7 +262,39 @@ ITCM_CODE void processDirectAudio(void)
 {
     if (zx_AY_enabled)
     {
-        ay38910Mixer(4, mixbufAY, &myAY);
+        if (ay_sample_idx & 0xF8)
+        {
+            ay38910Mixer(8, mixbufAY, &myAY); // Grab 8 samples 
+            ay_sample_idx = 0;
+        }
+    }
+
+    for (u8 i=0; i<2; i++)
+    {
+        if (breather) {return;}
+        
+        if (beeper_pulses_idx)
+        {
+            if (beeper_pulses[i]) beeper_vol = 0x1F00; else beeper_vol = 0x000;
+            beeper_pulses_idx--;
+        }
+        mixer[mixer_write] = (s16)(mixbufAY[ay_sample_idx++ & 0x07] + beeper_vol);
+        mixer_write++; mixer_write &= WAVE_DIRECT_BUF_SIZE;
+        if (((mixer_write+1)&WAVE_DIRECT_BUF_SIZE) == mixer_read) {breather = 1024;}
+    }
+
+    beeper_pulses_idx = 0;
+}
+
+ITCM_CODE void processDirectAudioDSI(void)
+{
+    if (zx_AY_enabled)
+    {
+        if (ay_sample_idx & 0xF8)
+        {
+            ay38910Mixer(8, mixbufAY, &myAY); // Grab 8 samples 
+            ay_sample_idx = 0;
+        }
     }
     
     for (u8 i=0; i<4; i++)
@@ -272,13 +303,13 @@ ITCM_CODE void processDirectAudio(void)
         
         if (beeper_pulses_idx)
         {
-            if (beeper_pulses[i]) beeper_vol = 0x1F00 + (8 - (int)(CPU.R & 0xF)); // Sample plus a bit of white noise to break up aliasing
-            else beeper_vol = 0x000;
+            if (beeper_pulses[i]) beeper_vol = 0x1F00; else beeper_vol = 0x000;
             beeper_pulses_idx--;
         }
-        mixer[mixer_write] = (s16)(mixbufAY[i] + beeper_vol);
+        mixer[mixer_write] = (s16)(mixbufAY[ay_sample_idx & 0x07] + beeper_vol);
+        if (i&1) ay_sample_idx++;
         mixer_write++; mixer_write &= WAVE_DIRECT_BUF_SIZE;
-        if (((mixer_write+1)&WAVE_DIRECT_BUF_SIZE) == mixer_read) {breather = 2048;}
+        if (((mixer_write+1)&WAVE_DIRECT_BUF_SIZE) == mixer_read) {breather = 1024;}
     }
 
     beeper_pulses_idx = 0;
@@ -289,21 +320,42 @@ ITCM_CODE void processDirectAudio(void)
 // than normal. We must adjust the MaxMode sample frequency to match or else we will not have the
 // proper number of samples in our sound buffer... this isn't perfect but it's reasonably good!
 // -----------------------------------------------------------------------------------------------
-static u8 last_game_speed = 0;
+static u8 last_game_speed = 99;
+static u8 last_machine = 99;
 static u32 sample_rate_adjust[] = {100, 102, 105, 110, 120, 98, 95, 90, 80};
+
+int get_sample_rate(void)
+{
+    // Adjust the sample rate to match the core emulation speed... user can override from 80% to 120%
+    
+    int sample_rate;
+    
+    if (isDSiMode())
+    {
+        sample_rate = (myConfig.machine ? 60900:61200);  // 48K has one more scanline (~200 more samples per second)
+    }
+    else
+    {
+        sample_rate = (myConfig.machine ? 30500:30600); // 48K has one more scanline (~100 more samples per second)
+    }
+    int new_sample_rate     = (sample_rate * sample_rate_adjust[myConfig.gameSpeed]) / 100;
+    
+    return new_sample_rate;
+}
+
 void newStreamSampleRate(void)
 {
-    if (last_game_speed != myConfig.gameSpeed)
+    if ((last_game_speed != myConfig.gameSpeed) || (last_machine != myConfig.machine))
     {
         last_game_speed = myConfig.gameSpeed;
+        last_machine = myConfig.machine;
+        
         mmStreamClose();
 
-        // Adjust the sample rate to match the core emulation speed... user can override from 80% to 120%
-        int new_sample_rate     = (sample_rate * sample_rate_adjust[myConfig.gameSpeed]) / 100;
-        myStream.sampling_rate  = new_sample_rate;        // sample_rate for the ZX to match the AY/Beeper drivers
+        myStream.sampling_rate  = get_sample_rate();        // sample_rate for the ZX to match the AY/Beeper drivers
         myStream.buffer_length  = buffer_size;            // buffer length = (512+16)
         myStream.callback       = OurSoundMixer;          // set callback function
-        myStream.format         = MM_STREAM_16BIT_STEREO; // format = stereo 16-bit
+        myStream.format         = MM_STREAM_16BIT_MONO;   // format = mono 16-bit
         myStream.timer          = MM_TIMER0;              // use hardware timer 0
         myStream.manual         = false;                  // use automatic filling
         mmStreamOpen(&myStream);
@@ -328,10 +380,10 @@ void setupStream(void)
   //----------------------------------------------------------------
   //  open stream
   //----------------------------------------------------------------
-  myStream.sampling_rate  = sample_rate;            // sample_rate for the ZX to match the AY/Beeper drivers
+  myStream.sampling_rate  = get_sample_rate();      // sample_rate for the ZX to match the AY/Beeper drivers
   myStream.buffer_length  = buffer_size;            // buffer length = (512+16)
   myStream.callback       = OurSoundMixer;          // set callback function
-  myStream.format         = MM_STREAM_16BIT_STEREO; // format = stereo 16-bit
+  myStream.format         = MM_STREAM_16BIT_MONO;   // format = mono 16-bit
   myStream.timer          = MM_TIMER0;              // use hardware timer 0
   myStream.manual         = false;                  // use automatic filling
   mmStreamOpen(&myStream);
@@ -362,7 +414,7 @@ void sound_chip_reset()
   ay38910Reset(&myAY);             // Reset the "AY" sound chip
   ay38910IndexW(0x07, &myAY);      // Register 7 is ENABLE
   ay38910DataW(0x3F, &myAY);       // All OFF (negative logic)
-  ay38910Mixer(4, mixbufAY, &myAY);// Do an initial mix conversion to clear the output
+  ay38910Mixer(8, mixbufAY, &myAY);// Do an initial mix conversion to clear the output
   last_sample = mixbufAY[2];       // And set the last sample for muting
 }
 
@@ -1696,7 +1748,9 @@ ITCM_CODE void irqVBlank(void)
 
     if (backgroundRenderScreen) // Only set for DSi mode... double buffer
     {
-        dmaCopyWordsAsynch(3, (u16*)(backgroundRenderScreen & 1 ? 0x06820000:0x06830000), (u16*)0x06000000, 256*192);
+        extern u8 screen_buffer_A[];
+        extern u8 screen_buffer_B[];
+        dmaCopyWordsAsynch(3, (u16*)(backgroundRenderScreen & 1 ? screen_buffer_A:screen_buffer_B), (u16*)0x06000000, 256*192);
         backgroundRenderScreen = 0;
     }
 

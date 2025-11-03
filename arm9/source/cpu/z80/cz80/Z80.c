@@ -676,7 +676,7 @@ void ExecOneInstruction(void)
 // to see if we are within the 32 TState period where the ZX Spectrum ULA
 // would hold the Interrupt Request pulse...
 // ------------------------------------------------------------------------
-ITCM_CODE void EI_Enable(void)
+void EI_Enable(void)
 {
    ExecOneInstruction();
    CPU.IFF=(CPU.IFF&~IFF_EI)|IFF_1;

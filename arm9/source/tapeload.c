@@ -1085,7 +1085,7 @@ ld_sample:
 //        {1} XOR C               [+4]    Now test the byte against the 'last edge-type'
 //        {2} AND 20              [+7]    Mask off just the bit we care about (normally 0x40 but it's been shifted down)
 //        {2} JR Z,LD-SAMP        [+12/5] Jump back to LD-SAMP unless it has changed
-ITCM_CODE u8 tape_sample_alkatraz(void)
+u8 tape_sample_alkatraz(void)
 {
     if (!tape_state) tape_state = TAPE_START;
 
@@ -1161,7 +1161,7 @@ ld_sample:
 //        {2} AND  +20      [+7]    Mask off just the bit we care about (normally 0x40 but it's been shifted down)
 //        {2} JR   Z,05ED   [+12/5] Jump back to LD-SAMPLE unless it has changed
 
-ITCM_CODE u8 tape_sample_microsphere_bleepload(void)
+u8 tape_sample_microsphere_bleepload(void)
 {
     if (!tape_state) tape_state = TAPE_START;
 
