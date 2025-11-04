@@ -72,7 +72,7 @@ ITCM_CODE u32 getCRC32(u8 *buf, u32 size)
 // Read the file in and compute CRC... it's a bit slow but good enough and accurate!
 // When this routine finishes, the file will be read into ROM_Memory[]
 // ------------------------------------------------------------------------------------
-ITCM_CODE u32 getFileCrc(const char* filename)
+u32 getFileCrc(const char* filename)
 {
     u32 crc1 = 0;
     u32 crc2 = 1;

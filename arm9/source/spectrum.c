@@ -615,7 +615,7 @@ ITCM_CODE void speccy_render_screen_line(u8 line)
                     // This allows the older handheld to still double-buffer (to reduce tearing)
                     // and provides an 83% render rate which is smooth enough.
                     // ------------------------------------------------------------------------------
-                    if ((tape_play_skip_frame & 0x7) == 7)
+                    if ((tape_play_skip_frame & 0x3) == 3)
                     {
                         skip_frames = 1;
                     }

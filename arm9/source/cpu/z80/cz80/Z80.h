@@ -91,10 +91,17 @@ typedef union
   word W;
 } pair;
 
+// We only support LSB_FIRST for the DS hardware
+typedef union
+{
+  struct { byte l,h, xx,yy; } B;
+  u32 W;
+} dpair;
 
 typedef struct
 {
-  pair PC, SP;                      /* Program Counter and Stack Pointer    */
+  dpair PC;                         /* Program Counter - 32bit speed        */
+  pair SP;                          /* Stack Pointer                        */
   pair AF,BC,DE,HL,IX,IY;           /* Main registers                       */
   pair AF1,BC1,DE1,HL1;             /* Shadow registers                     */
   byte IFF,I;                       /* Interrupt registers                  */

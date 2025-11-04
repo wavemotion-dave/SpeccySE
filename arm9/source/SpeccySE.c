@@ -259,10 +259,9 @@ u32 beeper_pulses_idx   __attribute__((section(".dtcm"))) = 0;
 
 ITCM_CODE void processDirectAudio(void)
 {
-    
-    if (ay_sample_idx & 0xF0)
+    if (ay_sample_idx & 0xF8)
     {
-        if (zx_AY_enabled) ay38910Mixer(16, mixbufAY, &myAY); // Grab 8 samples 
+        if (zx_AY_enabled) ay38910Mixer(8, mixbufAY, &myAY); // Grab 8 samples 
         ay_sample_idx = 0;
     }
 
@@ -272,24 +271,25 @@ ITCM_CODE void processDirectAudio(void)
         
         if (beeper_pulses_idx)
         {
-            beeper_vol = (beeper_vol ? 0x000:0x1F00);
+            beeper_vol = (beeper_vol) ? 0x000:0x1800;
             beeper_pulses_idx--;
         }
-        mixer[mixer_write] = (s16)(mixbufAY[ay_sample_idx++] + beeper_vol);
-        mixer_write++; mixer_write &= WAVE_DIRECT_BUF_SIZE;
+        
+        s32 sample = (s32)mixbufAY[ay_sample_idx++] + (s32)beeper_vol;
+        if (sample > 32767) sample = 32767;
+        mixer[mixer_write++] = (s16)sample;
+        
+        mixer_write &= WAVE_DIRECT_BUF_SIZE;
         if (((mixer_write+1)&WAVE_DIRECT_BUF_SIZE) == mixer_read) {breather = 1024;}
     }
 }
 
 ITCM_CODE void processDirectAudioDSI(void)
 {
-    if (zx_AY_enabled)
+    if (ay_sample_idx & 0xF8)
     {
-        if (ay_sample_idx & 0xF8)
-        {
-            ay38910Mixer(8, mixbufAY, &myAY); // Grab 8 samples 
-            ay_sample_idx = 0;
-        }
+        if (zx_AY_enabled) ay38910Mixer(8, mixbufAY, &myAY); // Grab 8 samples 
+        ay_sample_idx = 0;
     }
     
     for (u8 i=0; i<4; i++)
@@ -298,12 +298,16 @@ ITCM_CODE void processDirectAudioDSI(void)
         
         if (beeper_pulses_idx)
         {
-            beeper_vol = (beeper_vol ? 0x000:0x1F00);
+            beeper_vol = (beeper_vol) ? 0x000:0x1800;
             beeper_pulses_idx--;
         }
-        mixer[mixer_write] = (s16)(mixbufAY[ay_sample_idx & 0x07] + beeper_vol);
+        
+        s32 sample = (s32)mixbufAY[ay_sample_idx] + (s32)beeper_vol;
         if (i&1) ay_sample_idx++;
-        mixer_write++; mixer_write &= WAVE_DIRECT_BUF_SIZE;
+        if (sample > 32767) sample = 32767;
+        mixer[mixer_write++] = (s16)sample;
+        
+        mixer_write &= WAVE_DIRECT_BUF_SIZE;
         if (((mixer_write+1)&WAVE_DIRECT_BUF_SIZE) == mixer_read) {breather = 1024;}
     }
 }

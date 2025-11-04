@@ -74,13 +74,18 @@ extern void cpu_writeport_speccy(register unsigned short Port,register unsigned 
 // would point to the start of RAM_Memory[] such that this just turns into a 
 // simple index by the address without having to mask. This buys us 10% speed.
 // ------------------------------------------------------------------------------
-inline byte OpZ80(word A)
+inline byte OpZ80(u32 A)
 {
     return MemoryMap[(A)>>14][A];
 }
 
-#define RdZ80       OpZ80 // Nothing unique about a memory read - same as an OpZ80 opcode fetch
-#define RdZ80_noc   OpZ80 // Nothing unique about a memory read - same as an OpZ80 opcode fetch
+
+inline byte RdZ80(word A)
+{
+    return MemoryMap[(A)>>14][A];
+}
+
+#define RdZ80_noc   RdZ80 // Nothing unique about a memory read - same as an OpZ80 opcode fetch
 
 // -------------------------------------------------------------------------------------------------------------
 // ZX-Dandanator support is fairly basic - we're not supporting the full set of Dandanator functionality, only
