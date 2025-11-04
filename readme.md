@@ -279,12 +279,13 @@ you're likely going to want ZXDS.
 Version History :
 -----------------------
 Version 1.7 - ??-???-2025 by wavemotion-dave
-* Implemented Favorites system - use SELECT in game selection screen to toggle Like/Love
-* Improved beeper audio handling to smooth out sound in some games
+* Implemented Favorites system - use SELECT in game selection screen to toggle Like/Love.
+* Massive overhaul to provide smoother double-buffered frame rendering on all hardware (DS-Lite/Phat users rejoice!).
+* Improved beeper audio handling to smooth out sound in some games - especially improved on DSi hardware with the faster CPU.
 * Fixed Arcadia input so the ship doesn't jitter across the bottom of the screen.
-* Added more undocumented Z80 opcodes to fix Nothing (that's the game of a game!)
-* Added Z80 7MHz Turbo Mode for the few games that take advantage of it (e.g Nothing)
-* An additional frame or two of performance - mostly to help out on the DS-Lite/Phat.
+* Added more undocumented Z80 opcodes to fix Nothing (that's the name of a game!).
+* Added Z80 7MHz Turbo Mode for the few games that take advantage of it (e.g Nothing).
+* About 10% improvement in performance - mostly to help out on the DS-Lite/Phat render even the most complex games.
 
 Version 1.6 - 27-Oct-2025 by wavemotion-dave
 * Revamped Z80 CPU core to provide more accurate timing and memory contention/floating bus. Multi-color games (aka Nirvana+, BiFrost, etc) now play and look reasonably correct and CPU speed is generally correct.
