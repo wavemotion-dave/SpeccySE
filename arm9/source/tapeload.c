@@ -527,7 +527,7 @@ void tape_position(u8 newPos)
 // the Spectrum memory.
 // --------------------------------------------------------
 u8 show_tape_counter = 0;
-ITCM_CODE void tape_frame(void)
+void tape_frame(void)
 {
     char tmp[5];
 
@@ -1018,7 +1018,7 @@ ld_sample:
 //            AND  +20      [+7]    Mask off just the bit we care about (normally 0x40 but it's been shifted down)
 //            JR   Z,05ED   [+12/5] Jump back to LD-SAMPLE unless it has changed
 
-ITCM_CODE u8 tape_sample_speedlock(void)
+u8 tape_sample_speedlock(void)
 {
     if (!tape_state) tape_state = TAPE_START;
 

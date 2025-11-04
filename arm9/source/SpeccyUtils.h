@@ -127,7 +127,7 @@ extern u32 flash_timer;
 extern u8 portFE, portFD;
 extern u8 zx_AY_enabled;
 extern u8 zx_128k_mode;
-extern u8 ay_sample_idx;
+extern u32 ay_sample_idx;
 extern u8 tape_play_skip_frame;
 
 extern u8 SpectrumBios[0x4000];

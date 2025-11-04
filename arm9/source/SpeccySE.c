@@ -253,20 +253,17 @@ ITCM_CODE mm_word OurSoundMixer(mm_word len, mm_addr dest, mm_stream_formats for
 // over-sampled and smoothed someday to make it really shine... good enough for now.
 // --------------------------------------------------------------------------------------------
 s16 mixbufAY[16]        __attribute__((section(".dtcm"))) = { 0x000, 0x000, 0x000, 0x000, 0x000 , 0x000 , 0x000 , 0x000, 0x000, 0x000, 0x000, 0x000, 0x000 , 0x000 , 0x000 , 0x000 };
-s32 beeper_vol          __attribute__((section(".dtcm"))) = 0;
-u8  ay_sample_idx       __attribute__((section(".dtcm"))) = 0;
-u8  beeper_pulses_idx   __attribute__((section(".dtcm"))) = 0;
-u8  beeper_pulses[256] = {0};
+s16 beeper_vol          __attribute__((section(".dtcm"))) = 0;
+u32 ay_sample_idx       __attribute__((section(".dtcm"))) = 0;
+u32 beeper_pulses_idx   __attribute__((section(".dtcm"))) = 0;
 
 ITCM_CODE void processDirectAudio(void)
 {
-    if (zx_AY_enabled)
+    
+    if (ay_sample_idx & 0xF0)
     {
-        if (ay_sample_idx & 0xF8)
-        {
-            ay38910Mixer(8, mixbufAY, &myAY); // Grab 8 samples 
-            ay_sample_idx = 0;
-        }
+        if (zx_AY_enabled) ay38910Mixer(16, mixbufAY, &myAY); // Grab 8 samples 
+        ay_sample_idx = 0;
     }
 
     for (u8 i=0; i<2; i++)
@@ -275,15 +272,13 @@ ITCM_CODE void processDirectAudio(void)
         
         if (beeper_pulses_idx)
         {
-            if (beeper_pulses[i]) beeper_vol = 0x1F00; else beeper_vol = 0x000;
+            beeper_vol = (beeper_vol ? 0x000:0x1F00);
             beeper_pulses_idx--;
         }
-        mixer[mixer_write] = (s16)(mixbufAY[ay_sample_idx++ & 0x07] + beeper_vol);
+        mixer[mixer_write] = (s16)(mixbufAY[ay_sample_idx++] + beeper_vol);
         mixer_write++; mixer_write &= WAVE_DIRECT_BUF_SIZE;
         if (((mixer_write+1)&WAVE_DIRECT_BUF_SIZE) == mixer_read) {breather = 1024;}
     }
-
-    beeper_pulses_idx = 0;
 }
 
 ITCM_CODE void processDirectAudioDSI(void)
@@ -303,7 +298,7 @@ ITCM_CODE void processDirectAudioDSI(void)
         
         if (beeper_pulses_idx)
         {
-            if (beeper_pulses[i]) beeper_vol = 0x1F00; else beeper_vol = 0x000;
+            beeper_vol = (beeper_vol ? 0x000:0x1F00);
             beeper_pulses_idx--;
         }
         mixer[mixer_write] = (s16)(mixbufAY[ay_sample_idx & 0x07] + beeper_vol);
@@ -311,8 +306,6 @@ ITCM_CODE void processDirectAudioDSI(void)
         mixer_write++; mixer_write &= WAVE_DIRECT_BUF_SIZE;
         if (((mixer_write+1)&WAVE_DIRECT_BUF_SIZE) == mixer_read) {breather = 1024;}
     }
-
-    beeper_pulses_idx = 0;
 }
 
 // -----------------------------------------------------------------------------------------------
@@ -414,7 +407,7 @@ void sound_chip_reset()
   ay38910Reset(&myAY);             // Reset the "AY" sound chip
   ay38910IndexW(0x07, &myAY);      // Register 7 is ENABLE
   ay38910DataW(0x3F, &myAY);       // All OFF (negative logic)
-  ay38910Mixer(8, mixbufAY, &myAY);// Do an initial mix conversion to clear the output
+  ay38910Mixer(16, mixbufAY, &myAY);// Do an initial mix conversion to clear the output
   last_sample = mixbufAY[2];       // And set the last sample for muting
 }
 

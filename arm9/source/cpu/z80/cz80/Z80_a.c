@@ -203,8 +203,11 @@ inline __attribute__((always_inline)) void WrZ80(word A, byte value)
 // ----------------------------------------------------------------------
 inline __attribute__((always_inline)) void WrZ80_fast(word A, byte value)
 {
-    if (ContendMap[(A)>>14]) CPU.TStates += cpu_contended_delay_128[(CPU.TStates) % CYCLES_PER_SCANLINE_128];
-    MemoryMap[(A)>>14][A] = value; 
+    if (A & 0xC000)
+    {
+        if (ContendMap[(A)>>14]) CPU.TStates += cpu_contended_delay_128[(CPU.TStates) % CYCLES_PER_SCANLINE_128];
+        MemoryMap[(A)>>14][A] = value; 
+    }
     CPU.TStates += 3; // Memory writes are 3 cycles
 }
 

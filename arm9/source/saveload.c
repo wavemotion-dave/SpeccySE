@@ -25,7 +25,7 @@
 
 #include "lzav.h"
 
-#define SPECCY_SAVE_VER   0x000A    // Change this if the basic format of the .SAV file changes. Invalidates older .sav files.
+#define SPECCY_SAVE_VER   0x000B    // Change this if the basic format of the .SAV file changes. Invalidates older .sav files.
 
 // -----------------------------------------------------------------------------------------------------
 // Since the main MemoryMap[] can point to differt things (RAM, ROM, BIOS, etc) and since we can't rely

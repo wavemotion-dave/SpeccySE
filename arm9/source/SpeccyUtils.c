@@ -1047,7 +1047,10 @@ void FindConfig(void)
     // ------------------------------------------------------------------------
     char *strcasestr(const char *haystack, const char *needle);
 
-    if      (strcasestr(gpFic[ucGameChoice].szName, "ATIC")         != 0) myConfig.machine = 0;
+    if      (strcasestr(gpFic[ucGameChoice].szName, "ATIC ATAC")    != 0) myConfig.machine = 0;
+    else if (strcasestr(gpFic[ucGameChoice].szName, "ATIC-ATAC")    != 0) myConfig.machine = 0;
+    else if (strcasestr(gpFic[ucGameChoice].szName, "ATICATAC")     != 0) myConfig.machine = 0;
+    else if (strcasestr(gpFic[ucGameChoice].szName, "ATIC_ATAC")    != 0) myConfig.machine = 0;
     else if (strcasestr(gpFic[ucGameChoice].szName, "WULF")         != 0) myConfig.machine = 0;
     else if (strcasestr(gpFic[ucGameChoice].szName, "SKOOL")        != 0) myConfig.machine = 0;
     else if (strcasestr(gpFic[ucGameChoice].szName, "ELITE")        != 0) myConfig.machine = 0;

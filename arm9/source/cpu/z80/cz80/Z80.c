@@ -244,7 +244,7 @@ __attribute__((noinline)) void dandanator_flash_write(word A, byte value)
 // of the ROM space ($0000 to $0003) and that's handled by dandanator_flash_write().
 // -------------------------------------------------------------------------------------------
 static void WrZ80(word A, byte value)   {if (A & 0xC000) MemoryMap[(A)>>14][A] = value; else dandanator_flash_write(A,value);}
-static void WrZ80_fast(word A, byte value)   {MemoryMap[(A)>>14][A] = value;} // For Stack Writes, assume no flash/dandanator handling needed
+static void WrZ80_fast(word A, byte value)   {if (A & 0xC000) MemoryMap[(A)>>14][A] = value;} // For Stack Writes, assume no flash/dandanator handling needed
 
 // -------------------------------------------------------------------
 // And these two macros will give us access to the Z80 I/O ports...
