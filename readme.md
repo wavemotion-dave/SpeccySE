@@ -282,6 +282,8 @@ Version 1.7 - ??-???-2025 by wavemotion-dave
 * Implemented Favorites system - use SELECT in game selection screen to toggle Like/Love.
 * Massive overhaul to provide smoother double-buffered frame rendering on all hardware (DS-Lite/Phat users rejoice!).
 * Improved beeper audio handling to smooth out sound in some games - especially improved on DSi hardware with the faster CPU.
+* New Frameskip option added for DS-Lite/Phat. Default is to render 3/4 frames to get enough speed for all games but many games can run without frameskip. DSi always renders all frames.
+* Properly cap at max volume for the games that utilize both the 128K AY chip and the beeper (was causing crackling sounds).
 * Fixed Arcadia input so the ship doesn't jitter across the bottom of the screen.
 * Added more undocumented Z80 opcodes to fix Nothing (that's the name of a game!).
 * Added Z80 7MHz Turbo Mode for the few games that take advantage of it (e.g Nothing).

@@ -955,10 +955,10 @@ void SetDefaultGameConfig(void)
     myConfig.ULAplus     = myGlobalConfig.defULAplus;   // Default is to allow ULA Plus but can be changed globally
     myConfig.ULAtiming   = 0;                           // Normal timing
     myConfig.turbo       = 0;                           // Normal Z80 clock (1=TURBO 7MHz)
-    myConfig.reserved5   = 0;
+    myConfig.frameSkip   = (isDSiMode() ? 0:1);         // Frameskip for DS-Lite/Phat by default
     myConfig.reserved6   = 0;
     myConfig.reserved7   = 0;
-    myConfig.reserved8   = 0xA5;    // So it's easy to spot on an "upgrade" and we can re-default it
+    myConfig.reserved8   = 0;
     myConfig.reserved9   = 0xA5;    // So it's easy to spot on an "upgrade" and we can re-default it
 }
 
@@ -996,6 +996,17 @@ void LoadConfig(void)
         {
             bInitDatabase = 1;
         }
+        else // Run through database looking for myConfig.reserved8 to be 0xA5
+        {
+            for (int i=0; i<MAX_CONFIGS; i++)
+            {
+                if (AllConfigs[i].reserved8 == 0xA5)
+                {
+                    AllConfigs[i].reserved8 = 0;
+                    AllConfigs[i].frameSkip = (isDSiMode() ? 0:1); // Frameskip enabled for DS-Lite/Phat
+                }
+            }
+        }    
     }
     else    // Not found... init the entire database...
     {
@@ -1108,6 +1119,7 @@ const struct options_t Option_Table[2][20] =
         {"MACHINE",        {"48K SPECTRUM", "128K SPECTRUM"},                           &myConfig.machine,           2},
         {"ULA PLUS",       {"DISABLED",  "ENABLED"},                                    &myConfig.ULAplus,           2},
         {"ULA TIMING",     {"NORMAL", "LATE"},                                          &myConfig.ULAtiming,         2},
+        {"FRAMESKIP",      {"OFF (SHOW ALL)", "ON (SHOW 3/4)"},                         &myConfig.frameSkip,         2},
         {"AUTO PLAY",      {"NO", "YES"},                                               &myConfig.autoLoad,          2},
         {"AUTO STOP",      {"NO", "YES", "AGGRESSIVE"},                                 &myConfig.autoStop,          3},
         {"AUTO FIRE",      {"OFF", "ON"},                                               &myConfig.autoFire,          2},
@@ -1758,6 +1770,28 @@ ITCM_CODE void DSPrint(int iX,int iY,int iScr,char *szMessage)
       usCharac=*(pusMap+32+(ch)-'@');       // Character from A-Z
     *pusScreen++=usCharac;
   }
+}
+
+void DSPrint_fps(u16 fps)
+{
+    u16 *pusScreen,*pusMap;
+    char tmpStr[4];
+  
+    if (fps/100) tmpStr[0] = '0' + fps/100;
+    else tmpStr[0] = ' ';
+    tmpStr[1] = '0' + (fps%100) / 10;
+    tmpStr[2] = '0' + (fps%100) % 10;
+    tmpStr[3] = 0;
+
+    pusScreen=(u16*) bgGetMapPtr(bg1b);
+    pusMap=(u16*) bgGetMapPtr(bg0b)+24*32;
+    char *cPtr = tmpStr;
+
+    while((*cPtr )!='\0' )
+    {
+        char ch = *cPtr++;
+        *pusScreen++=*(pusMap+(ch)-' ');          // Number from 0-9 or punctuation
+    }
 }
 
 /******************************************************************************

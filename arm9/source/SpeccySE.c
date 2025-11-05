@@ -79,7 +79,6 @@ u8 bStartIn          = 0;
 // ---------------------------------------------------------------------------
 // Some timing and frame rate comutations to keep the emulation on pace...
 // ---------------------------------------------------------------------------
-u16 emuFps          __attribute__((section(".dtcm"))) = 0;
 u16 emuActFrames    __attribute__((section(".dtcm"))) = 0;
 u16 timingFrames    __attribute__((section(".dtcm"))) = 0;
 
@@ -456,7 +455,6 @@ void ResetSpectrum(void)
   TIMER2_DATA=0;
   TIMER2_CR=TIMER_ENABLE  | TIMER_DIV_1024;
   timingFrames  = 0;
-  emuFps=0;
 
   bFirstTime = 2;
   bStartIn = 0;
@@ -1206,7 +1204,6 @@ void SpeccySE_main(void)
   TIMER2_DATA=0;
   TIMER2_CR=TIMER_ENABLE  | TIMER_DIV_1024;
   timingFrames  = 0;
-  emuFps=0;
 
   newStreamSampleRate();
 
@@ -1237,24 +1234,17 @@ void SpeccySE_main(void)
             //if (keysCurrent() & KEY_X) debug[0]++;
             //if (keysCurrent() & KEY_Y) debug[0]--;
             
-            char szChai[4];
-
             TIMER1_CR = 0;
             TIMER1_DATA = 0;
             TIMER1_CR=TIMER_ENABLE | TIMER_DIV_1024;
-            emuFps = emuActFrames;
+            u16 emuFps = emuActFrames;
             if (myGlobalConfig.showFPS)
             {
                 // Due to minor sampling of the frame rate, 49,50 and 51
                 // pretty much all represent full-speed so just show 50fps.
                 if (emuFps == 51) emuFps=50;
                 else if (emuFps == 49) emuFps=50;
-                if (emuFps/100) szChai[0] = '0' + emuFps/100;
-                else szChai[0] = ' ';
-                szChai[1] = '0' + (emuFps%100) / 10;
-                szChai[2] = '0' + (emuFps%100) % 10;
-                szChai[3] = 0;
-                DSPrint(0,0,6,szChai);
+                DSPrint_fps(emuFps);
             }
             DisplayStatusLine(false);
             emuActFrames = 0;
@@ -1734,16 +1724,17 @@ __attribute__ ((noinline)) void HandleBrightness(void)
 }
 
 // -------------------------------------------------------------
-// For the DSi, we double buffer the screen rendering to avoid
-// some tearing issues - we render the screen to non-main VRAM
-// and then during the DSi VBLANK, we copy it over for display.
+// We double buffer the screen rendering to avoid the majority
+// of tearing issues - we render the screen to non-main VRAM
+// and then during the DS VBLANK, we copy it over for display.
 // -------------------------------------------------------------
+#define VCOUNT *((u16*)(0x4000006))
 ITCM_CODE void irqVBlank(void)
 {
     // Manage time
     vusCptVBL++;
-
-    if (backgroundRenderScreen) // Only set for DSi mode... double buffer
+    
+    if (backgroundRenderScreen) // Render screen to DSi LCD
     {
         extern u8 screen_buffer_A[];
         extern u8 screen_buffer_B[];
@@ -1755,6 +1746,16 @@ ITCM_CODE void irqVBlank(void)
     {
         HandleBrightness();
     }
+
+    // ------------------------------------------------------------------------------
+    // And now for some DS trickery... we are emulating a 50Hz PAL machine so we 
+    // abuse the DS VCOUNT register by subtracting enough scanlines here to make
+    // us equivalent to a 50Hz PAL machine. This will bring the number of scalines
+    // to 311 (128K) or 312 (48K). It's not perfect but does help prevent the normal
+    // 60Hz refresh from coming in too quickly and sometimes finding nothing to 
+    // render because the emulation hasn't filled the last frame of screen data.
+    // ------------------------------------------------------------------------------
+    VCOUNT = (VCOUNT - ((myConfig.machine ? SCANLINES_PER_FRAME_128:SCANLINES_PER_FRAME_48) - 262));
 }
 
 // ----------------------------------------------------------------------

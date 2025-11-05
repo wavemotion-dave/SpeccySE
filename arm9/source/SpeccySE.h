@@ -124,7 +124,6 @@ typedef u8 (*patchFunc)(void);
 extern u8 speccy_mode;
 extern u8 kbd_keys_pressed;
 extern u8 kbd_keys[12];
-extern u16 emuFps;
 extern u16 emuActFrames;
 extern u16 timingFrames;
 extern char initial_file[];

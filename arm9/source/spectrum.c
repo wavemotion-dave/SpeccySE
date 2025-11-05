@@ -611,13 +611,13 @@ ITCM_CODE void speccy_render_screen_line(u8 line)
                 if (!isDSiMode())
                 {
                     // ------------------------------------------------------------------------------
-                    // For the DS-Lite/Phat, we skip 1 frames out of 8 frames to help the speed.
+                    // For the DS-Lite/Phat, we skip 1 frames out of 4 frames to help the speed.
                     // This allows the older handheld to still double-buffer (to reduce tearing)
-                    // and provides an 83% render rate which is smooth enough.
+                    // and provides an 75% render rate which is smooth enough. User can disable.
                     // ------------------------------------------------------------------------------
                     if ((tape_play_skip_frame & 0x3) == 3)
                     {
-                        skip_frames = 1;
+                        if (myConfig.frameSkip) skip_frames = 1;
                     }
                 }                   
             }

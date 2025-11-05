@@ -93,7 +93,7 @@ struct __attribute__((__packed__)) Config_t
     u8  ULAplus;
     u8  ULAtiming;
     u8  turbo;
-    u8  reserved5;
+    u8  frameSkip;
     u8  reserved6;
     u8  reserved7;
     u8  reserved8;
@@ -155,6 +155,7 @@ extern u8   showMessage(char *szCh1, char *szCh2);
 extern void speccySEFindFiles(u8 bTapeOnly);
 extern void speccySEChangeOptions(void);
 extern void DSPrint(int iX,int iY,int iScr,char *szMessage);
+extern void DSPrint_fps(u16 fps);
 extern u32  crc32 (unsigned int crc, const unsigned char *buf, unsigned int len);
 extern void FadeToColor(unsigned char ucSens, unsigned short ucBG, unsigned char ucScr, unsigned char valEnd, unsigned char uWait);
 extern u8   speccySELoadFile(u8 bTapeOnly);
