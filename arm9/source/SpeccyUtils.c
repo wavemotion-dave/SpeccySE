@@ -1058,43 +1058,46 @@ void FindConfig(void)
     // ------------------------------------------------------------------------
     char *strcasestr(const char *haystack, const char *needle);
 
-    if      (strcasestr(gpFic[ucGameChoice].szName, "ATIC ATAC")    != 0) myConfig.machine = 0;
-    else if (strcasestr(gpFic[ucGameChoice].szName, "ATIC-ATAC")    != 0) myConfig.machine = 0;
-    else if (strcasestr(gpFic[ucGameChoice].szName, "ATICATAC")     != 0) myConfig.machine = 0;
-    else if (strcasestr(gpFic[ucGameChoice].szName, "ATIC_ATAC")    != 0) myConfig.machine = 0;
-    else if (strcasestr(gpFic[ucGameChoice].szName, "WULF")         != 0) myConfig.machine = 0;
-    else if (strcasestr(gpFic[ucGameChoice].szName, "SKOOL")        != 0) myConfig.machine = 0;
-    else if (strcasestr(gpFic[ucGameChoice].szName, "ELITE")        != 0) myConfig.machine = 0;
-    else if (strcasestr(gpFic[ucGameChoice].szName, "LUNARJET")     != 0) myConfig.machine = 0;
-    else if (strcasestr(gpFic[ucGameChoice].szName, "LUNAR JET")    != 0) myConfig.machine = 0;
-    else if (strcasestr(gpFic[ucGameChoice].szName, "JETPAC")       != 0) myConfig.machine = 0;
-    else if (strcasestr(gpFic[ucGameChoice].szName, "JET-PAC")      != 0) myConfig.machine = 0;
-    else if (strcasestr(gpFic[ucGameChoice].szName, "JET PAC")      != 0) myConfig.machine = 0;
-    else if (strcasestr(gpFic[ucGameChoice].szName, "MACHINA")      != 0) myConfig.machine = 0;
-    else if (strcasestr(gpFic[ucGameChoice].szName, "DEATHCHASE")   != 0) myConfig.machine = 0;
-    else if (strcasestr(gpFic[ucGameChoice].szName, "DEATH CHASE")  != 0) myConfig.machine = 0;
-    else if (strcasestr(gpFic[ucGameChoice].szName, "MAZIACS")      != 0) myConfig.machine = 0;
-    else if (strcasestr(gpFic[ucGameChoice].szName, "ALIEN8")       != 0) myConfig.machine = 0;
-    else if (strcasestr(gpFic[ucGameChoice].szName, "ALIEN 8")      != 0) myConfig.machine = 0;
-    else if (strcasestr(gpFic[ucGameChoice].szName, "PSSST")        != 0) myConfig.machine = 0;
-    else if (strcasestr(gpFic[ucGameChoice].szName, "UNDERWURLDE")  != 0) myConfig.machine = 0;
-    else if (strcasestr(gpFic[ucGameChoice].szName, "ARCADIA")      != 0) myConfig.machine = 0;
-    else if (strcasestr(gpFic[ucGameChoice].szName, "CHUCKIE")      != 0) {myConfig.machine = 0; myConfig.dpad = 2;}
-        
-    else if (strcasestr(gpFic[ucGameChoice].szName, "GLUF")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "DREAMWALKER")  != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "DREAM WALKER") != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "MULTIDUDE")    != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "MULTI DUDE")   != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "MANICPIE")     != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "MANIC PIE")    != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "YAZZIE")       != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "OUTOFMARS")    != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "OUT OF MARS")  != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "GANDALF")      != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "PANGOLIN")     != 0) {myConfig.machine = 0; myConfig.ULAtiming = 0;}
-    else if (strcasestr(gpFic[ucGameChoice].szName, "ALTER EGO")    != 0) myConfig.machine = 0; // Do this after checks above for DREAMWALKER
-    else if (strcasestr(gpFic[ucGameChoice].szName, "ALTEREGO")     != 0) myConfig.machine = 0; // Do this after checks above for DREAMWALKER
+    if (!bFound)
+    {
+        if      (strcasestr(gpFic[ucGameChoice].szName, "ATIC ATAC")    != 0) myConfig.machine = 0;
+        else if (strcasestr(gpFic[ucGameChoice].szName, "ATIC-ATAC")    != 0) myConfig.machine = 0;
+        else if (strcasestr(gpFic[ucGameChoice].szName, "ATICATAC")     != 0) myConfig.machine = 0;
+        else if (strcasestr(gpFic[ucGameChoice].szName, "ATIC_ATAC")    != 0) myConfig.machine = 0;
+        else if (strcasestr(gpFic[ucGameChoice].szName, "WULF")         != 0) myConfig.machine = 0;
+        else if (strcasestr(gpFic[ucGameChoice].szName, "SKOOL")        != 0) myConfig.machine = 0;
+        else if (strcasestr(gpFic[ucGameChoice].szName, "ELITE")        != 0) myConfig.machine = 0;
+        else if (strcasestr(gpFic[ucGameChoice].szName, "LUNARJET")     != 0) myConfig.machine = 0;
+        else if (strcasestr(gpFic[ucGameChoice].szName, "LUNAR JET")    != 0) myConfig.machine = 0;
+        else if (strcasestr(gpFic[ucGameChoice].szName, "JETPAC")       != 0) myConfig.machine = 0;
+        else if (strcasestr(gpFic[ucGameChoice].szName, "JET-PAC")      != 0) myConfig.machine = 0;
+        else if (strcasestr(gpFic[ucGameChoice].szName, "JET PAC")      != 0) myConfig.machine = 0;
+        else if (strcasestr(gpFic[ucGameChoice].szName, "MACHINA")      != 0) myConfig.machine = 0;
+        else if (strcasestr(gpFic[ucGameChoice].szName, "DEATHCHASE")   != 0) myConfig.machine = 0;
+        else if (strcasestr(gpFic[ucGameChoice].szName, "DEATH CHASE")  != 0) myConfig.machine = 0;
+        else if (strcasestr(gpFic[ucGameChoice].szName, "MAZIACS")      != 0) myConfig.machine = 0;
+        else if (strcasestr(gpFic[ucGameChoice].szName, "ALIEN8")       != 0) myConfig.machine = 0;
+        else if (strcasestr(gpFic[ucGameChoice].szName, "ALIEN 8")      != 0) myConfig.machine = 0;
+        else if (strcasestr(gpFic[ucGameChoice].szName, "PSSST")        != 0) myConfig.machine = 0;
+        else if (strcasestr(gpFic[ucGameChoice].szName, "UNDERWURLDE")  != 0) myConfig.machine = 0;
+        else if (strcasestr(gpFic[ucGameChoice].szName, "ARCADIA")      != 0) myConfig.machine = 0;
+        else if (strcasestr(gpFic[ucGameChoice].szName, "CHUCKIE")      != 0) {myConfig.machine = 0; myConfig.dpad = 2;}
+            
+        else if (strcasestr(gpFic[ucGameChoice].szName, "GLUF")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "DREAMWALKER")  != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "DREAM WALKER") != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "MULTIDUDE")    != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "MULTI DUDE")   != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "MANICPIE")     != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "MANIC PIE")    != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "YAZZIE")       != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "OUTOFMARS")    != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "OUT OF MARS")  != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "GANDALF")      != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "PANGOLIN")     != 0) {myConfig.machine = 0; myConfig.ULAtiming = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "ALTER EGO")    != 0) myConfig.machine = 0; // Do this after checks above for DREAMWALKER
+        else if (strcasestr(gpFic[ucGameChoice].szName, "ALTEREGO")     != 0) myConfig.machine = 0; // Do this after checks above for DREAMWALKER
+    }
 }
 
 // ------------------------------------------------------------------------------

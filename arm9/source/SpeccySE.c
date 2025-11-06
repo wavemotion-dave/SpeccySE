@@ -194,16 +194,20 @@ void SoundUnPause(void)
 // We were using the normal ARM7 sound core but it sounded "scratchy" and so with the help
 // of FluBBa, we've swiched over to the maxmod sound core which performs much better.
 // --------------------------------------------------------------------------------------------
-#define buffer_size     (256+16)   // Enough buffer that we don't have to fill it too often. Must be multiple of 16.
+#define buffer_size     ((isDSiMode() ? 512:256)+16)   // Enough buffer that we don't have to fill it too often. Must be multiple of 16.
 
 mm_ds_system sys    __attribute__((section(".dtcm")));
 mm_stream myStream  __attribute__((section(".dtcm")));
 
-#define WAVE_DIRECT_BUF_SIZE 2047
+// -------------------------------------------------------------------
+// We have two different buffers and sample rates for DSi vs DS-Lite
+// -------------------------------------------------------------------
+#define WAVE_DIRECT_BUF_SIZE        2047
+#define WAVE_DIRECT_BUF_SIZE_DSI    4095
 u16 mixer_read      __attribute__((section(".dtcm"))) = 0;
 u16 mixer_write     __attribute__((section(".dtcm"))) = 0;
-s16 mixer[WAVE_DIRECT_BUF_SIZE+1] __attribute__((section(".dtcm")));
-
+s16 mixer[WAVE_DIRECT_BUF_SIZE+1]  __attribute__((section(".dtcm")));
+s16 *mixer_DSI = (s16*)0x068A0000;  // Use 4K of LCD RAM which is fairly fast for our audio buffer
 
 // The games normally run at the proper 100% speed, but user can override from 80% to 120%
 u16 GAME_SPEED_PAL[]  __attribute__((section(".dtcm"))) = {654, 640, 623, 594, 545, 666, 686, 725, 815};
@@ -237,6 +241,35 @@ ITCM_CODE mm_word OurSoundMixer(mm_word len, mm_addr dest, mm_stream_formats for
                 last_sample = mixer[mixer_read];
                 *p++ = last_sample;
                 mixer_read = (mixer_read + 1) & WAVE_DIRECT_BUF_SIZE;
+            }
+        }
+        if (breather) {breather -= len; if (breather < 0) breather = 0;}
+    }
+
+    return  len;
+}
+
+ITCM_CODE mm_word OurSoundMixerDSI(mm_word len, mm_addr dest, mm_stream_formats format)
+{
+    if (soundEmuPause || (speccy_mode == MODE_ZX81))  // If paused, just "mix" in mute sound chip... all channels are OFF
+    {
+        s16 *p = (s16*)dest;
+        for (int i=0; i<len; i++)
+        {
+           *p++ = last_sample;      // To prevent pops and clicks... just keep outputting the last sample
+        }
+    }
+    else
+    {
+        s16 *p = (s16*)dest;
+        for (int i=0; i<len; i++)
+        {
+            if (mixer_read == mixer_write) {*p++ = last_sample;}
+            else
+            {
+                last_sample = mixer_DSI[mixer_read];
+                *p++ = last_sample;
+                mixer_read = (mixer_read + 1) & WAVE_DIRECT_BUF_SIZE_DSI;
             }
         }
         if (breather) {breather -= len; if (breather < 0) breather = 0;}
@@ -304,10 +337,10 @@ ITCM_CODE void processDirectAudioDSI(void)
         s32 sample = (s32)mixbufAY[ay_sample_idx] + (s32)beeper_vol;
         if (i&1) ay_sample_idx++;
         if (sample > 32767) sample = 32767;
-        mixer[mixer_write++] = (s16)sample;
+        mixer_DSI[mixer_write++] = (s16)sample;
         
-        mixer_write &= WAVE_DIRECT_BUF_SIZE;
-        if (((mixer_write+1)&WAVE_DIRECT_BUF_SIZE) == mixer_read) {breather = 1024;}
+        mixer_write &= WAVE_DIRECT_BUF_SIZE_DSI;
+        if (((mixer_write+1)&WAVE_DIRECT_BUF_SIZE_DSI) == mixer_read) {breather = 2048;}
     }
 }
 
@@ -328,12 +361,13 @@ int get_sample_rate(void)
     
     if (isDSiMode())
     {
-        sample_rate = (myConfig.machine ? 60900:61200);  // 48K has one more scanline (~200 more samples per second)
+        sample_rate = (myConfig.machine ? 61300:61700);  // 48K has one more scanline (~400 more samples per second)
     }
     else
     {
-        sample_rate = (myConfig.machine ? 30500:30600); // 48K has one more scanline (~100 more samples per second)
+        sample_rate = (myConfig.machine ? 30500:30700); // 48K has one more scanline (~200 more samples per second)
     }
+    
     int new_sample_rate     = (sample_rate * sample_rate_adjust[myConfig.gameSpeed]) / 100;
     
     return new_sample_rate;
@@ -348,9 +382,9 @@ void newStreamSampleRate(void)
         
         mmStreamClose();
 
-        myStream.sampling_rate  = get_sample_rate();        // sample_rate for the ZX to match the AY/Beeper drivers
-        myStream.buffer_length  = buffer_size;            // buffer length = (512+16)
-        myStream.callback       = OurSoundMixer;          // set callback function
+        myStream.sampling_rate  = get_sample_rate();      // sample_rate for the ZX to match the AY/Beeper drivers
+        myStream.buffer_length  = buffer_size;            // buffer length = (256+16 or 512+16)
+        myStream.callback       = (isDSiMode() ? OurSoundMixerDSI:OurSoundMixer); // Setup the appropriate mixer
         myStream.format         = MM_STREAM_16BIT_MONO;   // format = mono 16-bit
         myStream.timer          = MM_TIMER0;              // use hardware timer 0
         myStream.manual         = false;                  // use automatic filling
@@ -378,7 +412,7 @@ void setupStream(void)
   //----------------------------------------------------------------
   myStream.sampling_rate  = get_sample_rate();      // sample_rate for the ZX to match the AY/Beeper drivers
   myStream.buffer_length  = buffer_size;            // buffer length = (512+16)
-  myStream.callback       = OurSoundMixer;          // set callback function
+  myStream.callback       = (isDSiMode() ? OurSoundMixerDSI:OurSoundMixer); // Setup the appropriate mixer
   myStream.format         = MM_STREAM_16BIT_MONO;   // format = mono 16-bit
   myStream.timer          = MM_TIMER0;              // use hardware timer 0
   myStream.manual         = false;                  // use automatic filling
@@ -401,6 +435,7 @@ void setupStream(void)
 void sound_chip_reset()
 {
   memset(mixer, 0x00, sizeof(mixer));
+  memset(mixer_DSI, 0x00, 2*(WAVE_DIRECT_BUF_SIZE_DSI+1));
   mixer_read=0;
   mixer_write=0;
 

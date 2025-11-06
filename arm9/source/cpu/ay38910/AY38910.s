@@ -367,6 +367,9 @@ ay38910RegFR:
 portBInDummy:
 	ldrb r0,[r2,#ayPortBIn]
 	bx lr
+    
+.section .itcm						;@ For the NDS
+    
 ;@----------------------------------------------------------------------------
 calculateVolumes:			;@ r2 = ayptr, r11 = attenuation
 ;@----------------------------------------------------------------------------
