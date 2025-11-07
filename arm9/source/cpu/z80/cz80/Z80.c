@@ -588,6 +588,7 @@ ITCM_CODE static void CodesED_Speccy(void)
     case PFX_ED:
       CPU.PC.W--;break;
     default:
+      CPU.TStates += 8; // Illegal ED codes take 8 cycles ("nop-nop")
       if(CPU.TrapBadOps) Trap_Bad_Ops(" ED ", I, CPU.PC.W-4);
   }
 }

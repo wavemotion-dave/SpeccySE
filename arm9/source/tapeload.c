@@ -118,19 +118,19 @@ u8  custom_pulse_idx            __attribute__((section(".dtcm"))) = 0;
 u16 loop_counter                __attribute__((section(".dtcm"))) = 0;
 u16 loop_block                  __attribute__((section(".dtcm"))) = 0;
 u32 last_edge                   __attribute__((section(".dtcm"))) = 0;
-
 u32 next_edge1                  __attribute__((section(".dtcm"))) = 0;
 u32 next_edge2                  __attribute__((section(".dtcm"))) = 0;
+u32 tape_pulses_this_frame      __attribute__((section(".dtcm"))) = 0;
+u8 give_up_counter              __attribute__((section(".dtcm"))) = 0;
 
-u32 tape_pulses_this_frame = 0;
-u8 give_up_counter = 0;
-char *loader_type = "STANDARD";
+char *loader_type          = "STANDARD";
+TapePositionTable_t TapePositionTable[256];
+
 u8 tape_sample_standard(void);
 u8 tape_pre_edge_accel(void);
 
 inline byte OpZ80(word A)  {return MemoryMap[(A)>>14][A];}
 
-TapePositionTable_t TapePositionTable[255];
 extern char strcasestr (const char *big, const char *little);
 
 // --------------------------------------------------------

@@ -390,6 +390,18 @@ void newStreamSampleRate(void)
         myStream.manual         = false;                  // use automatic filling
         mmStreamOpen(&myStream);
     }
+    //----------------------------------------------------------------
+    //  when using 'automatic' filling, your callback will be triggered
+    //  every time half of the wave buffer is processed.
+    //
+    //  so:
+    //  25000 (rate)
+    //  ----- = ~21 Hz for a full pass, and ~42hz for half pass
+    //  1200  (length)
+    //----------------------------------------------------------------
+    //  with 'manual' filling, you must call mmStreamUpdate
+    //  periodically (and often enough to avoid buffer underruns)
+    //----------------------------------------------------------------
 }
 
 // -------------------------------------------------------------------------------------------
@@ -407,29 +419,7 @@ void setupStream(void)
   mmLoadEffect(SFX_KEYCLICK);
   mmLoadEffect(SFX_MUS_INTRO);
 
-  //----------------------------------------------------------------
-  //  open stream
-  //----------------------------------------------------------------
-  myStream.sampling_rate  = get_sample_rate();      // sample_rate for the ZX to match the AY/Beeper drivers
-  myStream.buffer_length  = buffer_size;            // buffer length = (512+16)
-  myStream.callback       = (isDSiMode() ? OurSoundMixerDSI:OurSoundMixer); // Setup the appropriate mixer
-  myStream.format         = MM_STREAM_16BIT_MONO;   // format = mono 16-bit
-  myStream.timer          = MM_TIMER0;              // use hardware timer 0
-  myStream.manual         = false;                  // use automatic filling
-  mmStreamOpen(&myStream);
-
-  //----------------------------------------------------------------
-  //  when using 'automatic' filling, your callback will be triggered
-  //  every time half of the wave buffer is processed.
-  //
-  //  so:
-  //  25000 (rate)
-  //  ----- = ~21 Hz for a full pass, and ~42hz for half pass
-  //  1200  (length)
-  //----------------------------------------------------------------
-  //  with 'manual' filling, you must call mmStreamUpdate
-  //  periodically (and often enough to avoid buffer underruns)
-  //----------------------------------------------------------------
+  // The stream will be opened when the game starts...
 }
 
 void sound_chip_reset()
@@ -1108,6 +1098,9 @@ u8 speccyTapePosition(void)
 
     BottomScreenCassette();
     DisplayFileNameCassette();
+    
+    sprintf(tmp, "CURRENT BLOCK: %03d", current_block);
+    DSPrint(8,14,0,tmp);
 
     DSPrint(1,1,0,"         TAPE POSITIONS         ");
 
@@ -1352,7 +1345,7 @@ void SpeccySE_main(void)
         //
         // This is how we time frame-to frame to keep the game running at 50FPS
         // ----------------------------------------------------------------------
-        while (TIMER2_DATA < GAME_SPEED_PAL[myConfig.gameSpeed]*(timingFrames+1))
+        while (TIMER2_DATA <= GAME_SPEED_PAL[myConfig.gameSpeed]*(timingFrames+1))
         {
             if (myGlobalConfig.showFPS == 2) break;   // If Full Speed, break out...
             if (tape_is_playing())
@@ -1605,7 +1598,7 @@ void useVRAM(void)
   vramSetBankF(VRAM_F_LCD);        // Not using this for video but 16K of faster RAM always useful!   Mapped at 0x06890000 -   ..
   vramSetBankG(VRAM_G_LCD);        // Not using this for video but 16K of faster RAM always useful!   Mapped at 0x06894000 -   ..
   vramSetBankH(VRAM_H_LCD);        // Not using this for video but 32K of faster RAM always useful!   Mapped at 0x06898000 -   ..
-  vramSetBankI(VRAM_I_LCD);        // Not using this for video but 16K of faster RAM always useful!   Mapped at 0x068A0000 -   Unused - reserved for future use
+  vramSetBankI(VRAM_I_LCD);        // Not using this for video but 16K of faster RAM always useful!   Mapped at 0x068A0000 -   16K availale - 4K used for DSi Sound Buffer
 }
 
 /*********************************************************************************

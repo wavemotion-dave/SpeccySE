@@ -262,6 +262,7 @@ Known Issues :
 * Not all Dandanator compilation games run properly - support is preliminary (but good enough for the few games that really need it).
 * Gandalf DLX does not run correctly. Timing is tight on that game and the accuracy of Speccy-SE is not up to the task.
 * Genesis has graphical glitching (screen jitter) during gameplay. Likely timing issue.
+* Ghosts-n-Goblins doesn't run - graphics go wonky right after the main gameplay is started. Cause unknown.
 * TRD disk files are not supported yet. Most games have TAP or Dandanator alternatives - but not all.
 
 Why? :
@@ -286,8 +287,10 @@ Version 1.7 - ??-???-2025 by wavemotion-dave
 * Properly cap at max volume for the games that utilize both the 128K AY chip and the beeper (was causing crackling sounds).
 * Fixed Arcadia input so the ship doesn't jitter across the bottom of the screen.
 * Added more undocumented Z80 opcodes to fix Nothing (that's the name of a game!).
-* Added Z80 7MHz Turbo Mode for the few games that take advantage of it (e.g Nothing).
-* About 10% improvement in performance - mostly to help out on the DS-Lite/Phat render even the most complex games.
+* Illegal ED opcodes now act like nop-nop and consume 8 CPU cycles as they should.
+* Improved Tape Position menu now shows current tape block to aid in positioning the tape for some multi-load games.
+* Added Z80 7MHz Turbo Mode for the few games that take advantage of it (e.g Nothing). Note the DS-Lite/Phat don't have enough CPU processing power to render at this turbo rate.
+* About 15% improvement in performance - mostly to help out on the DS-Lite/Phat render even the most complex games.
 
 Version 1.6 - 27-Oct-2025 by wavemotion-dave
 * Revamped Z80 CPU core to provide more accurate timing and memory contention/floating bus. Multi-color games (aka Nirvana+, BiFrost, etc) now play and look reasonably correct and CPU speed is generally correct.
