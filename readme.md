@@ -177,9 +177,7 @@ As for the per-game options, you can set things like the auto fire
 for the joystick and the aforementioned Slide-n-Glide mode of joystick d-pad
 handling. One of the more useful per-game options is to decide how you
 want to load the game - using a 48K Spectrum or the upgraded 128K Spectrum.
-You can also force a load as 128K spectrum by pressing the NDS Y-Button
-when loading. If you don't understand an option - don't touch it. You
-have been duly warned!
+If you don't understand an option - don't touch it. You have been duly warned!
 
 
 Tape Support :
@@ -279,18 +277,19 @@ you're likely going to want ZXDS.
 
 Version History :
 -----------------------
-Version 1.7 - ??-???-2025 by wavemotion-dave
+Version 1.7 - 08-Nov-2025 by wavemotion-dave
 * Implemented Favorites system - use SELECT in game selection screen to toggle Like/Love.
 * Massive overhaul to provide smoother double-buffered frame rendering on all hardware (DS-Lite/Phat users rejoice!).
 * Improved beeper audio handling to smooth out sound in some games - especially improved on DSi hardware with the faster CPU.
 * New Frameskip option added for DS-Lite/Phat. Default is to render 3/4 frames to get enough speed for all games but many games can run without frameskip. DSi always renders all frames.
+* Synchronized the DS/DSi vSYNC to 50Hz to match the PAL emulation for smoother tear-free experience (any tearing remaining would be present in the game itself).
 * Properly cap at max volume for the games that utilize both the 128K AY chip and the beeper (was causing crackling sounds).
 * Fixed Arcadia input so the ship doesn't jitter across the bottom of the screen.
 * Added more undocumented Z80 opcodes to fix Nothing (that's the name of a game!).
 * Illegal ED opcodes now act like nop-nop and consume 8 CPU cycles as they should.
 * Improved Tape Position menu now shows current tape block to aid in positioning the tape for some multi-load games.
 * Added Z80 7MHz Turbo Mode for the few games that take advantage of it (e.g Nothing). Note the DS-Lite/Phat don't have enough CPU processing power to render at this turbo rate.
-* About 15% improvement in performance - mostly to help out on the DS-Lite/Phat render even the most complex games.
+* About 15% improvement in performance - mostly to help out on the DS-Lite/Phat render even the most complex games smoothly.
 
 Version 1.6 - 27-Oct-2025 by wavemotion-dave
 * Revamped Z80 CPU core to provide more accurate timing and memory contention/floating bus. Multi-color games (aka Nirvana+, BiFrost, etc) now play and look reasonably correct and CPU speed is generally correct.
