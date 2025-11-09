@@ -850,7 +850,7 @@ void MapQAOP(void)
     myConfig.keymap[2]   = 20;   // O
     myConfig.keymap[3]   = 21;   // P
     myConfig.keymap[4]   = 44;   // Space
-    myConfig.keymap[5]   = 44;   // Space
+    myConfig.keymap[5]   = 18;   // M
     myConfig.keymap[6]   = 31;   // Z
     myConfig.keymap[7]   = 31;   // Z
     myConfig.keymap[8]   = 42;   // NDS R Button mapped to SHIFT

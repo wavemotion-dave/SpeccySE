@@ -407,6 +407,15 @@ static void WrZ80_fast(word A, byte value)   {if (A & 0xC000) MemoryMap[(A)>>14]
 
 extern void Trap_Bad_Ops(char *, byte, word);
 
+// ----------------------------------------------------------------------------
+// For when the tape patch no longer applies (memory may have been repurposed).
+// ----------------------------------------------------------------------------
+void unpatch_DEC_A(void)
+{
+    PatchLookup[CPU.PC.W] = 0;
+    M_DEC(CPU.AF.B.h);
+}
+
 /** ResetZ80() ***********************************************/
 /** This function can be used to reset the register struct  **/
 /** before starting execution with Z80(). It sets the       **/
@@ -452,7 +461,7 @@ void IntZ80(Z80 *R,word Vector)
 
     if((CPU.IFF&IFF_1)||(Vector==INT_NMI))
     {
-      CPU.TStates = 19; // 19:73333 for IM2...   13:733 for IM1
+      CPU.TStates += 19; // 19:73333 for IM2...   13:733 for IM1
 
       /* Save PC on stack */
       M_PUSH(PC);

@@ -277,7 +277,7 @@ you're likely going to want ZXDS.
 
 Version History :
 -----------------------
-Version 1.7 - 08-Nov-2025 by wavemotion-dave
+Version 1.7 - 09-Nov-2025 by wavemotion-dave
 * Implemented Favorites system - use SELECT in game selection screen to toggle Like/Love.
 * Massive overhaul to provide smoother double-buffered frame rendering on all hardware (DS-Lite/Phat users rejoice!).
 * Improved beeper audio handling to smooth out sound in some games - especially improved on DSi hardware with the faster CPU.
@@ -290,6 +290,8 @@ Version 1.7 - 08-Nov-2025 by wavemotion-dave
 * Improved Tape Position menu now shows current tape block to aid in positioning the tape for some multi-load games.
 * Added Z80 7MHz Turbo Mode for the few games that take advantage of it (e.g Nothing). Note the DS-Lite/Phat don't have enough CPU processing power to render at this turbo rate.
 * About 15% improvement in performance - mostly to help out on the DS-Lite/Phat render even the most complex games smoothly.
+* Version 1.7a hotfix to correct a CPU optimization bug that was causing a few games to crash (e.g. Rainbow Islands)
+* Version 1.7b hotfix to correct tape loader timeouts - was causing problems in loading some games (e.g. R-Type)
 
 Version 1.6 - 27-Oct-2025 by wavemotion-dave
 * Revamped Z80 CPU core to provide more accurate timing and memory contention/floating bus. Multi-color games (aka Nirvana+, BiFrost, etc) now play and look reasonably correct and CPU speed is generally correct.

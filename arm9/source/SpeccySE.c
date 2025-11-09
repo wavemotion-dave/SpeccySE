@@ -435,7 +435,7 @@ void sound_chip_reset()
   ay38910Reset(&myAY);             // Reset the "AY" sound chip
   ay38910IndexW(0x07, &myAY);      // Register 7 is ENABLE
   ay38910DataW(0x3F, &myAY);       // All OFF (negative logic)
-  ay38910Mixer(16, mixbufAY, &myAY);// Do an initial mix conversion to clear the output
+  ay38910Mixer(8, mixbufAY, &myAY);// Do an initial mix conversion to clear the output
   last_sample = mixbufAY[2];       // And set the last sample for muting
 }
 

@@ -201,7 +201,7 @@ void tape_patch(void)
     {
         PatchLookup[0x05F3] = tape_sample_standard; // This is the edge detection routine - the heart of every loader
         PatchLookup[0x05EA] = tape_pre_edge_accel;  // DEC A followed by JRNZ back to the DEC A (delay loop) 0x3D 0x20 +0xFD
-        PatchLookup[0x0575] = tape_preloader_delay; // DJNZ jumping back to itself... pre-loader delay loop
+        PatchLookup[0x0575] = tape_preloader_delay; // DJNZ will decrement B jumping back to itself... pre-loader delay loop
         loader_type = "STANDARD";
     }
 }
@@ -501,6 +501,12 @@ void tape_reset(void)
     tape_pulses_this_frame = 0;
     last_edge = 0;
     next_edge1 = next_edge2 = 0;
+    header_pulses = 0;
+    current_bit = 0x100;
+    current_bytes_this_block = 0;
+    handle_last_bits = 0;
+    loop_block = 0;
+    loop_counter = 0;
 }
 
 void tape_stop(void)
@@ -609,6 +615,16 @@ void tape_frame(void)
 //  AND A {+4} or whatever comes after the delay loop
 ITCM_CODE u8 tape_pre_edge_accel(void)
 {
+    // ------------------------------------------------------------
+    // Simple check to ensure the next instruction is a JRNZ (0x20) 
+    // otherwise it's likely this trap is no longer valid.
+    // ------------------------------------------------------------
+    if (PeekZ80(CPU.PC.W) != 0x20)
+    {
+        void unpatch_DEC_A(void);
+        unpatch_DEC_A();
+        return CPU.AF.B.h;
+    }
     // ----------------------------------------------------
     // We trapped on the DEC A... so our PC is right at
     // the start of JRNZ and A has been decremented by one.
@@ -898,7 +914,6 @@ ITCM_CODE u8 tape_pulse(void)
                 else
                 {
                     tape_search_for_loader();
-
                     // A delay of zero is not special unless we are the BLOCK_ID_PAUSE_STOP block type...
                     if ((TapeBlocks[current_block].id == BLOCK_ID_PAUSE_STOP) && (TapeBlocks[current_block].gap_delay_after == 0))
                     {
@@ -939,13 +954,13 @@ u8 inline __attribute__((always_inline)) tape_pulse_fast(void)
 // ----------------------------------------------------------------------------------------
 u8 inline __attribute__((always_inline)) tape_pulse_fast_no_shift(void)
 {
-    if      (CPU.TStates <= next_edge1) return ~0x00; // Inverted and shifted down
+    if      (CPU.TStates <= next_edge1) return ~0x00; // Inverted 
     else if (CPU.TStates <= next_edge2) return ~0x40; // So loader does less work
     else
     {
          // Experimentally, this happens about 16x less frequently than the bit returns above (makes sense as there are 2x edges per bit in the byte)
          tape_state = SEND_DATA_BYTES;
-         return ~tape_pulse(); // Invert and shift down
+         return ~tape_pulse(); // Invert and return value
     }
 }
 
@@ -1153,27 +1168,27 @@ ld_sample:
 
 // MICROSPHERE Loader:
 //
-// LD-SAMPLE  INC  B        [+4]    Count each pass
-//            RET  Z        [+11/5] Return carry reset & zero set if 'time-up'.
-//        {2} LD   A,+7F    [+7]    Read from port +7FFE   <== This is where the PC Trap is
-//        {2} IN   A,(+FE)  [+11]   i.e. BREAK and EAR
-//        {1} RRA           [+4]    Shift the byte
-//        {1} AND  A        [+4]    Essentially same as a NOP in this context
-//        {1} XOR  C        [+4]    Now test the byte against the 'last edge-type'
-//        {2} AND  +20      [+7]    Mask off just the bit we care about (normally 0x40 but it's been shifted down)
-//        {2} JR   Z,05ED   [+12/5] Jump back to LD-SAMPLE unless it has changed
+// LD-SAMPLE {1} INC  B        [+4]    Count each pass
+//           {1} RET  Z        [+11/5] Return carry reset & zero set if 'time-up'.
+//           {2} LD   A,+7F    [+7]    Read from port +7FFE   <== This is where the PC Trap is
+//           {2} IN   A,(+FE)  [+11]   i.e. BREAK and EAR
+//           {1} RRA           [+4]    Shift the byte
+//           {1} AND  A        [+4]    Essentially same as a NOP in this context
+//           {1} XOR  C        [+4]    Now test the byte against the 'last edge-type'
+//           {2} AND  +20      [+7]    Mask off just the bit we care about (normally 0x40 but it's been shifted down)
+//           {2} JR   Z,05ED   [+12/5] Jump back to LD-SAMPLE unless it has changed
 //
 // BLEEPLOAD Loader:
 //
-// LD-SAMPLE  INC  B        [+4]    Count each pass
-//        {1} RET  Z        [+11/5] Return carry reset & zero set if 'time-up'.
-//        {2} LD   A,+7F    [+7]    Read from port +7FFE   <== This is where the PC Trap is
-//        {2} IN   A,(+FE)  [+11]   i.e. BREAK and EAR
-//        {1} RRA           [+4]    Shift the byte
-//        {1} NOP           [+4]    NOP in place of the usual 'RET NC' check for keys pressed
-//        {1} XOR  C        [+4]    Now test the byte against the 'last edge-type'
-//        {2} AND  +20      [+7]    Mask off just the bit we care about (normally 0x40 but it's been shifted down)
-//        {2} JR   Z,05ED   [+12/5] Jump back to LD-SAMPLE unless it has changed
+// LD-SAMPLE {1} INC  B        [+4]    Count each pass
+//           {1} RET  Z        [+11/5] Return carry reset & zero set if 'time-up'.
+//           {2} LD   A,+7F    [+7]    Read from port +7FFE   <== This is where the PC Trap is
+//           {2} IN   A,(+FE)  [+11]   i.e. BREAK and EAR
+//           {1} RRA           [+4]    Shift the byte
+//           {1} NOP           [+4]    NOP in place of the usual 'RET NC' check for keys pressed
+//           {1} XOR  C        [+4]    Now test the byte against the 'last edge-type'
+//           {2} AND  +20      [+7]    Mask off just the bit we care about (normally 0x40 but it's been shifted down)
+//           {2} JR   Z,05ED   [+12/5] Jump back to LD-SAMPLE unless it has changed
 
 u8 tape_sample_microsphere_bleepload(void)
 {
@@ -1261,6 +1276,13 @@ ld_sample:
     }
     else                                // Edge not detected - we will do another pass or timeout
     {
+        if (B & 0xFC)
+        {
+            CPU.TStates += 3*59;        // Three times the normal loop time - faster edge detection
+            B-=3;                       // Reduce counter by 3
+            goto ld_sample;             // Take another sample.
+        }
+        
         CPU.TStates += 59;              // It takes 59 total cycles when we take another pass around the loop
         if (--B) goto ld_sample;        // If no time-out... take another sample.
 
@@ -1315,6 +1337,13 @@ ld_sample:
     }
     else                                // Edge not detected - we will do another pass or timeout
     {
+        if (B & 0xFC)
+        {
+            CPU.TStates += 3*56;        // Three times the normal loop time - faster edge detection
+            B-=3;                       // Reduce counter by 3
+            goto ld_sample;             // Take another sample.
+        }
+
         CPU.TStates += 56;              // It takes 56 total cycles when we take another pass around the loop
         if (--B) goto ld_sample;        // If no time-out... take another sample.
 
@@ -1338,16 +1367,16 @@ ld_sample:
 void tape_search_for_loader(void)
 {
     if (myConfig.tapeSpeed == 0) return;
-
-    for (int addr = 0x4000; addr < 0xFFFE; addr++)
+    
+    for (int addr = 0x4000; addr < 0xFFF0; addr++)
     {
         // -----------------------------------------------------------------------
         // All of our loaders have the ubiquitous IN A,+FE to read the tape input
         // -----------------------------------------------------------------------
         if ((PeekZ80(addr+0) == 0xDB) && (PeekZ80(addr+1) == 0xFE))
         {
-            // A crap-ton of loaders are 3E, 7F, DB, FE
-            if ((PeekZ80(addr-2) == 0x3E) && (PeekZ80(addr-1) == 0x7F))
+            // A crap-ton of loaders are 3E, 7F/FF, DB, FE
+            if ((PeekZ80(addr-2) == 0x3E) && ((PeekZ80(addr-1) == 0x7F) || (PeekZ80(addr-1) == 0xFF)))
             {
                 // Standard Loader just moved in memory
                 if (PeekZ80(addr+2) == 0x1F)  // RRA
@@ -1399,11 +1428,6 @@ void tape_search_for_loader(void)
                               loader_type = "DINALOAD";
                               PatchLookup[addr+2] = tape_sample_standard; // Since this has the same cycle count - we can use the standard loader
                               if (PeekZ80(addr-8) == 0x3D) PatchLookup[addr-7] = tape_pre_edge_accel;
-                              // Look for the loader delay which is often outside the main edge loop
-                              for (u16 j=addr; j<addr+100; j++)
-                              {
-                                  if ((PeekZ80(j) == 0x10) && (PeekZ80(j+1) == 0xFE)) PatchLookup[j+1] = tape_preloader_delay;
-                              }
                           }
 
                 // Microsphere Loader
@@ -1411,8 +1435,8 @@ void tape_search_for_loader(void)
                   if (PeekZ80(addr+3) == 0xA7) // AND A (NOP Equivilent)
                     if (PeekZ80(addr+4) == 0xA9) // XOR C
                       if (PeekZ80(addr+5) == 0xE6) // AND
-                        if (PeekZ80(addr+6) == 0x20)
-                          if (PeekZ80(addr+7) == 0x28)
+                        if (PeekZ80(addr+6) == 0x20) // #20
+                          if (PeekZ80(addr+7) == 0x28) // JRZ LD-SAMPLE
                           {
                               loader_type = "MICROSPHERE";
                               PatchLookup[addr+2] = tape_sample_microsphere_bleepload;
@@ -1424,8 +1448,8 @@ void tape_search_for_loader(void)
                   if (PeekZ80(addr+3) == 0x00)  // NOP
                     if (PeekZ80(addr+4) == 0xA9) // XOR C
                       if (PeekZ80(addr+5) == 0xE6) // AND
-                        if (PeekZ80(addr+6) == 0x20)
-                          if (PeekZ80(addr+7) == 0x28)
+                        if (PeekZ80(addr+6) == 0x20) // #20
+                          if (PeekZ80(addr+7) == 0x28) // JRZ LD-SAMPLE
                           {
                               loader_type = "BLEEPLOAD";
                               PatchLookup[addr+2] = tape_sample_microsphere_bleepload;
@@ -1443,7 +1467,6 @@ void tape_search_for_loader(void)
                             PatchLookup[addr+2] = tape_sample_variant_search;
                             if (PeekZ80(addr-8) == 0x3D) PatchLookup[addr-7] = tape_pre_edge_accel;
                         }
-                          
              }
              else // Now the odd-balls
              {
@@ -1459,6 +1482,7 @@ void tape_search_for_loader(void)
                               {
                                    loader_type = "SEARCHLOAD";
                                    PatchLookup[addr+2] = tape_sample_searchloader;
+                                   if (PeekZ80(addr-11) == 0x3D) PatchLookup[addr-10] = tape_pre_edge_accel;
                               }
 
                 // Alkatraz

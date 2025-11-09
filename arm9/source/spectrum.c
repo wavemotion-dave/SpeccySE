@@ -117,6 +117,18 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
             {
                 return PatchLookup[CPU.PC.W]();
             }
+            
+            // -------------------------------------------------------------
+            // If we are running the tape but aren't in a tape accelerator, 
+            // we occasionally check for the presence of a loader that may 
+            // have been moved elsewhere in memory.
+            // -------------------------------------------------------------
+            static int loader_search_counter = 0;
+            if (++loader_search_counter > 250000)  // Roughly once per second
+            {
+                tape_search_for_loader();
+                loader_search_counter=0;
+            }
             zx_special_key = 0; 
             return ~tape_pulse();
         }
@@ -765,6 +777,8 @@ void speccy_reset(void)
     zx_ula_plus_group       = 0x00;
     zx_ula_plus_palette_reg = 0x00;
     memset(zx_ula_plus_palette, 0x00, sizeof(zx_ula_plus_palette));
+    
+    tape_play_skip_frame   = 0;
 
     backgroundRenderScreen = 0;
     bRenderSkipOnce        = 1;
