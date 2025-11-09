@@ -74,7 +74,7 @@ extern void cpu_writeport_speccy(register unsigned short Port,register unsigned 
 // would point to the start of RAM_Memory[] such that this just turns into a 
 // simple index by the address without having to mask. This buys us 10% speed.
 // ------------------------------------------------------------------------------
-inline byte OpZ80(u32 A)
+inline byte OpZ80(word A)
 {
     return MemoryMap[(A)>>14][A];
 }

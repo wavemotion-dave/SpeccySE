@@ -129,7 +129,7 @@ TapePositionTable_t TapePositionTable[256];
 u8 tape_sample_standard(void);
 u8 tape_pre_edge_accel(void);
 
-inline byte OpZ80(word A)  {return MemoryMap[(A)>>14][A];}
+inline byte PeekZ80(word A)  {return MemoryMap[(A)>>14][A];}
 
 extern char strcasestr (const char *big, const char *little);
 
@@ -633,22 +633,22 @@ ITCM_CODE u8 tape_pulse(void)
     tape_pulses_this_frame++;
 
 #if 0 // Use this block to debug new loaders
-    debug[0]  = OpZ80(CPU.PC.W-10);
-    debug[1]  = OpZ80(CPU.PC.W-9);
-    debug[2]  = OpZ80(CPU.PC.W-8);
-    debug[3]  = OpZ80(CPU.PC.W-7);
-    debug[4]  = OpZ80(CPU.PC.W-6);
-    debug[5]  = OpZ80(CPU.PC.W-5);
-    debug[6]  = OpZ80(CPU.PC.W-4);
-    debug[7]  = OpZ80(CPU.PC.W-3);
-    debug[8]  = OpZ80(CPU.PC.W-2);
-    debug[9]  = OpZ80(CPU.PC.W-1);
-    debug[10] = OpZ80(CPU.PC.W+0);
-    debug[11] = OpZ80(CPU.PC.W+1);
-    debug[12] = OpZ80(CPU.PC.W+2);
-    debug[13] = OpZ80(CPU.PC.W+3);
-    debug[14] = OpZ80(CPU.PC.W+4);
-    debug[15] = OpZ80(CPU.PC.W+5);
+    debug[0]  = PeekZ80(CPU.PC.W-10);
+    debug[1]  = PeekZ80(CPU.PC.W-9);
+    debug[2]  = PeekZ80(CPU.PC.W-8);
+    debug[3]  = PeekZ80(CPU.PC.W-7);
+    debug[4]  = PeekZ80(CPU.PC.W-6);
+    debug[5]  = PeekZ80(CPU.PC.W-5);
+    debug[6]  = PeekZ80(CPU.PC.W-4);
+    debug[7]  = PeekZ80(CPU.PC.W-3);
+    debug[8]  = PeekZ80(CPU.PC.W-2);
+    debug[9]  = PeekZ80(CPU.PC.W-1);
+    debug[10] = PeekZ80(CPU.PC.W+0);
+    debug[11] = PeekZ80(CPU.PC.W+1);
+    debug[12] = PeekZ80(CPU.PC.W+2);
+    debug[13] = PeekZ80(CPU.PC.W+3);
+    debug[14] = PeekZ80(CPU.PC.W+4);
+    debug[15] = PeekZ80(CPU.PC.W+5);
 #endif
 
     // Don't return from the state machine until we have a bit value to return
@@ -934,6 +934,20 @@ u8 inline __attribute__((always_inline)) tape_pulse_fast(void)
     }
 }
 
+// ----------------------------------------------------------------------------------------
+// Same as above but does not shift down for the SEARCH and VARIANT SEARCH loaders...
+// ----------------------------------------------------------------------------------------
+u8 inline __attribute__((always_inline)) tape_pulse_fast_no_shift(void)
+{
+    if      (CPU.TStates <= next_edge1) return ~0x00; // Inverted and shifted down
+    else if (CPU.TStates <= next_edge2) return ~0x40; // So loader does less work
+    else
+    {
+         // Experimentally, this happens about 16x less frequently than the bit returns above (makes sense as there are 2x edges per bit in the byte)
+         tape_state = SEND_DATA_BYTES;
+         return ~tape_pulse(); // Invert and shift down
+    }
+}
 
 // ---------------------------------------------------------------------------------------------------------------
 // And these are the loaders used by most of the ZX Spectrum tapes... we accelerate the edge detection loops
@@ -951,7 +965,7 @@ u8 inline __attribute__((always_inline)) tape_pulse_fast(void)
 // 05F4 {1}           RET  NC       [+11/5] Return carry reset & zero reset if BREAK was pressed
 // 05F5 {1}           XOR  C        [+4]    Now test the byte against the 'last edge-type'
 // 05F6 {2}           AND  +20      [+7]    Mask off just the bit we care about (normally 0x40 but it's been shifted down)
-// 05F8 {3}           JR   Z,05ED   [+12/5] Jump back to LD-SAMPLE unless it has changed
+// 05F8 {2}           JR   Z,05ED   [+12/5] Jump back to LD-SAMPLE unless it has changed
 
 //PC will be 0x05F3 when we get here from the standard BIOS but were are being location agnostic
 //so that we can use this same routine when the standard loader is used in other memory locations.
@@ -1206,6 +1220,117 @@ ld_sample:
 }
 
 
+// SEARCH Loader:
+//
+//LD-SAMPLE {1} INC B              [+4]    Count each pass
+//          {1} RET Z              [+11/5] Return carry reset & zero set if 'time-up'.
+//          {2} LD A,00            [+7]    Read from port +00FE
+//          {2} IN A,(FE)          [+11]   i.e. BREAK and EAR    <== This is where the PC Trap is
+//          {1} XOR C              [+4]    Now test the byte against the 'last edge-type'
+//          {2} AND 40             [+7]    Mask off just the bit we care about
+//          {1} RET C              [+5]    Effectively a nop of 5 cycles as AND will ensure not set
+//          {1} NOP                [+4]    Waste time of 4 cycles
+//          {2} JR Z,LD-SAMPLE     [+12/5] Jump back to LD-SAMPLE unless it has changed
+
+u8 tape_sample_searchloader(void)
+{
+    if (!tape_state) tape_state = TAPE_START;
+
+    // The CyclesED[] table will consume the 18 cycles that the LDA, INA would have taken here...
+    int B = 255-CPU.BC.B.h;
+    const u8 C = CPU.BC.B.l;
+ld_sample:
+    u8 A;
+    if (tape_state & 0x80) // One or Zero... do it FAST!
+    {
+        // This version is already inverted...
+        A = (tape_pulse_fast_no_shift()) ^ C;
+    }
+    else
+    {
+        A = (~tape_pulse()) ^ C;
+    }
+
+    if (A & 0x40)                       // Edge detected. We can exit the loop.
+    {
+        CPU.TStates += 25;              // 25 cycles from the IN to past the JR Z,LD-SAMPLE
+        CPU.AF.B.h = A & 0x40;          // This is what the result would have been...
+        CPU.AF.B.l = H_FLAG;            // Set the appropriate flags for the AND +40
+        CPU.BC.B.h = (255-B);           // Let the caller know how close we got to the timeout
+        CPU.PC.W += 7;                  // Jump past the JR Z,LD-SAMPLE check
+    }
+    else                                // Edge not detected - we will do another pass or timeout
+    {
+        CPU.TStates += 59;              // It takes 59 total cycles when we take another pass around the loop
+        if (--B) goto ld_sample;        // If no time-out... take another sample.
+
+        // -----------------------------------------------------------------
+        // We have timed out when B wraps back to zero... handle this here.
+        // -----------------------------------------------------------------
+        CPU.TStates -= 27;              // Give back the time we accounted for with the INCB/RETZ/LDA/INA instructions
+        CPU.BC.B.h = 0xFF;              // Set this up so that we WILL timeout when returning
+        CPU.AF.W = 0x0000;              // Clear flags (mainly Carry Reset) and A register will be clear
+        CPU.PC.W -= 6;                  // And return to the INC B counter and allow the timeout
+    }
+
+    return CPU.AF.B.h;
+}
+          
+// VARIANT SEARCH Loader:
+//
+//LD-SAMPLE {1} INC B              [+4]    Count each pass
+//          {1} RET Z              [+11/5] Return carry reset & zero set if 'time-up'.
+//          {2} LD A,7F            [+7]    Read from port +7FFE
+//          {2} IN A,(FE)          [+11]   i.e. BREAK and EAR    <== This is where the PC Trap is
+//          {1} XOR C              [+4]    Now test the byte against the 'last edge-type'
+//          {2} AND 40             [+7]    Mask off just the bit we care about
+//          {2} JR Z,LD-SAMPLE     [+12/5] Jump back to LD-SAMPLE unless it has changed
+//
+u8 tape_sample_variant_search(void)
+{
+    if (!tape_state) tape_state = TAPE_START;
+
+    // The CyclesED[] table will consume the 18 cycles that the LDA, INA would have taken here...
+    int B = 255-CPU.BC.B.h;
+    const u8 C = CPU.BC.B.l;
+ld_sample:
+    u8 A;
+    if (tape_state & 0x80) // One or Zero... do it FAST!
+    {
+        // This version is already inverted...
+        A = (tape_pulse_fast_no_shift()) ^ C;
+    }
+    else
+    {
+        A = (~tape_pulse()) ^ C;
+    }
+
+    if (A & 0x40)                       // Edge detected. We can exit the loop.
+    {
+        CPU.TStates += 17;              // 17 cycles from the IN to past the JR Z,LD-SAMPLE
+        CPU.AF.B.h = A & 0x40;          // This is what the result would have been...
+        CPU.AF.B.l = H_FLAG;            // Set the appropriate flags for the AND +40
+        CPU.BC.B.h = (255-B);           // Let the caller know how close we got to the timeout
+        CPU.PC.W += 5;                  // Jump past the JR Z,LD-SAMPLE check
+    }
+    else                                // Edge not detected - we will do another pass or timeout
+    {
+        CPU.TStates += 56;              // It takes 56 total cycles when we take another pass around the loop
+        if (--B) goto ld_sample;        // If no time-out... take another sample.
+
+        // -----------------------------------------------------------------
+        // We have timed out when B wraps back to zero... handle this here.
+        // -----------------------------------------------------------------
+        CPU.TStates -= 27;              // Give back the time we accounted for with the INCB/RETZ/LDA/INA instructions
+        CPU.BC.B.h = 0xFF;              // Set this up so that we WILL timeout when returning
+        CPU.AF.W = 0x0000;              // Clear flags (mainly Carry Reset) and A register will be clear
+        CPU.PC.W -= 6;                  // And return to the INC B counter and allow the timeout
+    }
+
+    return CPU.AF.B.h;
+}
+
+
 // ---------------------------------------------------------------------------------
 // After every new block is settled into memory, we look to see if we can find one
 // of the popular loaders. We might be able to patch the loader for faster access.
@@ -1219,109 +1344,136 @@ void tape_search_for_loader(void)
         // -----------------------------------------------------------------------
         // All of our loaders have the ubiquitous IN A,+FE to read the tape input
         // -----------------------------------------------------------------------
-        if ((OpZ80(addr+0) == 0xDB) && (OpZ80(addr+1) == 0xFE))
+        if ((PeekZ80(addr+0) == 0xDB) && (PeekZ80(addr+1) == 0xFE))
         {
             // A crap-ton of loaders are 3E, 7F, DB, FE
-            if ((OpZ80(addr-2) == 0x3E) && (OpZ80(addr-1) == 0x7F))
+            if ((PeekZ80(addr-2) == 0x3E) && (PeekZ80(addr-1) == 0x7F))
             {
                 // Standard Loader just moved in memory
-                if (OpZ80(addr+2) == 0x1F)
-                  if (OpZ80(addr+3) == 0xD0)
-                    if (OpZ80(addr+4) == 0xA9)
-                      if (OpZ80(addr+5) == 0xE6)
-                        if (OpZ80(addr+6) == 0x20)
-                          if (OpZ80(addr+7) == 0x28)
+                if (PeekZ80(addr+2) == 0x1F)  // RRA
+                  if (PeekZ80(addr+3) == 0xD0)
+                    if (PeekZ80(addr+4) == 0xA9)
+                      if (PeekZ80(addr+5) == 0xE6)
+                        if (PeekZ80(addr+6) == 0x20)
+                          if (PeekZ80(addr+7) == 0x28)
                           {
                               loader_type = "STANDARD+";
                               PatchLookup[addr+2]  = tape_sample_standard;
                               //0x3D 0x20 +0xFD
-                              if (OpZ80(addr-8) == 0x3D) PatchLookup[addr-7] = tape_pre_edge_accel;
+                              if (PeekZ80(addr-8) == 0x3D) PatchLookup[addr-7] = tape_pre_edge_accel;
                           }
 
                 // Speedlock Loader (omits the check for SPACE=break)
-                if (OpZ80(addr+2) == 0x1F)
-                  if (OpZ80(addr+3) == 0xA9)
-                    if (OpZ80(addr+4) == 0xE6)
-                      if (OpZ80(addr+5) == 0x20)
-                        if (OpZ80(addr+6) == 0x28)
+                if (PeekZ80(addr+2) == 0x1F) // RRA
+                  if (PeekZ80(addr+3) == 0xA9)
+                    if (PeekZ80(addr+4) == 0xE6)
+                      if (PeekZ80(addr+5) == 0x20)
+                        if (PeekZ80(addr+6) == 0x28)
                         {
                             loader_type = "SPEEDLOCK";
                             PatchLookup[addr+2] = tape_sample_speedlock;
-                            if (OpZ80(addr-8) == 0x3D) PatchLookup[addr-7] = tape_pre_edge_accel;
+                            if (PeekZ80(addr-8) == 0x3D) PatchLookup[addr-7] = tape_pre_edge_accel;
                         }
 
                 // Owens Loader
-                if (OpZ80(addr+2) == 0x1F)
-                  if (OpZ80(addr+3) == 0xC8) // RET Z
-                    if (OpZ80(addr+4) == 0xA9)
-                      if (OpZ80(addr+5) == 0xE6)
-                        if (OpZ80(addr+6) == 0x20)
-                          if (OpZ80(addr+7) == 0x28)
+                if (PeekZ80(addr+2) == 0x1F) // RRA
+                  if (PeekZ80(addr+3) == 0xC8) // RET Z
+                    if (PeekZ80(addr+4) == 0xA9)
+                      if (PeekZ80(addr+5) == 0xE6)
+                        if (PeekZ80(addr+6) == 0x20)
+                          if (PeekZ80(addr+7) == 0x28)
                           {
                               loader_type = "OWENS";
                               PatchLookup[addr+2] = tape_sample_standard; // Since this has the same cycle count - we can use the standard loader
-                              if (OpZ80(addr-8) == 0x3D) PatchLookup[addr-7] = tape_pre_edge_accel;
+                              if (PeekZ80(addr-8) == 0x3D) PatchLookup[addr-7] = tape_pre_edge_accel;
                           }
 
                 // Dinaload Loader
-                if (OpZ80(addr+2) == 0x1F)
-                  if (OpZ80(addr+3) == 0xD0) // RET NC
-                    if (OpZ80(addr+4) == 0xA9)
-                      if (OpZ80(addr+5) == 0xE6)
-                        if (OpZ80(addr+6) == 0x20)
-                          if (OpZ80(addr+7) == 0x28)
+                if (PeekZ80(addr+2) == 0x1F) // RRA
+                  if (PeekZ80(addr+3) == 0xD0) // RET NC
+                    if (PeekZ80(addr+4) == 0xA9)
+                      if (PeekZ80(addr+5) == 0xE6)
+                        if (PeekZ80(addr+6) == 0x20)
+                          if (PeekZ80(addr+7) == 0x28)
                           {
                               loader_type = "DINALOAD";
                               PatchLookup[addr+2] = tape_sample_standard; // Since this has the same cycle count - we can use the standard loader
-                              if (OpZ80(addr-8) == 0x3D) PatchLookup[addr-7] = tape_pre_edge_accel;
+                              if (PeekZ80(addr-8) == 0x3D) PatchLookup[addr-7] = tape_pre_edge_accel;
                               // Look for the loader delay which is often outside the main edge loop
                               for (u16 j=addr; j<addr+100; j++)
                               {
-                                  if ((OpZ80(j) == 0x10) && (OpZ80(j+1) == 0xFE)) PatchLookup[j+1] = tape_preloader_delay;
+                                  if ((PeekZ80(j) == 0x10) && (PeekZ80(j+1) == 0xFE)) PatchLookup[j+1] = tape_preloader_delay;
                               }
                           }
 
                 // Microsphere Loader
-                if (OpZ80(addr+2) == 0x1F)
-                  if (OpZ80(addr+3) == 0xA7) // AND A (NOP Equivilent)
-                    if (OpZ80(addr+4) == 0xA9)
-                      if (OpZ80(addr+5) == 0xE6)
-                        if (OpZ80(addr+6) == 0x20)
-                          if (OpZ80(addr+7) == 0x28)
+                if (PeekZ80(addr+2) == 0x1F) // RRA
+                  if (PeekZ80(addr+3) == 0xA7) // AND A (NOP Equivilent)
+                    if (PeekZ80(addr+4) == 0xA9) // XOR C
+                      if (PeekZ80(addr+5) == 0xE6) // AND
+                        if (PeekZ80(addr+6) == 0x20)
+                          if (PeekZ80(addr+7) == 0x28)
                           {
                               loader_type = "MICROSPHERE";
                               PatchLookup[addr+2] = tape_sample_microsphere_bleepload;
-                              if (OpZ80(addr-8) == 0x3D) PatchLookup[addr-7] = tape_pre_edge_accel;
+                              if (PeekZ80(addr-8) == 0x3D) PatchLookup[addr-7] = tape_pre_edge_accel;
                           }
 
                 // Bleepload Loader
-                if (OpZ80(addr+2) == 0x1F)
-                  if (OpZ80(addr+3) == 0x00)  // NOP
-                    if (OpZ80(addr+4) == 0xA9)
-                      if (OpZ80(addr+5) == 0xE6)
-                        if (OpZ80(addr+6) == 0x20)
-                          if (OpZ80(addr+7) == 0x28)
+                if (PeekZ80(addr+2) == 0x1F) // RRA
+                  if (PeekZ80(addr+3) == 0x00)  // NOP
+                    if (PeekZ80(addr+4) == 0xA9) // XOR C
+                      if (PeekZ80(addr+5) == 0xE6) // AND
+                        if (PeekZ80(addr+6) == 0x20)
+                          if (PeekZ80(addr+7) == 0x28)
                           {
                               loader_type = "BLEEPLOAD";
                               PatchLookup[addr+2] = tape_sample_microsphere_bleepload;
-                              if (OpZ80(addr-8) == 0x3D) PatchLookup[addr-7] = tape_pre_edge_accel;
+                              if (PeekZ80(addr-8) == 0x3D) PatchLookup[addr-7] = tape_pre_edge_accel;
                           }
+                          
+                // Variant Search Loader
+                if (PeekZ80(addr+2) == 0xA9) // XOR C
+                  if (PeekZ80(addr+3) == 0xE6)  // AND
+                    if (PeekZ80(addr+4) == 0x40) // #40
+                      if (PeekZ80(addr+5) == 0x28) // JR,Z
+                        if (PeekZ80(addr+6) == 0xF5) // Jump back to LD-SAMPLE
+                        {
+                            loader_type = "VAR-SEARCH";
+                            PatchLookup[addr+2] = tape_sample_variant_search;
+                            if (PeekZ80(addr-8) == 0x3D) PatchLookup[addr-7] = tape_pre_edge_accel;
+                        }
+                          
              }
              else // Now the odd-balls
              {
+                // Search Loader
+                if (PeekZ80(addr+0) == 0xDB) // INA
+                  if (PeekZ80(addr+1) == 0xFE) // +FE
+                    if (PeekZ80(addr+2) == 0xA9) // XOR C
+                      if (PeekZ80(addr+3) == 0xE6)  // AND
+                        if (PeekZ80(addr+4) == 0x40) // #40
+                          if (PeekZ80(addr+5) == 0xD8) // RET C (effectively NOP)
+                            if (PeekZ80(addr+6) == 0x00) // NOP
+                              if (PeekZ80(addr+7) == 0x28) // JR,Z
+                              {
+                                   loader_type = "SEARCHLOAD";
+                                   PatchLookup[addr+2] = tape_sample_searchloader;
+                              }
+
                 // Alkatraz
-                if (OpZ80(addr+0) == 0xDB) // INA
-                  if (OpZ80(addr+1) == 0xFE) // +FE
-                    if (OpZ80(addr+2) == 0x1F) // RRA
-                      if (OpZ80(addr+3) == 0xC8) // RETZ
-                        if (OpZ80(addr+4) == 0xA9) // XORC
-                          if (OpZ80(addr+5) == 0xE6) // AND
-                            if (OpZ80(addr+6) == 0x20) // +20
-                              if (OpZ80(addr+7) == 0x28) // JRZ
+                if (PeekZ80(addr+0) == 0xDB) // INA
+                  if (PeekZ80(addr+1) == 0xFE) // +FE
+                    if (PeekZ80(addr+2) == 0x1F) // RRA
+                      if (PeekZ80(addr+3) == 0xC8) // RETZ
+                        if (PeekZ80(addr+4) == 0xA9) // XORC
+                          if (PeekZ80(addr+5) == 0xE6) // AND
+                            if (PeekZ80(addr+6) == 0x20) // +20
+                              if (PeekZ80(addr+7) == 0x28) // JRZ
                               {
                                   loader_type = "ALKATRAZ";
                                   PatchLookup[addr+2] = tape_sample_alkatraz;
-                                  if (OpZ80(addr-10) == 0x3D) PatchLookup[addr-9] = tape_pre_edge_accel;
+                                  if (PeekZ80(addr-10) == 0x3D) PatchLookup[addr-9] = tape_pre_edge_accel;
                               }
              }
         }

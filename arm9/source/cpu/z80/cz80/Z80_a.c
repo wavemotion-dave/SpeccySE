@@ -160,7 +160,7 @@ ITCM_CODE __attribute__((noinline)) void ContendMemory(void)
 // would point to the start of RAM_Memory[] such that this just turns into a 
 // simple index by the address without having to mask. This buys us 10% speed.
 // ------------------------------------------------------------------------------
-inline __attribute__((always_inline)) byte OpZ80(u32 A)
+inline __attribute__((always_inline)) byte OpZ80(word A)
 {
     if (ContendMap[(A)>>14]) ContendMemory();
     CPU.TStates += 4;  // OpCode reads and process are 4 cycles    
