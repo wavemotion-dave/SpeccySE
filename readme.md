@@ -158,7 +158,7 @@ as a few global options that apply to the emulator in general. The most
 useful of the global options is to select your starting directory. The
 default is to start in /roms/speccy - you can have as many subdirectories
 under that as you wish. The emulator can support a file listing of up 
-to 2000 files with names no longer than 160 characters (so please keep
+to 1024 files with names no longer than 160 characters (so please keep
 your filenames on the shorter side... although the emulator can scroll
 the filename, there only about 30 characters can be shown on the screen
 at a time).
