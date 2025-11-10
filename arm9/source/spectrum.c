@@ -110,6 +110,8 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
         // --------------------------------------------------------
         if (tape_state)
         {
+            zx_special_key = 0;
+            
             // ----------------------------------------------------------------
             // See if this read is patched... for faster tape edge detection.
             // ----------------------------------------------------------------
@@ -129,7 +131,6 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
                 tape_search_for_loader();
                 loader_search_counter=0;
             }
-            zx_special_key = 0; 
             return ~tape_pulse();
         }
         

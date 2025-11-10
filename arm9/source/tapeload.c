@@ -150,13 +150,13 @@ u8 tape_find_positions(void)
 
     for (u16 i=0; i < num_blocks_available; i++)
     {
-        if ((strlen(TapeBlocks[i].description) > 2) && (strcasestr(TapeBlocks[i].description, "CREATED WITH") == 0))
+        if ((strlen(TapeBlocks[i].description) > 0) && (strcasestr(TapeBlocks[i].description, "CREATED WITH") == 0))
         {
             strcpy(TapePositionTable[pos_idx].description, TapeBlocks[i].description);
             TapePositionTable[pos_idx].block_id = i;
             if (++pos_idx == 255) break; // That's all we can handle
         }
-        else if (strlen(TapeBlocks[i].block_filename) > 2)
+        else if (strlen(TapeBlocks[i].block_filename) > 0)
         {
             u8 bad=0;
             for (u8 j=0; j<10; j++)
@@ -169,6 +169,12 @@ u8 tape_find_positions(void)
                 TapePositionTable[pos_idx].block_id = i;
                 if (++pos_idx == 255) break; // That's all we can handle
             }
+        }
+        else if ((TapeBlocks[i].block_flag & 0x80) || (TapeBlocks[i].block_data_len == 19)) // Header
+        {
+                sprintf(TapePositionTable[pos_idx].description, "BLOCK-%03d", i);
+                TapePositionTable[pos_idx].block_id = i;
+                if (++pos_idx == 255) break; // That's all we can handle
         }
     }
     return pos_idx;
@@ -594,7 +600,10 @@ void tape_frame(void)
                 if (++frames_without_loading > (myConfig.autoStop == 2 ? 150:500)) // 10 "accelerated" seconds of no load... stop tape. This is roughly 2-3 seconds of real-time.
                 {
                     // If the previous block was a header block, move back to that one...
-                    if (!(TapeBlocks[current_block-1].block_flag & 0x80)) current_block--;
+                    if (current_block)
+                    {
+                        if (!(TapeBlocks[current_block-1].block_flag & 0x80)) current_block--;
+                    }
                     tape_stop();
                 }
             }

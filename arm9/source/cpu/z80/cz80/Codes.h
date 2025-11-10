@@ -174,7 +174,7 @@ case DEC_E:    M_DEC(CPU.DE.B.l); break; //4:4
 case DEC_H:    M_DEC(CPU.HL.B.h); break; //4:4
 case DEC_L:    M_DEC(CPU.HL.B.l); break; //4:4
 case DEC_A:                              //4:4
-    if (PatchLookup[CPU.PC.W]) (void)PatchLookup[CPU.PC.W](); // Tape pre-delay speedup...
+    if (PatchLookup[CPU.PC.W]) (void)PatchLookup[CPU.PC.W](); // Tape pre-edge-delay speedup...
     else { M_DEC(CPU.AF.B.h); }
     break;
 case DEC_xHL:  I=RdZ80(CPU.HL.W);M_DEC(I);T_INC(1);WrZ80(CPU.HL.W,I);break; //11:443

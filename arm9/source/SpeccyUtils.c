@@ -877,8 +877,8 @@ void MapWASD(void)
 
 void MapZXSpace(void)
 {
-    myConfig.keymap[0]   = 44;   // Space
-    myConfig.keymap[1]   = 19;   // N
+    myConfig.keymap[0]   = 17;   // K
+    myConfig.keymap[1]   = 19;   // M
     myConfig.keymap[2]   = 31;   // Z
     myConfig.keymap[3]   = 29;   // X
     myConfig.keymap[4]   = 44;   // Space
@@ -892,8 +892,8 @@ void MapZXSpace(void)
 }
 
 
-// 6 (left), 7 (right), 8 (down), 9 (up) and 0 (fire) for Sinclair 1
-// 1 (left), 2 (right), 3 (down), 4 (up) and 5 (fire) for Sinclair 2
+// 6 (left), 7 (right), 8 (down), 9 (up) and 0 (fire) for Sinclair P1
+// 1 (left), 2 (right), 3 (down), 4 (up) and 5 (fire) for Sinclair P2
 void Sinclair1(void)
 {
     myConfig.keymap[0]   = 40;   // UP
@@ -910,15 +910,15 @@ void Sinclair1(void)
     myConfig.keymap[11]  = 32;   // NDS SELECT mapped to '1'
 }
 
-// 5 (left), 6 (down), 7 (up), 8 (right)
+// 5 (left), 6 (down), 7 (up), 8 (right) and 0 (fire) - PROTEK uses this mapping
 void Cursors(void)
 {
-    myConfig.keymap[0]   = 38;   // UP
-    myConfig.keymap[1]   = 37;   // DOWN
-    myConfig.keymap[2]   = 36;   // LEFT
-    myConfig.keymap[3]   = 39;   // RIGHT
-    myConfig.keymap[4]   = 45;   // Return
-    myConfig.keymap[5]   = 44;   // Space
+    myConfig.keymap[0]   = 38;   // UP (7)
+    myConfig.keymap[1]   = 37;   // DOWN (6)
+    myConfig.keymap[2]   = 36;   // LEFT (5)
+    myConfig.keymap[3]   = 39;   // RIGHT (8)
+    myConfig.keymap[4]   = 41;   // Fire (0)
+    myConfig.keymap[5]   = 45;   // Return
     myConfig.keymap[6]   = 44;   // Space
     myConfig.keymap[7]   = 44;   // Space
     myConfig.keymap[8]   = 42;   // NDS R Button mapped to SHIFT
@@ -1060,43 +1060,53 @@ void FindConfig(void)
 
     if (!bFound)
     {
-        if      (strcasestr(gpFic[ucGameChoice].szName, "ATIC ATAC")    != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "ATIC-ATAC")    != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "ATICATAC")     != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "ATIC_ATAC")    != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "WULF")         != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "SKOOL")        != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "ELITE")        != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "LUNARJET")     != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "LUNAR JET")    != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "JETPAC")       != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "JET-PAC")      != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "JET PAC")      != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "MACHINA")      != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "DEATHCHASE")   != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "DEATH CHASE")  != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "MAZIACS")      != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "ALIEN8")       != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "ALIEN 8")      != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "PSSST")        != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "UNDERWURLDE")  != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "ARCADIA")      != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "CHUCKIE")      != 0) {myConfig.machine = 0; myConfig.frameSkip = 0; myConfig.dpad = 2;}
-            
-        else if (strcasestr(gpFic[ucGameChoice].szName, "GLUF")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "DREAMWALKER")  != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "DREAM WALKER") != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "MULTIDUDE")    != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "MULTI DUDE")   != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "MANICPIE")     != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "MANIC PIE")    != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "YAZZIE")       != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "OUTOFMARS")    != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "OUT OF MARS")  != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "GANDALF")      != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "PANGOLIN")     != 0) {myConfig.machine = 0; myConfig.ULAtiming = 0;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "ALTER EGO")    != 0) myConfig.machine = 0; // Do this after checks above for DREAMWALKER
-        else if (strcasestr(gpFic[ucGameChoice].szName, "ALTEREGO")     != 0) myConfig.machine = 0; // Do this after checks above for DREAMWALKER
+        // A whole bunch of games need the 48K machine and won't run on the 128K machine. We do our best on the more popular games to auto-detect.
+        if      (strcasestr(gpFic[ucGameChoice].szName, "ATIC ATAC")         != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "ATIC-ATAC")         != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "ATICATAC")          != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "ATIC_ATAC")         != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "KNIGHTLORE")        != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "KNIGHT LORE")       != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "HYPER SPORTS")      != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "HYPERSPORTS")       != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "HYPER_SPORTS")      != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "ULTIMATE CARTOON")  != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "CARTOON ADVENTURE") != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "INFERNO")           != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "WULF")              != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "SKOOL")             != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "ELITE")             != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "LUNARJET")          != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "LUNAR JET")         != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "JETPAC")            != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "JET-PAC")           != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "JET PAC")           != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "MACHINA")           != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "DEATHCHASE")        != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "DEATH CHASE")       != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "MAZIACS")           != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "ALIEN8")            != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "ALIEN 8")           != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "PSSST")             != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "UNDERWURLDE")       != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "ARCADIA")           != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "CHUCKIE")           != 0) {myConfig.machine = 0; myConfig.frameSkip = 0; myConfig.dpad = 2;}
+                 
+        // And some games that need some special ULA timing to look 'correct'
+        else if (strcasestr(gpFic[ucGameChoice].szName, "GLUF")              != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "DREAMWALKER")       != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "DREAM WALKER")      != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "MULTIDUDE")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "MULTI DUDE")        != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "MANICPIE")          != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "MANIC PIE")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "YAZZIE")            != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "OUTOFMARS")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "OUT OF MARS")       != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "GANDALF")           != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "PANGOLIN")          != 0) {myConfig.machine = 0; myConfig.ULAtiming = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "ALTER EGO")         != 0) myConfig.machine = 0; // Do this after checks above for DREAMWALKER
+        else if (strcasestr(gpFic[ucGameChoice].szName, "ALTEREGO")          != 0) myConfig.machine = 0; // Do this after checks above for DREAMWALKER
     }
 }
 
@@ -1303,15 +1313,15 @@ void SwapKeymap(void)
     keyMapType = (keyMapType+1) % 6;
     switch (keyMapType)
     {
-        case 0: MapPlayer1();  DSPrint(10,3,0,("KEMPSTON P1")); break;
-        case 1: Sinclair1();   DSPrint(10,3,0,("SINCLAIR P1")); break;
-        case 2: Cursors();     DSPrint(10,3,0,("  CURSORS  ")); break;
-        case 3: MapQAOP();     DSPrint(10,3,0,("   QAOP    ")); break;
-        case 4: MapWASD();     DSPrint(10,3,0,("   WASD    ")); break;
-        case 5: MapZXSpace();  DSPrint(10,3,0,(" ZX SPACE  ")); break;
+        case 0: MapPlayer1();  DSPrint(8,3,0,("  KEMPSTON P1 ")); break;
+        case 1: Sinclair1();   DSPrint(8,3,0,("  SINCLAIR P1 ")); break;
+        case 2: Cursors();     DSPrint(8,3,0,("PROTEK CURSORS")); break;
+        case 3: MapQAOP();     DSPrint(8,3,0,("     QAOP     ")); break;
+        case 4: MapWASD();     DSPrint(8,3,0,("     WASD     ")); break;
+        case 5: MapZXSpace();  DSPrint(8,3,0,("   ZX SPACE   ")); break;
     }
     WAITVBL;WAITVBL;WAITVBL;WAITVBL;
-    DSPrint(10,3,0,("           "));
+    DSPrint(8,3,0,("               "));
 }
 
 
