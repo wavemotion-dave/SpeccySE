@@ -24,7 +24,7 @@ Features :
 * High Score saving for 10 scores with initials, date/time.
 * Favorites list so you can mark games as 'like' or 'love' - a yellow or red heart icon will mark your favorite games.
 * Solid Z80 core that passes the ZEXDOC test suite (covering everything but not undocumented flags).
-* Minimal design asthetic - pick game, play game. Runs unpached from your SD card via TWL++ or similar.
+* Minimal design aesthetic - pick game, play game. Runs unpached from your SD card via TWL++ or similar.
 
 Copyright :
 -----------------------
@@ -94,7 +94,7 @@ quote mark ("), you would press and release Symbol, then press the letter P.
 
 Emulator Use :
 -----------------------
-The emulator is fairly straightforward to navigatge. The main menu lets you 
+The emulator is fairly straightforward to navigate. The main menu lets you 
 select the game you wish to play (.TAP, .TZX or .Z80). Once you've picked
 a game, the title will show at the bottom along with the size and CRC (which
 isn't all that important but I like to see it). Then you can play the game or
@@ -123,8 +123,8 @@ the DPad and 'A' button is set to the Kempston standard.
 
 ![image](./png/keymap.bmp)
 
-When you aer in the 'DEFINE KEYS' sub-menu, you can press the X key to swap between 
-major types of configuration schemes... Kemston Joystick, Sinclair P1, Protek/Cursors, QAOP-M/Space, etc.
+When you are in the 'DEFINE KEYS' sub-menu, you can press the X key to swap between 
+major types of configuration schemes... Kempston Joystick, Sinclair P1, Protek/Cursors, QAOP-M/Space, etc.
 
 Loading Games :
 -----------------------
@@ -141,12 +141,12 @@ The emulator has support for the Kempston and Sinclair (67890) joysticks but
 really any keyboard key can be mapped to any one of the 12 NDS buttons
 so you should be able to configure things exactly as desired. When using
 the 'REDEFINE KEYS' menu, you can press the NDS 'X' button to toggle between
-a number of commonly used preset keys for various ZX games (QAOP, ZXM, etc).
+a number of commonly used preset keys for various ZX games (QAOP, ZX-Space, etc).
 By default, the configuration for any game is set to use the Kempston joystick.
 
 Also be aware that there is a D-PAD option that can be set to 'SLIDE-N-GLIDE'
 for games that are often unforgiving using a joystick. If you've ever played 
-Chuckie Egg on a keybaord you know that it's pinpoint percise... but with 
+Chuckie Egg on a keyboard you know that it's pinpoint precise... but with 
 a joystick, it can be a bit frustrating trying to find the exact spot to 
 transition from Left/Right to Up/Down to climb a ladder. This new joy mode
 will hold the L/R or U/D for a fraction of a frame while the transition 
@@ -184,7 +184,7 @@ If you don't understand an option - don't touch it. You have been duly warned!
 Snapshot Format Support :
 -----------------------
 The emulator supports .Z80 and .SNA snapshot but you should avoid their use. 
-The ZX Spectrum is a simple but beguiling mahcine - and when you run a snapshot
+The ZX Spectrum is a simple but beguiling machine - and when you run a snapshot
 you are, essentially, running a memory dump taken on another machine/emulator.
 This usually works... but sometimes doesn't. And it might lead to problems such
 as the game playing out the same (lack of randomization) every time. The ZX Spectrum
