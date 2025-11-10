@@ -5,7 +5,7 @@ SpeccySE is a ZX Spectrum 48K / 128K Emulator for the DS/DSi
 
 To run requires both of the original ZX Spectrum BIOS ROMs.
 Place 48.ROM and 128.ROM (exactly so named) into the same directory 
-as the emulator or else in /roms/bios or /data/bios
+as the emulator or else in /roms/bios
 
 Features :
 -----------------------
@@ -123,6 +123,9 @@ the DPad and 'A' button is set to the Kempston standard.
 
 ![image](./png/keymap.bmp)
 
+When you aer in the 'DEFINE KEYS' sub-menu, you can press the X key to swap between 
+major types of configuration schemes... Kemston Joystick, Sinclair P1, Protek/Cursors, QAOP-M/Space, etc.
+
 Loading Games :
 -----------------------
 You can have no more than 1024 game files in any directory but you can have as many directories as you wish.
@@ -178,12 +181,20 @@ handling. One of the more useful per-game options is to decide how you
 want to load the game - using a 48K Spectrum or the upgraded 128K Spectrum.
 If you don't understand an option - don't touch it. You have been duly warned!
 
+Snapshot Format Support :
+-----------------------
+The emulator supports .Z80 and .SNA snapshot but you should avoid their use. 
+The ZX Spectrum is a simple but beguiling mahcine - and when you run a snapshot
+you are, essentially, running a memory dump taken on another machine/emulator.
+This usually works... but sometimes doesn't. And it might lead to problems such
+as the game playing out the same (lack of randomization) every time. The ZX Spectrum
+was designed with tape loading in mind - and you should strongly prefer .TAP or .TZX
+files and only fall back to .Z80 or .SNA when no other option works.
 
 Tape Support :
 -----------------------
-The emulator supports .Z80 snapshots but of more use is the .TAP and
-.TZX tape support. The .TAP format is fully supported and the .TZX is 
-reasonably supported minus some of the more complicated blocks - most
+The ubiquitous .TAP format is fully supported and the .TZX is 
+_reasonably_ supported minus some of the more complicated blocks - most
 software never uses those specialized blocks. As with any old tape-based
 software, sometimes the .TAP or .TZX files are a bit dodgy - so if one
 version of a tape doesn't work, go find another and it will probably
