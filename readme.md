@@ -3,7 +3,7 @@
 
 SpeccySE is a ZX Spectrum 48K / 128K Emulator for the DS/DSi
 
-To run requires one or both of the original ZX Spectrum BIOS ROMs.
+To run requires both of the original ZX Spectrum BIOS ROMs.
 Place 48.ROM and 128.ROM (exactly so named) into the same directory 
 as the emulator or else in /roms/bios or /data/bios
 
