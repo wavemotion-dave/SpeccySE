@@ -14,7 +14,6 @@ Features :
 * Loads .Z80 snapshots (V1, V2 and V3 formats, 48K or 128K)
 * Loads .SNA snapshots (48K only)
 * Loads .ROM files (16K diagnostics ROMs or 512K Dandanator ROMs)
-* Loads .PRG files directly into memory and executes them (use Cart menu)
 * Loads .P files for ZX81 emulation (see below)
 * Supports .POK files (same name as base game and stored in POK subdir)
 * Kempston and Sinclair joystick support
