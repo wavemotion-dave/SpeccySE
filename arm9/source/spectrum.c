@@ -357,7 +357,7 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
 // For the ZX Spectrum 128K this is the banking routine that will swap the BIOS ROM and
 // swap out the bank of memory that will be visible at 0xC000 in CPU address space.
 // --------------------------------------------------------------------------------------
-ITCM_CODE void zx_bank(u8 new_bank)
+ITCM_CODE void zx_bank(u8 new_portFE)
 {
     if (portFD & 0x20) return; // Lock out - no more bank swaps allowed
 
@@ -370,17 +370,20 @@ ITCM_CODE void zx_bank(u8 new_bank)
         }
         else
         {
-            MemoryMap[0] = SpectrumBios128 + ((new_bank & 0x10) ? 0x4000 : 0x0000);
+            MemoryMap[0] = SpectrumBios128 + ((new_portFE & 0x10) ? 0x4000 : 0x0000);
         }
     }
 
-    // Map in the correct page of banked memory to 0xC000
-    MemoryMap[3] = RAM_Memory128 + ((new_bank & 0x07) * 0x4000) - 0xC000;
-    
-    portFD = new_bank;
+    portFD = new_portFE;
 
+    // Map in the correct page of banked memory to 0xC000
+    MemoryMap[3] = RAM_Memory128 + ((portFD & 0x07) * 0x4000) - 0xC000;
+    
     // Set the upper bank of memory to 'contended' if we are swapping in an 'odd' 128K bank
-    ContendMap[3] = (zx_128k_mode && (portFD & 1));
+    if ((myConfig.ULAtiming & 2) == 0)
+    {
+        ContendMap[3] = (zx_128k_mode && (portFD & 1));
+    }
 }
 
 // A fast look-up table when we are rendering background pixels
@@ -750,7 +753,9 @@ void speccy_reset(void)
             {
                 pre_render_lookup[paper][ink][pixel] = (((pixel & 0x08) ? ink:paper)) | (((pixel & 0x04) ? ink:paper) << 8) | (((pixel & 0x02) ? ink:paper) << 16) | (((pixel & 0x01) ? ink:paper) << 24);
             }
-    
+
+    // Normally we always contend 0x4000-0x7FFF unless we are configured for 'no contend'
+    ContendMap[1] = (myConfig.ULAtiming & 2) ? 0:1;
     ContendMap[3] = 0; // Assume no contention on upper memory until 128K odd bank mapped in
     
     // Restore the original palette (in case ULA+ changed it)
@@ -878,7 +883,7 @@ void speccy_reset(void)
 ITCM_CODE u32 speccy_run(void)
 {
     ++zx_current_line; // This is the pixel line we're working on...
-    int starting_line = (myConfig.machine ? 63:64)+myConfig.ULAtiming; // And this is the first line we draw (48K machines start 1 line later)
+    int starting_line = (myConfig.machine ? 63:64)+(myConfig.ULAtiming&1); // And this is the first line we draw (48K machines start 1 line later)
 
     // ----------------------------------------------
     // Execute 1 scanline worth of CPU instructions.

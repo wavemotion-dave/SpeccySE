@@ -121,7 +121,7 @@ u32 last_edge                   __attribute__((section(".dtcm"))) = 0;
 u32 next_edge1                  __attribute__((section(".dtcm"))) = 0;
 u32 next_edge2                  __attribute__((section(".dtcm"))) = 0;
 u32 tape_pulses_this_frame      __attribute__((section(".dtcm"))) = 0;
-u8 give_up_counter              __attribute__((section(".dtcm"))) = 0;
+u8  give_up_counter             __attribute__((section(".dtcm"))) = 0;
 
 char *loader_type          = "STANDARD";
 TapePositionTable_t TapePositionTable[256];
@@ -698,7 +698,7 @@ ITCM_CODE u8 tape_pulse(void)
                 // -------------------------------------------------------------
                 if (current_block >= num_blocks_available)
                 {
-                    tape_state = TAPE_STOP; // Stop the playback
+                    tape_stop();            // Stop the playback
                     current_block = 0;      // Wrap back around
                     break;                  // And move directly to the STOP state
                 }

@@ -1131,7 +1131,7 @@ const struct options_t Option_Table[2][20] =
     {
         {"MACHINE",        {"48K SPECTRUM", "128K SPECTRUM"},                           &myConfig.machine,           2},
         {"ULA PLUS",       {"DISABLED",  "ENABLED"},                                    &myConfig.ULAplus,           2},
-        {"ULA TIMING",     {"NORMAL", "LATE"},                                          &myConfig.ULAtiming,         2},
+        {"ULA TIMING",     {"NORMAL", "LATE", "UNCONTESTED"},                           &myConfig.ULAtiming,         3},
         {"FRAMESKIP",      {"OFF (SHOW ALL)", "ON (SHOW 3/4)"},                         &myConfig.frameSkip,         2},
         {"AUTO PLAY",      {"NO", "YES"},                                               &myConfig.autoLoad,          2},
         {"AUTO STOP",      {"NO", "YES", "AGGRESSIVE"},                                 &myConfig.autoStop,          3},
