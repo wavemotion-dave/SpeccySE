@@ -196,9 +196,10 @@ The ZX Spectrum is a simple but beguiling machine - and when you run a snapshot
 you are, essentially, running a memory dump taken on another machine/emulator.
 This usually works... but sometimes doesn't. And it might lead to problems such
 as the game playing out the same (lack of randomization) every time or minor 
-timing problems that are not always obvious to spot. The ZX Spectrum
-was designed with tape loading in mind - and you should strongly prefer .TAP
-or .TZX files and only fall back to .Z80 or .SNA when no other option works.
+timing problems that are not always obvious to spot. Also, with many snapshots, 
+you end up missing the loading screen artwork which is a hallmark of the Speccy.
+The ZX Spectrum was designed with tape loading in mind - and you should strongly 
+prefer .TAP or .TZX files and only fall back to .Z80 or .SNA when no other option works.
 
 Tape Support :
 -----------------------
