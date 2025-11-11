@@ -166,7 +166,11 @@ Game Options / Global Options :
 -----------------------
 There are a number of options you can tweak on a per-game basis as well
 as a few global options that apply to the emulator in general. The most
-useful of the global options is to select your starting directory. 
+useful of the global options is to select your starting directory and 
+if you want the default machine to be 48K or the 128K Spectrum (you can
+change this on a per-game basis).
+
+For the individual game options, you have a number of choices:
 
 ![image](./png/options.png)
 
