@@ -16,7 +16,7 @@ Features :
 * Loads .ROM files (16K diagnostics ROMs or 512K Dandanator ROMs)
 * Loads .P files for ZX81 emulation (see below)
 * Supports .POK files (same name as base game and stored in POK subdir)
-* Kempston and Sinclair joystick support
+* Kempston, Sinclair and Protek joystick support
 * Fully configurable keys for the 12 NDS keys to any combination of joystick/keyboard
 * Save and Restore states so you can pick up where you left off
 * ULAPlus support for enhanced 64 color mode (from a palette of 256 colors)
