@@ -79,19 +79,6 @@ the cool kids keep them):
 
 Use of any other non-standard ZX Spectrum roms is likely to end in tears.
 
-The ZX Keyboard :
------------------------
-The emulator has a built-in virtual touch keyboard that works reasonably well
-except that the touch screen is not multi-touch (like your phone). So you 
-can only press on one area of the screen at a time. To make the SYMBOL and
-SHIFT keys work, when you press those buttons, you will see a little white
-or yellow indicator at the top of the screen indicating that this button 
-is a symbol/shift button and it will wait for the _next_ button to be pressed
-and use it in combination with the symbol/shift. So if you want to type the 
-quote mark ("), you would press and release Symbol, then press the letter P.
-
-![image](./png/keyboard.bmp)
-
 Emulator Use :
 -----------------------
 The emulator is fairly straightforward to navigate. The main menu lets you 
@@ -142,6 +129,19 @@ to 1024 files with names no longer than 160 characters (so please keep
 your filenames on the shorter side... although the emulator can scroll
 the filename, there only about 30 characters can be shown on the screen
 at a time).
+
+The ZX Keyboard :
+-----------------------
+The emulator has a built-in virtual touch keyboard that works reasonably well
+except that the touch screen is not multi-touch (like your phone). So you 
+can only press on one area of the screen at a time. To make the SYMBOL and
+SHIFT keys work, when you press those buttons, you will see a little white
+or yellow indicator at the top of the screen indicating that this button 
+is a symbol/shift button and it will wait for the _next_ button to be pressed
+and use it in combination with the symbol/shift. So if you want to type the 
+quote mark ("), you would press and release Symbol, then press the letter P.
+
+![image](./png/keyboard.bmp)
 
 Joystick Support :
 -----------------------
