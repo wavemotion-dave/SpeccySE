@@ -135,6 +135,14 @@ the games that you want to come back to more regularly.
 
 ![image](./png/favs.png)
 
+The emulator tries to start in the /roms/speccy directory but you can change
+this in the 'Global Configuration'. You can have as many subdirectories
+under that as you wish. The emulator can support a file listing of up 
+to 1024 files with names no longer than 160 characters (so please keep
+your filenames on the shorter side... although the emulator can scroll
+the filename, there only about 30 characters can be shown on the screen
+at a time).
+
 Joystick Support :
 -----------------------
 The emulator has support for the Kempston and Sinclair (67890) joysticks but
@@ -158,13 +166,9 @@ Game Options / Global Options :
 -----------------------
 There are a number of options you can tweak on a per-game basis as well
 as a few global options that apply to the emulator in general. The most
-useful of the global options is to select your starting directory. The
-default is to start in /roms/speccy - you can have as many subdirectories
-under that as you wish. The emulator can support a file listing of up 
-to 1024 files with names no longer than 160 characters (so please keep
-your filenames on the shorter side... although the emulator can scroll
-the filename, there only about 30 characters can be shown on the screen
-at a time).
+useful of the global options is to select your starting directory. 
+
+![image](./png/options.png)
 
 One option that is of particular note is the ability to run the game
 at a speed other than normal 100%. Some games were designed to run
