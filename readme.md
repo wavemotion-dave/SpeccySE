@@ -297,7 +297,7 @@ you're likely going to want ZXDS.
 
 Version History :
 -----------------------
-Version 1.8 - ??-Nov-2025 by wavemotion-dave
+Version 1.8 - 14-Nov-2025 by wavemotion-dave
 * Added ability to disable ULA contention
 * Key map cleanup - improved QAOP and Protek support
 * Better defaults for 48K games
