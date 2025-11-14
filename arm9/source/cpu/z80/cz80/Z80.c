@@ -241,6 +241,19 @@ __attribute__((noinline)) void dandanator_flash_write(word A, byte value)
             dandanator_data2 = value;
             break;
     }
+    
+    // If we have disabled the Dandanator... swap back the original Speccy BIOS
+    if (dandy_disabled)
+    {
+        if (myConfig.machine) // If we are 128K machine
+        {
+            MemoryMap[0] = SpectrumBios128 + ((portFD & 0x10) ? 0x4000 : 0x0000);
+        }
+        else // Otherwise original Spectrum 48K
+        {
+            MemoryMap[0] = SpectrumBios;
+        }
+    }
 }
 
 // -------------------------------------------------------------------------------------------
@@ -454,7 +467,7 @@ void ResetZ80(Z80 *R)
 /** IntZ80() *************************************************/
 /** This function will generate interrupt of given vector.  **/
 /*************************************************************/
-void IntZ80(Z80 *R,word Vector)
+ITCM_CODE void IntZ80(Z80 *R,word Vector)
 {
     /* If HALTed, take CPU off HALT instruction */
     if(CPU.IFF&IFF_HALT) { CPU.PC.W++;CPU.IFF&=~IFF_HALT; }

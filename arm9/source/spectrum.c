@@ -662,16 +662,15 @@ ITCM_CODE void speccy_render_screen_line(u8 line)
         vidBuf = (u32*)(0x06000000 + (line << 8));    // Video buffer... write 32-bits at a time for maximum speed
         bRenderSkipOnce = 1; // When we stop the tape, we want to allow the first frame to re-draw before rendering
     }
-    
 
-    // -----------------------------------------------------------------------------
-    // Only draw one out of every 16 frames when we are loading tape. We want to
-    // give as much horsepower to the emulation CPU as possible here - this is
+    // ------------------------------------------------------------------------------------
+    // Only draw one out of every 8 (DSi) or 16 (DS-Lite) frames when we are loading tape.
+    // We want to give as much horsepower to the emulation CPU as possible here - this is
     // good enough to let the screen draw slowly in the background as we have time.
-    // -----------------------------------------------------------------------------
+    // ------------------------------------------------------------------------------------
     if (tape_is_playing())
     {
-        if (tape_play_skip_frame & 0x0F) return;
+        if (tape_play_skip_frame & (isDSiMode() ? 0x07:0x0F)) return;
     }
 
     // -----------------------------------------------------------------------
@@ -884,17 +883,17 @@ ITCM_CODE u32 speccy_run(void)
 {
     ++zx_current_line; // This is the pixel line we're working on...
     int starting_line = (myConfig.machine ? 63:64)+(myConfig.ULAtiming&1); // And this is the first line we draw (48K machines start 1 line later)
-
+    int ending_line   = (zx_128k_mode ? SCANLINES_PER_FRAME_128-1:SCANLINES_PER_FRAME_48-1);
+    
     // ----------------------------------------------
     // Execute 1 scanline worth of CPU instructions.
-    //
-    // We break this up into pieces in order to
-    // get more chances to render the audio beeper
-    // which requires a fairly high sample rate...
     // -----------------------------------------------
     if (tape_state)
     {
-        // If we are playing back the tape - just run the emulation as fast as possible
+        // ---------------------------------------------------------------------------------------------
+        // If we are playing back the tape - just run the emulation as fast as possible and try not to 
+        // touch CPU.TStates as we can use some speed-up tricks when accelerating the tape playback...
+        // ---------------------------------------------------------------------------------------------
         ExecZ80_Speccy(CPU.TStates + (zx_128k_mode ? CYCLES_PER_SCANLINE_128:CYCLES_PER_SCANLINE_48));
 
         if (CPU.TStates > 0xFFFE0000) // Too close to the wrap point, should never happen but trap it out so we don't crash the emulation
@@ -917,7 +916,7 @@ ITCM_CODE u32 speccy_run(void)
         // on every new frame to help us with the somewhat complex handling of
         // the memory contention which is heavily dependent on CPU Cycle counts.
         // -----------------------------------------------------------------------
-        if (zx_current_line == (zx_128k_mode ? SCANLINES_PER_FRAME_128:SCANLINES_PER_FRAME_48))
+        if (zx_current_line == ending_line)
         {
             CPU.TStates = 0;
             last_edge = 0;
@@ -942,10 +941,11 @@ ITCM_CODE u32 speccy_run(void)
         accurate_emulation = 0; // If in top/bottom border areas, skip accurate cycle emulation (no contention)
     }
 
-    // ------------------------------------------
-    // Generate an interrupt only at end of frame
-    // ------------------------------------------
-    if (zx_current_line == (zx_128k_mode ? SCANLINES_PER_FRAME_128:SCANLINES_PER_FRAME_48))
+    // --------------------------------------------------------------
+    // Generate an interrupt only at end of frame. The ULA generates
+    // the interrupt 1 scanline before the top blanking begins.
+    // --------------------------------------------------------------
+    if (zx_current_line == ending_line)
     {
         zx_current_line = 0;
         CPU.IRequest = INT_RST38;

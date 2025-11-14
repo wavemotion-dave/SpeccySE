@@ -164,7 +164,7 @@ u16 keyCoresp[MAX_KEY_OPTIONS] __attribute__((section(".dtcm"))) = {
     META_KBD_SHIFT,
     META_KBD_SYMBOL,
     META_KBD_SPACE,
-    META_KBD_RETURN
+    META_KBD_RETURN // 45
 };
 
 int8 currentBrightness = 0;
@@ -206,8 +206,8 @@ mm_stream myStream  __attribute__((section(".dtcm")));
 #define WAVE_DIRECT_BUF_SIZE_DSI    4095
 u16 mixer_read      __attribute__((section(".dtcm"))) = 0;
 u16 mixer_write     __attribute__((section(".dtcm"))) = 0;
-s16 mixer[WAVE_DIRECT_BUF_SIZE+1]  __attribute__((section(".dtcm")));
-s16 *mixer_DSI = (s16*)0x068A0000;  // Use 4K of LCD RAM which is fairly fast for our audio buffer
+s16 mixer[WAVE_DIRECT_BUF_SIZE+1]  __attribute__((section(".dtcm"))); // We have enough fast DTCM memory for the DS-Lite buffer
+s16 *mixer_DSI = (s16*)0x068A0000;  // Use 4K of LCD RAM which is fairly fast for our audio buffer (not quite enough room in the DTCM space for 4K)
 
 // The games normally run at the proper 100% speed, but user can override from 80% to 120%
 u16 GAME_SPEED_PAL[]  __attribute__((section(".dtcm"))) = {654, 640, 623, 594, 545, 666, 686, 725, 815};
@@ -233,17 +233,20 @@ ITCM_CODE mm_word OurSoundMixer(mm_word len, mm_addr dest, mm_stream_formats for
     else
     {
         s16 *p = (s16*)dest;
+        s16 local_sample = last_sample; // A tiny bit faster to move this locally
         for (int i=0; i<len; i++)
         {
-            if (mixer_read == mixer_write) {*p++ = last_sample;}
+            if (mixer_read == mixer_write) {*p++ = local_sample;}
             else
             {
-                last_sample = mixer[mixer_read];
-                *p++ = last_sample;
+                local_sample = mixer[mixer_read];
+                *p++ = local_sample;
                 mixer_read = (mixer_read + 1) & WAVE_DIRECT_BUF_SIZE;
             }
         }
         if (breather) {breather -= len; if (breather < 0) breather = 0;}
+        
+        last_sample = local_sample;
     }
 
     return  len;
@@ -262,17 +265,20 @@ ITCM_CODE mm_word OurSoundMixerDSI(mm_word len, mm_addr dest, mm_stream_formats 
     else
     {
         s16 *p = (s16*)dest;
+        s16 local_sample = last_sample; // A tiny bit faster to move this locally
         for (int i=0; i<len; i++)
         {
-            if (mixer_read == mixer_write) {*p++ = last_sample;}
+            if (mixer_read == mixer_write) {*p++ = local_sample;}
             else
             {
-                last_sample = mixer_DSI[mixer_read];
-                *p++ = last_sample;
+                local_sample = mixer_DSI[mixer_read];
+                *p++ = local_sample;
                 mixer_read = (mixer_read + 1) & WAVE_DIRECT_BUF_SIZE_DSI;
             }
         }
         if (breather) {breather -= len; if (breather < 0) breather = 0;}
+        
+        last_sample = local_sample;
     }
 
     return  len;
@@ -303,7 +309,7 @@ ITCM_CODE void processDirectAudio(void)
         
         if (beeper_pulses_idx)
         {
-            beeper_vol = (beeper_vol) ? 0x000:0x1800;
+            beeper_vol = (beeper_vol) ? 0x000:0x1C00;
             beeper_pulses_idx--;
         }
         
@@ -330,12 +336,12 @@ ITCM_CODE void processDirectAudioDSI(void)
         
         if (beeper_pulses_idx)
         {
-            beeper_vol = (beeper_vol) ? 0x000:0x1800;
+            beeper_vol = (beeper_vol) ? 0x000:0x1C00;
             beeper_pulses_idx--;
         }
         
         s32 sample = (s32)mixbufAY[ay_sample_idx] + (s32)beeper_vol;
-        if (i&1) ay_sample_idx++;
+        if (i&1) ay_sample_idx++; // Consume AY samples half as fast as DS-Lite
         if (sample > 32767) sample = 32767;
         mixer_DSI[mixer_write++] = (s16)sample;
         
@@ -424,11 +430,6 @@ void setupStream(void)
 
 void sound_chip_reset()
 {
-  memset(mixer, 0x00, sizeof(mixer));
-  memset(mixer_DSI, 0x00, 2*(WAVE_DIRECT_BUF_SIZE_DSI+1));
-  mixer_read=0;
-  mixer_write=0;
-
   //  --------------------------------------------------------------------
   //  The AY sound chip is for the ZX Spectrum 128K
   //  --------------------------------------------------------------------
@@ -436,7 +437,20 @@ void sound_chip_reset()
   ay38910IndexW(0x07, &myAY);      // Register 7 is ENABLE
   ay38910DataW(0x3F, &myAY);       // All OFF (negative logic)
   ay38910Mixer(8, mixbufAY, &myAY);// Do an initial mix conversion to clear the output
-  last_sample = mixbufAY[2];       // And set the last sample for muting
+  last_sample = mixbufAY[4];       // And set the last sample for muting
+
+  // Initialize the mixer buffers to the last sample
+  for (int i=0; i < WAVE_DIRECT_BUF_SIZE+1; i++)
+  {
+      mixer[i] = last_sample;
+  }
+  for (int i=0; i < WAVE_DIRECT_BUF_SIZE_DSI+1; i++)
+  {
+      mixer_DSI[i] = last_sample;
+  }
+  
+  mixer_read=0;
+  mixer_write=0;
 }
 
 // -----------------------------------------------------------------------
@@ -447,7 +461,7 @@ void dsInstallSoundEmuFIFO(void)
   SoundPause();             // Pause any sound output
   sound_chip_reset();       // Reset the SN, AY and SCC chips
   setupStream();            // Setup maxmod stream...
-  bStartSoundEngine = 5;    // Volume will 'unpause' after 5 frames in the main loop.
+  bStartSoundEngine = 2;    // Sound will 'unpause' after 2 frames in the main loop.
 }
 
 //*****************************************************************************
@@ -1236,7 +1250,7 @@ void SpeccySE_main(void)
   newStreamSampleRate();
 
   // Force the sound engine to turn on when we start emulation
-  bStartSoundEngine = 10;
+  bStartSoundEngine = 2;
 
   bFirstTime = 2;
 
@@ -1351,7 +1365,7 @@ void SpeccySE_main(void)
             if (tape_is_playing())
             {
                 mixer_read = mixer_write = 0;
-                bStartSoundEngine = 5;  // Unpause sound after 5 frames
+                bStartSoundEngine = 2;  // Unpause sound after 2 frames
                 SoundPause();           // But for now, keep muted while we load
                 currentBrightness = 0;  // Keep at full brightness while loading
                 dimDampen = 0;
