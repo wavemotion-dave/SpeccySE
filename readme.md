@@ -281,7 +281,7 @@ Known Issues :
 * Gandalf DLX does not run correctly. Timing is tight on that game and the accuracy of Speccy-SE is not up to the task.
 * Genesis has graphical glitching (screen jitter) during gameplay. Likely timing issue.
 * Ghosts-n-Goblins doesn't run - graphics go wonky right after the main gameplay is started. Cause unknown.
-* TRD disk files are not supported yet. Most games have TAP or Dandanator alternatives - but not all.
+* Disk files are not supported yet. Most games have TAP or Dandanator alternatives - but not all.
 
 Why? :
 -----------------------
