@@ -9,8 +9,8 @@ as the emulator or else in /roms/bios
 
 Features :
 -----------------------
-* Loads .TAP files up to 512K total length (can swap tapes mid-game)
-* Loads .TZX files up to 512K total length (can swap tapes mid-game)
+* Loads .TAP files up to 640K total length (can swap tapes mid-game)
+* Loads .TZX files up to 640K total length (can swap tapes mid-game)
 * Loads .Z80 snapshots (V1, V2 and V3 formats, 48K or 128K)
 * Loads .SNA snapshots (48K only)
 * Loads .ROM files (16K diagnostics ROMs or 512K Dandanator ROMs)
@@ -297,6 +297,14 @@ you're likely going to want ZXDS.
 
 Version History :
 -----------------------
+Version 1.8 - ??-Nov-2025 by wavemotion-dave
+* Added ability to disable ULA contention
+* Key map cleanup - improved QAOP and Protek support
+* Better defaults for 48K games
+* Minor cleanup on tape edge handling
+* Fixed POK applied symbol
+* Corrected tape loader timeouts - was causing problems in loading some games (e.g. R-Type)
+
 Version 1.7 - 09-Nov-2025 by wavemotion-dave
 * Implemented Favorites system - use SELECT in game selection screen to toggle Like/Love.
 * Massive overhaul to provide smoother double-buffered frame rendering on all hardware (DS-Lite/Phat users rejoice!).
