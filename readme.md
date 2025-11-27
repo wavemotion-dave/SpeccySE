@@ -24,7 +24,7 @@ Features :
 * High Score saving for 10 scores with initials, date/time.
 * Favorites list so you can mark games as 'like' or 'love' - a yellow or red heart icon will mark your favorite games.
 * Solid Z80 core that passes the ZEXDOC test suite (covering everything but not undocumented flags).
-* Minimal design aesthetic - pick game, play game. Runs unpached from your SD card via TWL++ or similar.
+* Minimal design aesthetic - pick game, play game. Runs unpatched from your SD card via TWL++ or similar.
 
 Copyright :
 -----------------------
