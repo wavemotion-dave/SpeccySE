@@ -925,7 +925,7 @@ ITCM_CODE u32 speccy_run(void)
 
     // -----------------------------------------------------------
     // Render one line if we're in the visible area of the screen
-    // This is scalines 64 (first visible scanline) to 255 (last
+    // This is scanline 64 (first visible scanline) to 255 (last
     // visible scanline for a total of 192 scanlines).
     // -----------------------------------------------------------
     if ((zx_current_line >= starting_line) && (zx_current_line < 192+starting_line))

@@ -35,7 +35,6 @@ extern u32 debug[];
 extern u32 DX,DY;
 extern u8 zx_128k_mode, portFD;
 extern void EI_Enable(void);
-void ExecOneInstruction(void);
 void ResetZ80(Z80 *R);
 void dandanator_flash_write(word A, byte value);
 
@@ -140,6 +139,13 @@ u8 cpu_contended_delay_48[224] __attribute__((section(".dtcm"))) =
 #define C_ADJ
 #define PhantomRdZ80(A) RdZ80(A)
 
+extern void Trap_Bad_Ops(char *, byte, word);
+extern void ResetZ80(Z80 *R);
+
+void    EI_Enable_128(void);
+void    EI_Enable_48(void);
+#define EI_Enable   EI_Enable_128
+
 // ------------------------------------------------------------------------------------------
 // This happens only 5-10% of the time so we don't inline to provide better ARM code density
 // ------------------------------------------------------------------------------------------
@@ -189,7 +195,7 @@ inline __attribute__((always_inline)) void WrZ80(word A, byte value)
 {
     if (A & 0xC000)
     {
-        if (ContendMap[(A)>>14]) CPU.TStates += cpu_contended_delay_128[(CPU.TStates) % CYCLES_PER_SCANLINE_128];
+        if (ContendMap[(A)>>14]) ContendMemory();
         MemoryMap[(A)>>14][A] = value; 
     }
     else dandanator_flash_write(A,value);
@@ -205,7 +211,7 @@ inline __attribute__((always_inline)) void WrZ80_fast(word A, byte value)
 {
     if (A & 0xC000)
     {
-        if (ContendMap[(A)>>14]) CPU.TStates += cpu_contended_delay_128[(CPU.TStates) % CYCLES_PER_SCANLINE_128];
+        if (ContendMap[(A)>>14]) ContendMemory();
         MemoryMap[(A)>>14][A] = value; 
     }
     CPU.TStates += 3; // Memory writes are 3 cycles
@@ -362,13 +368,6 @@ inline __attribute__((always_inline)) void WrZ80_fast(word A, byte value)
     (J.W? 0:Z_FLAG)|(J.B.h&S_FLAG);                            \
   CPU.HL.W=J.W
 
-
-extern void Trap_Bad_Ops(char *, byte, word);
-extern void ResetZ80(Z80 *R);
-
-void    EI_Enable_128(void);
-void    EI_Enable_48(void);
-#define EI_Enable   EI_Enable_128
 
 static void CodesCB_Speccy_128(void)
 {
@@ -539,7 +538,7 @@ void EI_Enable_128(void)
    CPU.IFF=(CPU.IFF&~IFF_EI)|IFF_1;
    if (CPU.IRequest != INT_NONE)
    {
-       if ((CPU.TStates - CPU.TStates_IRequest) < 32) IntZ80(&CPU, CPU.IRequest); // Fire the interrupt
+       if ((CPU.TStates - CPU.TStates_IRequest) <= ULA_HOLD_INT_LINE) IntZ80(&CPU, CPU.IRequest); // Fire the interrupt
        else CPU.IRequest = INT_NONE; // We missed the interrupt...
    }
 }
@@ -779,7 +778,7 @@ void EI_Enable_48(void)
    CPU.IFF=(CPU.IFF&~IFF_EI)|IFF_1;
    if (CPU.IRequest != INT_NONE)
    {
-       if ((CPU.TStates - CPU.TStates_IRequest) < 32) IntZ80(&CPU, CPU.IRequest); // Fire the interrupt
+       if ((CPU.TStates - CPU.TStates_IRequest) <= ULA_HOLD_INT_LINE) IntZ80(&CPU, CPU.IRequest); // Fire the interrupt
        else CPU.IRequest = INT_NONE; // We missed the interrupt...
    }
 }

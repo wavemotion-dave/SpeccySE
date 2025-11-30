@@ -1105,6 +1105,12 @@ void FindConfig(void)
         else if (strcasestr(gpFic[ucGameChoice].szName, "OUTOFMARS")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "OUT OF MARS")       != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "GANDALF")           != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "STORMFINCH")        != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "STORM FINCH")       != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "SNAKESCAPE")        != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "SNAKEESC")          != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "SNAKE ESC")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "NIRVANA")           != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "PANGOLIN")          != 0) {myConfig.machine = 0; myConfig.ULAtiming = 0;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "ALTER EGO")         != 0) myConfig.machine = 0; // Do this after checks above for DREAMWALKER
         else if (strcasestr(gpFic[ucGameChoice].szName, "ALTEREGO")          != 0) myConfig.machine = 0; // Do this after checks above for DREAMWALKER
@@ -1132,7 +1138,7 @@ const struct options_t Option_Table[2][20] =
     {
         {"MACHINE",        {"48K SPECTRUM", "128K SPECTRUM"},                           &myConfig.machine,           2},
         {"ULA PLUS",       {"DISABLED",  "ENABLED"},                                    &myConfig.ULAplus,           2},
-        {"ULA TIMING",     {"NORMAL", "LATE", "UNCONTESTED"},                           &myConfig.ULAtiming,         3},
+        {"ULA TIMING",     {"NORMAL", "DELAYED", "UNCONTESTED"},                        &myConfig.ULAtiming,         3},
         {"FRAMESKIP",      {"OFF (SHOW ALL)", "ON (SHOW 3/4)"},                         &myConfig.frameSkip,         2},
         {"AUTO PLAY",      {"NO", "YES"},                                               &myConfig.autoLoad,          2},
         {"AUTO STOP",      {"NO", "YES", "AGGRESSIVE"},                                 &myConfig.autoStop,          3},

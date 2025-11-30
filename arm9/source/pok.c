@@ -208,7 +208,7 @@ void pok_select(void)
         {
             sprintf(tmp, "%-31s", Pokes[offset+i].pok_name);
             DSPrint(1,4+i,(i==sel) ? 2:0,tmp);
-            if (Pokes[offset+i].pok_applied) DSPrint(0,4+i,2,"%"); else DSPrint(0,4+i,0," ");
+            if (Pokes[offset+i].pok_applied) DSPrint(0,4+i,2,"*"); else DSPrint(0,4+i,0," ");
         }
 
         while (1)
@@ -218,7 +218,7 @@ void pok_select(void)
             if (keys & KEY_A)
             {
                 while ((keysCurrent() & (KEY_UP | KEY_DOWN | KEY_A ))!=0); // Wait for release
-                DSPrint(0,4+sel,2,"%");
+                DSPrint(0,4+sel,2,"*");
                 DSPrint(0,21,0,"      APPLYING MEMORY POKE      ");
                 pok_apply(offset+sel);
                 WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;
@@ -251,7 +251,7 @@ void pok_select(void)
                             {
                                 sprintf(tmp, "%-31s", Pokes[offset+i].pok_name);
                                 DSPrint(1,4+i,(i==sel) ? 2:0,tmp);
-                                if (Pokes[offset+i].pok_applied) DSPrint(0,4+i,2,"%"); else DSPrint(0,4+i,0," ");
+                                if (Pokes[offset+i].pok_applied) DSPrint(0,4+i,2,"*"); else DSPrint(0,4+i,0," ");
                             }
                             else
                             {
@@ -287,7 +287,7 @@ void pok_select(void)
                             {
                                 sprintf(tmp, "%-31s", Pokes[offset+i].pok_name);
                                 DSPrint(1,4+i,(i==sel) ? 2:0,tmp);
-                                if (Pokes[offset+i].pok_applied) DSPrint(0,4+i,2,"%"); else DSPrint(0,4+i,0," ");
+                                if (Pokes[offset+i].pok_applied) DSPrint(0,4+i,2,"*"); else DSPrint(0,4+i,0," ");
                             }
                             else
                             {

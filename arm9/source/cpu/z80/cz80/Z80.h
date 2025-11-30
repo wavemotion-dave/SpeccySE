@@ -38,6 +38,8 @@ extern "C" {
 #define CONTENTION_START_CYCLE_48   14335
 #define CONTENTION_START_CYCLE_128  14361
 
+#define ULA_HOLD_INT_LINE           32  // The interrupt line is held for 32 clocks
+
                                /* Compilation options:       */
                                
                                /* LoopZ80() may return:      */

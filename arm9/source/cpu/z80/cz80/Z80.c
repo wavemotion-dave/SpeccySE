@@ -34,7 +34,7 @@ extern Z80 CPU;
 extern u32 debug[];
 extern u32 DX,DY;
 extern u8 zx_128k_mode, portFD;
-extern void EI_Enable(void);
+static void EI_Enable(void);
 void ExecOneInstruction(void);
 void ResetZ80(Z80 *R);
 
@@ -474,7 +474,7 @@ ITCM_CODE void IntZ80(Z80 *R,word Vector)
 
     if((CPU.IFF&IFF_1)||(Vector==INT_NMI))
     {
-      CPU.TStates += 19; // 19:73333 for IM2...   13:733 for IM1
+      CPU.TStates += 19; // 19:73333 for IM2...   13:733 for IM1 - compensated for below
 
       /* Save PC on stack */
       M_PUSH(PC);
@@ -498,7 +498,7 @@ ITCM_CODE void IntZ80(Z80 *R,word Vector)
       CPU.IFF&=~(IFF_1|IFF_2|IFF_EI);
 
       /* If in IM2 mode... */
-      if(CPU.IFF&IFF_IM2)
+      if (CPU.IFF&IFF_IM2)
       {
           /* Make up the vector address - technically the Vector is whatever is on the data bus but is usually 0xFF */
           Vector=(0xFF)|((word)(CPU.I)<<8);
@@ -610,7 +610,6 @@ ITCM_CODE static void CodesED_Speccy(void)
     case PFX_ED:
       CPU.PC.W--;break;
     default:
-      CPU.TStates += 8; // Illegal ED codes take 8 cycles ("nop-nop")
       if(CPU.TrapBadOps) Trap_Bad_Ops(" ED ", I, CPU.PC.W-4);
   }
 }
@@ -704,13 +703,13 @@ void ExecOneInstruction(void)
 // to see if we are within the 32 TState period where the ZX Spectrum ULA
 // would hold the Interrupt Request pulse...
 // ------------------------------------------------------------------------
-void EI_Enable(void)
+static void EI_Enable(void)
 {
    ExecOneInstruction();
    CPU.IFF=(CPU.IFF&~IFF_EI)|IFF_1;
    if (CPU.IRequest != INT_NONE)
    {
-       if ((CPU.TStates - CPU.TStates_IRequest) < 32) IntZ80(&CPU, CPU.IRequest); // Fire the interrupt
+       if ((CPU.TStates - CPU.TStates_IRequest) <= ULA_HOLD_INT_LINE) IntZ80(&CPU, CPU.IRequest); // Fire the interrupt
        else CPU.IRequest = INT_NONE; // We missed the interrupt...
    }
 }
