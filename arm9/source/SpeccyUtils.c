@@ -1056,8 +1056,6 @@ void FindConfig(void)
     // ------------------------------------------------------------------------
     // Now some basic overrides for certain games that need alternate settings
     // ------------------------------------------------------------------------
-    char *strcasestr(const char *haystack, const char *needle);
-
     if (!bFound)
     {
         // A whole bunch of games need the 48K machine and won't run on the 128K machine. We do our best on the more popular games to auto-detect.

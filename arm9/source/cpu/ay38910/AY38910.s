@@ -3,7 +3,7 @@
 ;@  AY-3-8910 / YM2149 sound chip emulator for arm32.
 ;@
 ;@  Created by Fredrik Ahlström on 2006-03-07.
-;@  Copyright © 2006-2024 Fredrik Ahlström. All rights reserved.
+;@  Copyright © 2006-2026 Fredrik Ahlström. All rights reserved.
 ;@
 #ifdef __arm__
 
@@ -27,10 +27,8 @@
 #else
 	.equ USHIFT, 0
 #endif
-#ifdef AYFILTER
-	.equ FSHIFT, AYFILTER+USHIFT
-#else
-	.equ FSHIFT, 1+USHIFT
+#ifndef AYFILTER
+	.equ AYFILTER, 1
 #endif
 
 #define AYNOISEADD 0x08000000
@@ -41,7 +39,7 @@
 	.arm
 
 #ifdef NDS
-	.section .itcm						;@ For the NDS
+	.section .itcm, "ax", %progbits		;@ For the NDS ARM9
 #elif GBA
 	.section .iwram, "ax", %progbits	;@ For the GBA
 #else
@@ -64,16 +62,13 @@
 ay38910Mixer:				;@ r0=len, r1=dest, ayptr=r2=pointer to struct
 	.type   ay38910Mixer STT_FUNC
 ;@----------------------------------------------------------------------------
-#ifdef AY_UPSHIFT
-	mov r0,r0,lsl#USHIFT
-#endif
 	stmfd sp!,{r4-r11,lr}
 	ldmia r2,{r3-r12}			;@ Load freq,addr,rng,env
 	tst r12,#0xff
 	blne calculateVolumes
 ;@----------------------------------------------------------------------------
 mixLoop:
-	sub r10,r10,r10,lsr#FSHIFT-USHIFT
+	sub r10,r10,r10,lsr#AYFILTER
 innerMixLoop:
 	adds r3,r3,#AYTONEADD
 	subcs r3,r3,r3,lsl#20
@@ -116,14 +111,13 @@ innerMixLoop:
 	addcs r10,r10,lr
 	addmi r10,r10,lr
 
-	subs r0,r0,#1
 #ifdef AY_UPSHIFT
-	tst r0,#(1<<USHIFT)-1
-	bne innerMixLoop
-	cmp r0,#0
+	adds r0,r0,#0x100000000>>USHIFT
+	bcc innerMixLoop
 #endif
-	mov lr,r10,lsr#FSHIFT
+	mov lr,r10,lsr#AYFILTER+USHIFT
 	eor lr,lr,#0x8000
+	subs r0,r0,#1
 	strhpl lr,[r1],#2
 	bhi mixLoop
 
@@ -132,7 +126,7 @@ innerMixLoop:
 	bx lr
 
 #ifdef NDS
-	.section .dtcm				;@ For the NDS ARM9
+	.section .dtcm, "a", %progbits		;@ For the NDS ARM9
 	.align 2
 #endif
 ;@----------------------------------------------------------------------------
@@ -153,7 +147,7 @@ ay38910Reset:				;@ ayptr=r0=pointer to struct
 
 	mov r1,r0
 	mov r0,#0
-	mov r2,#aySize/4			;@ Clear AY38910 state
+	mov r2,#ayStateSize/4		;@ Clear AY38910 state
 rLoop:
 	subs r2,r2,#1
 	strpl r0,[r1,r2,lsl#2]
@@ -225,7 +219,7 @@ ay38910GetStateSize:		;@ Out r0=state size.
 	bx lr
 ;@----------------------------------------------------------------------------
 #ifdef GBA
-	.section .ewram,"ax"
+	.section .ewram, "ax", %progbits
 	.align 2
 #endif
 ;@----------------------------------------------------------------------------
@@ -367,8 +361,10 @@ ay38910RegFR:
 portBInDummy:
 	ldrb r0,[r2,#ayPortBIn]
 	bx lr
-    
+
+#ifdef NDS
 .section .itcm						;@ For the NDS
+#endif
     
 ;@----------------------------------------------------------------------------
 calculateVolumes:			;@ r2 = ayptr, r11 = attenuation

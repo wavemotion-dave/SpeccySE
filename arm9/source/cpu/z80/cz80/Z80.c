@@ -705,11 +705,12 @@ void ExecOneInstruction(void)
 // ------------------------------------------------------------------------
 static void EI_Enable(void)
 {
+   u32 requestAt = CPU.TStates+4;
    ExecOneInstruction();
    CPU.IFF=(CPU.IFF&~IFF_EI)|IFF_1;
    if (CPU.IRequest != INT_NONE)
    {
-       if ((CPU.TStates - CPU.TStates_IRequest) <= ULA_HOLD_INT_LINE) IntZ80(&CPU, CPU.IRequest); // Fire the interrupt
+       if ((requestAt - CPU.TStates_IRequest) <= ULA_HOLD_INT_LINE) IntZ80(&CPU, CPU.IRequest); // Fire the interrupt
        else CPU.IRequest = INT_NONE; // We missed the interrupt...
    }
 }

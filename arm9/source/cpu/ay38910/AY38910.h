@@ -3,7 +3,7 @@
 //  AY-3-8910 / YM2149 sound chip emulator for arm32.
 //
 //  Created by Fredrik Ahlström on 2006-03-07.
-//  Copyright © 2006-2024 Fredrik Ahlström. All rights reserved.
+//  Copyright © 2006-2026 Fredrik Ahlström. All rights reserved.
 //
 
 #ifndef AY38910_HEADER
@@ -41,10 +41,10 @@ typedef struct {
 	u8 ayPortAIn;
 	u8 ayPortBIn;
 	u8 ayRegs[16];
-	void *ayPortAInFptr;
-	void *ayPortBInFptr;
-	void *ayPortAOutFptr;
-	void *ayPortBOutFptr;
+	u8 (*ayPortAInFptr)(u8, int);
+	u8 (*ayPortBInFptr)(u8, int);
+	void (*ayPortAOutFptr)(u8);
+	void (*ayPortBOutFptr)(u8);
 
 } AY38910;
 

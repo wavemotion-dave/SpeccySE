@@ -195,4 +195,6 @@ extern void SpeccySEChangeKeymap(void);
 extern void pok_select(void);
 extern void pok_init();
 
+extern char *strcasestr(const char *haystack, const char *needle);
+
 #endif // _SPECCY_UTILS_H_

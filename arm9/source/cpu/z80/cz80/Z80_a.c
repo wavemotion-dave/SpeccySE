@@ -509,8 +509,8 @@ void ExecOneInstruction_128(void)
 {
   register byte I;
   register pair J;
-  u32 RunToCycles = CPU.TStates+1;
-
+  u32 RunToCycles = CPU.TStates+4;
+  
   I=OpZ80(CPU.PC.W++);
 
   /* R register incremented on each M1 cycle */
@@ -534,11 +534,12 @@ void ExecOneInstruction_128(void)
 // ------------------------------------------------------------------------
 void EI_Enable_128(void)
 {
+   u32 requestAt = CPU.TStates+4;
    ExecOneInstruction_128();
    CPU.IFF=(CPU.IFF&~IFF_EI)|IFF_1;
    if (CPU.IRequest != INT_NONE)
    {
-       if ((CPU.TStates - CPU.TStates_IRequest) <= ULA_HOLD_INT_LINE) IntZ80(&CPU, CPU.IRequest); // Fire the interrupt
+       if ((requestAt - CPU.TStates_IRequest) <= ULA_HOLD_INT_LINE) IntZ80(&CPU, CPU.IRequest); // Fire the interrupt
        else CPU.IRequest = INT_NONE; // We missed the interrupt...
    }
 }
@@ -749,7 +750,7 @@ void ExecOneInstruction_48(void)
 {
   register byte I;
   register pair J;
-  u32 RunToCycles = CPU.TStates+1;
+  u32 RunToCycles = CPU.TStates+4;
 
   I=OpZ80(CPU.PC.W++);
 
@@ -774,11 +775,12 @@ void ExecOneInstruction_48(void)
 // ------------------------------------------------------------------------
 void EI_Enable_48(void)
 {
+   u32 requestAt = CPU.TStates+4;
    ExecOneInstruction_48();
    CPU.IFF=(CPU.IFF&~IFF_EI)|IFF_1;
    if (CPU.IRequest != INT_NONE)
    {
-       if ((CPU.TStates - CPU.TStates_IRequest) <= ULA_HOLD_INT_LINE) IntZ80(&CPU, CPU.IRequest); // Fire the interrupt
+       if ((requestAt - CPU.TStates_IRequest) <= ULA_HOLD_INT_LINE) IntZ80(&CPU, CPU.IRequest); // Fire the interrupt
        else CPU.IRequest = INT_NONE; // We missed the interrupt...
    }
 }

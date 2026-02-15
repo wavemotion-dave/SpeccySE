@@ -131,8 +131,6 @@ u8 tape_pre_edge_accel(void);
 
 inline byte PeekZ80(word A)  {return MemoryMap[(A)>>14][A];}
 
-extern char strcasestr (const char *big, const char *little);
-
 // --------------------------------------------------------
 // Look for headers and blocks with descriptions and use
 // those as index position for our cassette manager.
