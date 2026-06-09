@@ -7,6 +7,8 @@ To run requires both of the original ZX Spectrum BIOS ROMs.
 Place 48.ROM and 128.ROM (exactly so named) into the same directory 
 as the emulator or else in /roms/bios
 
+SpeccySE is free to download and use... but if you have found anything I've done to be useful, buy me a virtual coffee here: https://ko-fi.com/wavemotiondave 
+
 Features :
 -----------------------
 * Loads .TAP files up to 640K total length (can swap tapes mid-game)
