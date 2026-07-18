@@ -1109,6 +1109,8 @@ void FindConfig(void)
         else if (strcasestr(gpFic[ucGameChoice].szName, "SNAKEESC")          != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "SNAKE ESC")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "NIRVANA")           != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "POWERJACK")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "POWER JACK")        != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "PANGOLIN")          != 0) {myConfig.machine = 0; myConfig.ULAtiming = 0;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "ALTER EGO")         != 0) myConfig.machine = 0; // Do this after checks above for DREAMWALKER
         else if (strcasestr(gpFic[ucGameChoice].szName, "ALTEREGO")          != 0) myConfig.machine = 0; // Do this after checks above for DREAMWALKER

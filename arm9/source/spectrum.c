@@ -66,26 +66,26 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
         {
             if (myConfig.machine) // 128K
             {
-                if (ContendMap[Port>>14])
+                if (ContendMap[Port>>14])  // high byte contended, even port: C:1, C:3
                 {
-                    CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+0) % CYCLES_PER_SCANLINE_128];
-                    CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_128];
+                    CPU.TStates += cpu_contended_delay_128[(CPU.TStates+0) % CYCLES_PER_SCANLINE_128];
+                    CPU.TStates += cpu_contended_delay_128[(CPU.TStates+1) % CYCLES_PER_SCANLINE_128];
                 }
-                else
+                else //high byte uncontended, even port: N:1, C:3
                 {
-                    CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_128];
+                    CPU.TStates += cpu_contended_delay_128[(CPU.TStates+1) % CYCLES_PER_SCANLINE_128];
                 }
             }
             else // 48K
             {
                 if (ContendMap[Port>>14])
                 {
-                    CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+0) % CYCLES_PER_SCANLINE_48];
-                    CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_48];
+                    CPU.TStates += cpu_contended_delay_48[(CPU.TStates+0) % CYCLES_PER_SCANLINE_48];
+                    CPU.TStates += cpu_contended_delay_48[(CPU.TStates+1) % CYCLES_PER_SCANLINE_48];
                 }
                 else
                 {
-                    CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_48];
+                    CPU.TStates += cpu_contended_delay_48[(CPU.TStates+1) % CYCLES_PER_SCANLINE_48];
                 }
             }
             
@@ -265,7 +265,29 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
     {
         if (accurate_emulation)
         {
-            CPU.TStates += 4;   // The IO takes 4 cycles
+            if (ContendMap[Port>>14]) // high byte contended, odd port: C:1, C:1, C:1, C:1
+            {
+                if (myConfig.machine) // 128K
+                {
+                    CPU.TStates += cpu_contended_delay_128[(CPU.TStates+0) % CYCLES_PER_SCANLINE_128];
+                    CPU.TStates += cpu_contended_delay_128[(CPU.TStates+1) % CYCLES_PER_SCANLINE_128];
+                    CPU.TStates += cpu_contended_delay_128[(CPU.TStates+2) % CYCLES_PER_SCANLINE_128];
+                    CPU.TStates += cpu_contended_delay_128[(CPU.TStates+3) % CYCLES_PER_SCANLINE_128];
+                }
+                else // 48K
+                {
+                    CPU.TStates += cpu_contended_delay_48[(CPU.TStates+0) % CYCLES_PER_SCANLINE_48];
+                    CPU.TStates += cpu_contended_delay_48[(CPU.TStates+1) % CYCLES_PER_SCANLINE_48];
+                    CPU.TStates += cpu_contended_delay_48[(CPU.TStates+2) % CYCLES_PER_SCANLINE_48];
+                    CPU.TStates += cpu_contended_delay_48[(CPU.TStates+3) % CYCLES_PER_SCANLINE_48];
+                }
+            }
+            else
+            {
+                // high byte uncontended, odd port: N:4
+            }
+            
+            CPU.TStates += 4;
         }
         
         if ((Port & 0x3F) == 0x1F)  // Kempston Joystick interface... (only A5 driven low)
@@ -428,55 +450,61 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
         {
              if (myConfig.machine) // 128K
              {
-                 if (ContendMap[Port>>14])
+                 if (ContendMap[Port>>14]) // high byte contended, even port: C:1, C:3
                  {
-                     CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+0) % CYCLES_PER_SCANLINE_128];
-                     CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_128];
+                     CPU.TStates += cpu_contended_delay_128[(CPU.TStates+0) % CYCLES_PER_SCANLINE_128];
+                     CPU.TStates += cpu_contended_delay_128[(CPU.TStates+1) % CYCLES_PER_SCANLINE_128];
                  }
-                 else
+                 else // high byte uncontended, even port: N:1, C:3
                  {
-                     CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_128];
+                     CPU.TStates += cpu_contended_delay_128[(CPU.TStates+1) % CYCLES_PER_SCANLINE_128];
                  }
              }
              else // 48K
              {
                 if (ContendMap[Port>>14])
                  {
-                     CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+0) % CYCLES_PER_SCANLINE_48];
-                     CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_48];
+                     CPU.TStates += cpu_contended_delay_48[(CPU.TStates+0) % CYCLES_PER_SCANLINE_48];
+                     CPU.TStates += cpu_contended_delay_48[(CPU.TStates+1) % CYCLES_PER_SCANLINE_48];
                  }
                  else
                  {
-                     CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_48];
+                     CPU.TStates += cpu_contended_delay_48[(CPU.TStates+1) % CYCLES_PER_SCANLINE_48];
                  }
              }
+             
+             CPU.TStates += 4;
         }
     }
-    else
+    else // Odd port access
     {
          if (accurate_emulation)
          {
-              if (ContendMap[Port>>14])
+              if (ContendMap[Port>>14]) // high byte contended, odd port: C:1, C:1, C:1, C:1
               {
                   if (myConfig.machine) // 128K
                   {
-                      CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+0) % CYCLES_PER_SCANLINE_128];
-                      CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_128];
-                      CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+2) % CYCLES_PER_SCANLINE_128];
-                      CPU.TStates += cpu_contended_delay_128[(((CPU.TStates))+3) % CYCLES_PER_SCANLINE_128];
+                      CPU.TStates += cpu_contended_delay_128[(CPU.TStates+0) % CYCLES_PER_SCANLINE_128];
+                      CPU.TStates += cpu_contended_delay_128[(CPU.TStates+1) % CYCLES_PER_SCANLINE_128];
+                      CPU.TStates += cpu_contended_delay_128[(CPU.TStates+2) % CYCLES_PER_SCANLINE_128];
+                      CPU.TStates += cpu_contended_delay_128[(CPU.TStates+3) % CYCLES_PER_SCANLINE_128];
                   }
                   else // 48K
                   {
-                      CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+0) % CYCLES_PER_SCANLINE_48];
-                      CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+1) % CYCLES_PER_SCANLINE_48];
-                      CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+2) % CYCLES_PER_SCANLINE_48];
-                      CPU.TStates += cpu_contended_delay_48[(((CPU.TStates))+3) % CYCLES_PER_SCANLINE_48];
+                      CPU.TStates += cpu_contended_delay_48[(CPU.TStates+0) % CYCLES_PER_SCANLINE_48];
+                      CPU.TStates += cpu_contended_delay_48[(CPU.TStates+1) % CYCLES_PER_SCANLINE_48];
+                      CPU.TStates += cpu_contended_delay_48[(CPU.TStates+2) % CYCLES_PER_SCANLINE_48];
+                      CPU.TStates += cpu_contended_delay_48[(CPU.TStates+3) % CYCLES_PER_SCANLINE_48];
                   }
               }
+              else
+              {
+                  // high byte uncontended, odd port: N:4
+              }
+              
+              CPU.TStates += 4;
          }
     }
-    
-    if (accurate_emulation)  CPU.TStates += 4;
 
     if (zx_128k_mode && ((Port & 0x8002) == 0x0000)) // 128K Bankswitch
     {

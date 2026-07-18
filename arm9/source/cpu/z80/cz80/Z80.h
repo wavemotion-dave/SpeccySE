@@ -93,13 +93,6 @@ typedef union
   word W;
 } pair;
 
-// We only support LSB_FIRST for the DS hardware
-typedef union
-{
-  struct { byte l,h, xx,yy; } B;
-  u32 W;
-} dpair;
-
 typedef struct
 {
   pair PC;                          /* Program Counter - 32bit speed        */
