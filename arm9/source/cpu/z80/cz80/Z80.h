@@ -95,7 +95,7 @@ typedef union
 
 typedef struct
 {
-  pair PC;                          /* Program Counter - 32bit speed        */
+  pair PC;                          /* Program Counter                      */
   pair SP;                          /* Stack Pointer                        */
   pair AF,BC,DE,HL,IX,IY;           /* Main registers                       */
   pair AF1,BC1,DE1,HL1;             /* Shadow registers                     */

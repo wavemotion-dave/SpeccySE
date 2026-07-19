@@ -58,8 +58,12 @@ extern void IntZ80(Z80 *R,word Vector);
 extern unsigned char cpu_readport_speccy(register unsigned short Port);
 extern void cpu_writeport_speccy(register unsigned short Port,register unsigned char Value);
 
-// The contended delay table is specific for the 48K Spectrum vs the 128K Spectrum.
+// ---------------------------------------------------------------------------------------
+// The contended delay table is different for the 48K Spectrum vs the 128K Spectrum.
 // This table is offset to provide the best timing I can muster with imperfect emulation.
+// This isn't perfectly accurate - but good enough to play 99% of Spectrum games.
+// ---------------------------------------------------------------------------------------
+
 u8 cpu_contended_delay_128[CYCLES_PER_SCANLINE_128] __attribute__((section(".dtcm"))) = 
 {
     0,0,
