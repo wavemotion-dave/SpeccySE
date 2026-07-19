@@ -60,7 +60,7 @@ extern void cpu_writeport_speccy(register unsigned short Port,register unsigned 
 
 // The contended delay table is specific for the 48K Spectrum vs the 128K Spectrum.
 // This table is offset to provide the best timing I can muster with imperfect emulation.
-u8 cpu_contended_delay_128[228] __attribute__((section(".dtcm"))) = 
+u8 cpu_contended_delay_128[CYCLES_PER_SCANLINE_128] __attribute__((section(".dtcm"))) = 
 {
     0,0,
     6,5,4,3,2,1,0,0,
@@ -97,7 +97,7 @@ u8 cpu_contended_delay_128[228] __attribute__((section(".dtcm"))) =
     2,1,
 };
 
-u8 cpu_contended_delay_48[224] __attribute__((section(".dtcm"))) = 
+u8 cpu_contended_delay_48[CYCLES_PER_SCANLINE_48] __attribute__((section(".dtcm"))) = 
 {
     4,3,2,1,0,0,
     6,5,4,3,2,1,0,0,

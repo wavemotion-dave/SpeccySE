@@ -1,5 +1,5 @@
 // =====================================================================================
-// Copyright (c) 2025 Dave Bernazzani (wavemotion-dave)
+// Copyright (c) 2025-2026 Dave Bernazzani (wavemotion-dave)
 //
 // Copying and distribution of this emulator, its source code and associated
 // readme files, with or without modification, are permitted in any medium without
@@ -330,13 +330,13 @@ ITCM_CODE void processDirectAudioDSI(void)
         ay_sample_idx = 0;
     }
     
+    if (breather) {return;}
+    
     for (u8 i=0; i<4; i++)
     {
-        if (breather) {return;}
-        
         if (beeper_pulses_idx)
         {
-            beeper_vol = (beeper_vol) ? 0x000:0x1C00;
+            beeper_vol = beeper_vol ^ 0x4000;
             beeper_pulses_idx--;
         }
         
@@ -346,7 +346,7 @@ ITCM_CODE void processDirectAudioDSI(void)
         mixer_DSI[mixer_write++] = (s16)sample;
         
         mixer_write &= WAVE_DIRECT_BUF_SIZE_DSI;
-        if (((mixer_write+1)&WAVE_DIRECT_BUF_SIZE_DSI) == mixer_read) {breather = 2048;}
+        if (((mixer_write+1)&WAVE_DIRECT_BUF_SIZE_DSI) == mixer_read) {breather = 2048; return;}
     }
 }
 
@@ -367,14 +367,14 @@ int get_sample_rate(void)
     
     if (isDSiMode())
     {
-        sample_rate = (myConfig.machine ? 61300:61700);  // 48K has one more scanline (~400 more samples per second)
+        sample_rate = (myConfig.machine ? 61700:62100);  // 48K has one more scanline (~400 more samples per second)
     }
     else
     {
-        sample_rate = (myConfig.machine ? 30500:30700); // 48K has one more scanline (~200 more samples per second)
+        sample_rate = (myConfig.machine ? 30700:30900); // 48K has one more scanline (~200 more samples per second)
     }
     
-    int new_sample_rate     = (sample_rate * sample_rate_adjust[myConfig.gameSpeed]) / 100;
+    int new_sample_rate = (sample_rate * sample_rate_adjust[myConfig.gameSpeed]) / 100;
     
     return new_sample_rate;
 }
@@ -1602,7 +1602,7 @@ void SpeccySE_main(void)
 
 
 // ----------------------------------------------------------------------------------------
-// We steal 256K of the VRAM to hold a shadow copy of the ROM cart for fast swap...
+// We steal 256K of the VRAM to hold a 256K table used for tape patch look-up.
 // ----------------------------------------------------------------------------------------
 void useVRAM(void)
 {

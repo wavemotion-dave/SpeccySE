@@ -1,5 +1,5 @@
 // =====================================================================================
-// Copyright (c) 2025 Dave Bernazzani (wavemotion-dave)
+// Copyright (c) 2025-2026 Dave Bernazzani (wavemotion-dave)
 //
 // Copying and distribution of this emulator, its source code and associated
 // readme files, with or without modification, are permitted in any medium without
@@ -146,8 +146,8 @@ extern int uNbRoms;
 extern int ucGameAct;
 extern int ucGameChoice;
 extern u8 CompressBuffer[];
-extern u8 cpu_contended_delay_128[228];
-extern u8 cpu_contended_delay_48[224];
+extern u8 cpu_contended_delay_128[CYCLES_PER_SCANLINE_128];
+extern u8 cpu_contended_delay_48[CYCLES_PER_SCANLINE_48];
 
 extern void LoadConfig(void);
 extern void LoadFavorites(void);

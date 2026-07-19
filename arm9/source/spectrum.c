@@ -1,5 +1,5 @@
 // =====================================================================================
-// Copyright (c) 2025 Dave Bernazzani (wavemotion-dave)
+// Copyright (c) 2025-2026 Dave Bernazzani (wavemotion-dave)
 //
 // Copying and distribution of this emulator, its source code and associated
 // readme files, with or without modification, are permitted in any medium without
@@ -438,7 +438,7 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
         // -------------------------------------------------------------------------------
         if ((portFE ^ Value) & 0x10)
         {
-            if (beeper_pulses_idx < 16)
+            if (beeper_pulses_idx < 4)
             {
                 beeper_pulses_idx++;
             }
@@ -911,7 +911,7 @@ ITCM_CODE u32 speccy_run(void)
 {
     ++zx_current_line; // This is the pixel line we're working on...
     int starting_line = (myConfig.machine ? 63:64)+(myConfig.ULAtiming&1); // And this is the first line we draw (48K machines start 1 line later)
-    int ending_line   = (zx_128k_mode ? SCANLINES_PER_FRAME_128-1:SCANLINES_PER_FRAME_48-1);
+    int ending_line   = (zx_128k_mode ? SCANLINES_PER_FRAME_128:SCANLINES_PER_FRAME_48);
     
     // ----------------------------------------------
     // Execute 1 scanline worth of CPU instructions.
@@ -967,19 +967,19 @@ ITCM_CODE u32 speccy_run(void)
     {
         last_line_drawn = 0;
         accurate_emulation = 0; // If in top/bottom border areas, skip accurate cycle emulation (no contention)
-    }
 
-    // --------------------------------------------------------------
-    // Generate an interrupt only at end of frame. The ULA generates
-    // the interrupt 1 scanline before the top blanking begins.
-    // --------------------------------------------------------------
-    if (zx_current_line == ending_line)
-    {
-        zx_current_line = 0;
-        CPU.IRequest = INT_RST38;
-        CPU.TStates_IRequest = CPU.TStates;
-        IntZ80(&CPU, CPU.IRequest);
-        return 0; // End of frame
+        // --------------------------------------------------------------
+        // Generate an interrupt only at end of frame. The ULA generates
+        // the interrupt 1 scanline before the top blanking begins.
+        // --------------------------------------------------------------
+        if (zx_current_line == ending_line)
+        {
+            zx_current_line = 0;
+            CPU.IRequest = INT_RST38;
+            CPU.TStates_IRequest = CPU.TStates;
+            IntZ80(&CPU, CPU.IRequest);
+            return 0; // End of frame
+        }
     }
 
     return 1; // Not end of frame

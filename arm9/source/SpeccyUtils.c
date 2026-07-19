@@ -1,5 +1,5 @@
 // =====================================================================================
-// Copyright (c) 2025 Dave Bernazzani (wavemotion-dave)
+// Copyright (c) 2025-2026 Dave Bernazzani (wavemotion-dave)
 //
 // Copying and distribution of this emulator, its source code and associated
 // readme files, with or without modification, are permitted in any medium without
@@ -1098,7 +1098,6 @@ void FindConfig(void)
         else if (strcasestr(gpFic[ucGameChoice].szName, "MULTI DUDE")        != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "MANICPIE")          != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "MANIC PIE")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "MANIC_PIE")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "YAZZIE")            != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "OUTOFMARS")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "OUT OF MARS")       != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
@@ -1157,7 +1156,7 @@ const struct options_t Option_Table[2][20] =
         {"FPS",            {"OFF", "ON", "ON FULLSPEED"},                              &myGlobalConfig.showFPS,      3},
         {"START DIR",      {"/ROMS/SPECCY",  "LAST USED DIR"},                         &myGlobalConfig.lastDir,      2},
         {"KEYBD BRIGHT",   {"MAX BRIGHT", "DIM", "DIMMER", "DIMMEST"},                 &myGlobalConfig.brightness,   4},        
-        {"DEBUGGER",       {"OFF", "BAD OPS", "DEBUG", "FULL DEBUG"},                  &myGlobalConfig.debugger,     4},
+        {"DEBUGGER",       {"OFF", "BAD OPS", "BRIEF DEBUG", "FULL DEBUG"},            &myGlobalConfig.debugger,     4},
         {NULL,             {"",      ""},                                              NULL,                         1},
     }
 };

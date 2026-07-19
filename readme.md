@@ -303,6 +303,14 @@ you're likely going to want ZXDS.
 
 Version History :
 -----------------------
+Version 1.9 - 19-July-2026 by wavemotion-dave
+* New top screen graphic.
+* Slight refactor for audio to smooth out heavy-hitting beeper games.
+* Slight improvement to contended memory for improved accuracy.
+* Latest AY38910 core with slight optimization and a bit of Z80 timing improvement.
+* Minor fix to game options graphics and slight refactor of CPU timing.
+* Updated copyright in all files.
+
 Version 1.8 - 14-Nov-2025 by wavemotion-dave
 * Added ability to disable ULA contention
 * Key map cleanup - improved QAOP and Protek support
