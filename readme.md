@@ -284,7 +284,7 @@ might not work the way you expect if you do it at the wrong time).
 Known Issues :
 -----------------------
 * Not all Dandanator compilation games run properly - support is preliminary (but good enough for the few games that really need it).
-* Gandalf DLX does not run correctly. Timing is tight on that game and the accuracy of Speccy-SE is not up to the task.
+* Roger the Pangolin has graphical glitches (stray pixels) during gameplay. Likely timing issues.
 * Genesis has graphical glitching (screen jitter) during gameplay. Likely timing issue.
 * Ghosts-n-Goblins doesn't run - graphics go wonky right after the main gameplay is started. Cause unknown.
 * Disk files are not supported yet. Most games have TAP or Dandanator alternatives - but not all.

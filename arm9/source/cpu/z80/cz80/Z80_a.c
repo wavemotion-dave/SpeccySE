@@ -502,48 +502,19 @@ static void CodesFD_Speccy_128(void)
 #undef XX
 }
 
-// ------------------------------------------------------------------------------
-// Almost 15K wasted space... but needed so we can keep the Enable Interrupt
-// instruction out of the main fast Z80 instruction loop. When the EI instruction
-// is issued, the interrupts are not enabled until one instruction later. This
-// function let's us execute that one instruction - somewhat more slowly but
-// interrupts are enabled very infrequently (often enabled and left that way).
-// ------------------------------------------------------------------------------
-void ExecOneInstruction_128(void)
-{
-  register byte I;
-  register pair J;
-  u32 RunToCycles = CPU.TStates+4;
-  
-  I=OpZ80(CPU.PC.W++);
-
-  /* R register incremented on each M1 cycle */
-  INCR(1);
-
-  /* Interpret opcode */
-  switch(I)
-  {
-#include "Codes.h"
-    case PFX_CB: CodesCB_Speccy_128();break;
-    case PFX_ED: CodesED_Speccy_128();break;
-    case PFX_FD: CodesFD_Speccy_128();break;
-    case PFX_DD: CodesDD_Speccy_128();break;
-  }
-}
 
 // ------------------------------------------------------------------------
-// The Enable Interrupt is delayed 1 M1 instruction and we must also check
-// to see if we are within the 32 TState period where the ZX Spectrum ULA
-// would hold the Interrupt Request pulse...
+// The Enable Interrupt should be delayed 1 M1 instruction but we avoid 
+// this complexity completely and simply check to make sure we are still
+// within the 32 TState period where the ZX Spectrum ULA would hold the
+// Interrupt Request pulse and trigger the interrupt.
 // ------------------------------------------------------------------------
 void EI_Enable_128(void)
 {
-   u32 requestAt = CPU.TStates+4;
-   ExecOneInstruction_128();
    CPU.IFF=(CPU.IFF&~IFF_EI)|IFF_1;
    if (CPU.IRequest != INT_NONE)
    {
-       if ((requestAt - CPU.TStates_IRequest) <= ULA_HOLD_INT_LINE) IntZ80(&CPU, CPU.IRequest); // Fire the interrupt
+       if ((CPU.TStates - CPU.TStates_IRequest) <= ULA_HOLD_INT_LINE) IntZ80(&CPU, CPU.IRequest); // Fire the interrupt
        else CPU.IRequest = INT_NONE; // We missed the interrupt...
    }
 }
@@ -750,41 +721,18 @@ static void CodesFD_Speccy_48(void)
 #undef XX
 }
 
-void ExecOneInstruction_48(void)
-{
-  register byte I;
-  register pair J;
-  u32 RunToCycles = CPU.TStates+4;
-
-  I=OpZ80(CPU.PC.W++);
-
-  /* R register incremented on each M1 cycle */
-  INCR(1);
-
-  /* Interpret opcode */
-  switch(I)
-  {
-#include "Codes.h"
-    case PFX_CB: CodesCB_Speccy_48();break;
-    case PFX_ED: CodesED_Speccy_48();break;
-    case PFX_FD: CodesFD_Speccy_48();break;
-    case PFX_DD: CodesDD_Speccy_48();break;
-  }
-}
-
 // ------------------------------------------------------------------------
-// The Enable Interrupt is delayed 1 M1 instruction and we must also check
-// to see if we are within the 32 TState period where the ZX Spectrum ULA
-// would hold the Interrupt Request pulse...
+// The Enable Interrupt should be delayed 1 M1 instruction but we avoid 
+// this complexity completely and simply check to make sure we are still
+// within the 32 TState period where the ZX Spectrum ULA would hold the
+// Interrupt Request pulse and trigger the interrupt.
 // ------------------------------------------------------------------------
 void EI_Enable_48(void)
 {
-   u32 requestAt = CPU.TStates+4;
-   ExecOneInstruction_48();
    CPU.IFF=(CPU.IFF&~IFF_EI)|IFF_1;
    if (CPU.IRequest != INT_NONE)
    {
-       if ((requestAt - CPU.TStates_IRequest) <= ULA_HOLD_INT_LINE) IntZ80(&CPU, CPU.IRequest); // Fire the interrupt
+       if ((CPU.TStates - CPU.TStates_IRequest) <= ULA_HOLD_INT_LINE) IntZ80(&CPU, CPU.IRequest); // Fire the interrupt
        else CPU.IRequest = INT_NONE; // We missed the interrupt...
    }
 }

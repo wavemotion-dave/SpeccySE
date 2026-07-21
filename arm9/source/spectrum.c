@@ -379,7 +379,7 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
 // For the ZX Spectrum 128K this is the banking routine that will swap the BIOS ROM and
 // swap out the bank of memory that will be visible at 0xC000 in CPU address space.
 // --------------------------------------------------------------------------------------
-ITCM_CODE void zx_bank(u8 new_portFE)
+ITCM_CODE void zx_bank(u8 new_portFD)
 {
     if (portFD & 0x20) return; // Lock out - no more bank swaps allowed
 
@@ -392,11 +392,11 @@ ITCM_CODE void zx_bank(u8 new_portFE)
         }
         else
         {
-            MemoryMap[0] = SpectrumBios128 + ((new_portFE & 0x10) ? 0x4000 : 0x0000);
+            MemoryMap[0] = SpectrumBios128 + ((new_portFD & 0x10) ? 0x4000 : 0x0000);
         }
     }
 
-    portFD = new_portFE;
+    portFD = new_portFD;
 
     // Map in the correct page of banked memory to 0xC000
     MemoryMap[3] = RAM_Memory128 + ((portFD & 0x07) * 0x4000) - 0xC000;
