@@ -122,6 +122,7 @@ u32 next_edge1                  __attribute__((section(".dtcm"))) = 0;
 u32 next_edge2                  __attribute__((section(".dtcm"))) = 0;
 u32 tape_pulses_this_frame      __attribute__((section(".dtcm"))) = 0;
 u8  give_up_counter             __attribute__((section(".dtcm"))) = 0;
+u8  tape_block_search_counter   __attribute__((section(".dtcm"))) = 0;
 
 char *loader_type          = "STANDARD";
 TapePositionTable_t TapePositionTable[256];
@@ -511,6 +512,7 @@ void tape_reset(void)
     handle_last_bits = 0;
     loop_block = 0;
     loop_counter = 0;
+    tape_block_search_counter = 0;
 }
 
 void tape_stop(void)
@@ -521,6 +523,7 @@ void tape_stop(void)
 
 void tape_play(void)
 {
+    tape_block_search_counter = 0;
     tape_state = TAPE_START;
     DisplayStatusLine(false);
 }
@@ -577,6 +580,11 @@ void tape_frame(void)
         {
             DSPrint(2, 21, 2, "!\"#");
             DSPrint(2, 22, 2, "ABC");
+        }
+        
+        if (myConfig.autoPlay == 2)
+        {
+            DSPrint(9, 0, 0, "             ");
         }
 
         show_tape_counter = 30;
@@ -707,6 +715,7 @@ ITCM_CODE u8 tape_pulse(void)
                 // ----------------------------------------------------------------
                 last_edge = CPU.TStates;
                 give_up_counter = 0;
+                tape_block_search_counter = 0;
                 current_block_data_idx = TapeBlocks[current_block].block_data_idx;
 
                 // ------------------------------------------------
@@ -846,6 +855,28 @@ ITCM_CODE u8 tape_pulse(void)
                 // --------------------------------------------------------------------------
                 if ((CPU.TStates-last_edge) > 50000) // Slow bit reads happening?
                 {
+                    // -------------------------------------------------------------------------------------------
+                    // Some large tapes are compilations or are converted from TRD and expect that an emulator
+                    // will play the tape fast enough in emulation that they can just use it like a random-access
+                    // disk... so the emulation will look for times when the program is struggling and will auto
+                    // advance to the next block with wrap around to the start of the tape if needed. It's not
+                    // super fast, but good enough that we can mimic a random-access tape if configured so.
+                    // -------------------------------------------------------------------------------------------
+                    if (++tape_block_search_counter >= 32)
+                    {
+                        tape_block_search_counter = 0;
+                        if (myConfig.autoPlay == 2) // Is the Auto-Play 'SEARCH' algorithm enabled? If so, skip to next block...
+                        {
+                            char tmp[20];
+                            tape_stop();
+                            // Advance block - we are giving up on this one
+                            current_block = (current_block + 1) % num_blocks_available;
+                            sprintf(tmp, "SEARCHING %03d", current_block);
+                            DSPrint(9, 0, 0, tmp);
+                            return 0x00;
+                        }                        
+                    }
+                    
                     if (++give_up_counter > 12)
                     {
                         if (myConfig.autoStop)

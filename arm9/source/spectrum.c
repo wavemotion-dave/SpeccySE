@@ -98,7 +98,7 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
         // --------------------------------------------------------
         if (!tape_state)
         {
-            if (myConfig.autoLoad)
+            if (myConfig.autoPlay)
             {
                 if (PatchLookup[CPU.PC.W]) tape_play();
             }
@@ -131,6 +131,7 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
                 tape_search_for_loader();
                 loader_search_counter=0;
             }
+
             return ~tape_pulse();
         }
         

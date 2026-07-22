@@ -15,8 +15,8 @@ These hobby emulators have been a labor of love. An embarassing amount of develo
 
 Features :
 -----------------------
-* Loads .TAP files up to 640K total length (can swap tapes mid-game)
-* Loads .TZX files up to 640K total length (can swap tapes mid-game)
+* Loads .TAP files up to 800K total length (can swap tapes mid-game)
+* Loads .TZX files up to 800K total length (can swap tapes mid-game)
 * Loads .Z80 snapshots (V1, V2 and V3 formats, 48K or 128K)
 * Loads .SNA snapshots (48K only)
 * Loads .ROM files (16K diagnostics ROMs or 512K Dandanator ROMs)
@@ -303,6 +303,11 @@ you're likely going to want ZXDS.
 
 Version History :
 -----------------------
+Version 1.9b - 22-July-2026 by wavemotion-dave
+* Max tape size is now 800K
+* Gandalf DX now runs!
+* Added new 'Autoload Search' option - allows seeking for large tape games like Guns & Gears.
+
 Version 1.9 - 19-July-2026 by wavemotion-dave
 * New top screen graphic.
 * Slight refactor for audio to smooth out heavy-hitting beeper games.

@@ -17,7 +17,7 @@
 
 #define MAX_FILES                   1024
 #define MAX_FILENAME_LEN            160
-#define MAX_TAPE_SIZE               (640*1024) // 640K is big enough for any .TAP/.TZX or Snapshot
+#define MAX_TAPE_SIZE               (800*1024) // 800K is big enough for any .TAP/.TZX or Snapshot
 
 #define MAX_CONFIGS                 4096
 #define CONFIG_VERSION              0x0007
@@ -87,7 +87,7 @@ struct __attribute__((__packed__)) Config_t
     u8  autoFire;
     u8  tapeSpeed;
     u8  dpad;
-    u8  autoLoad;
+    u8  autoPlay;
     u8  machine;
     u8  gameSpeed;
     u8  ULAplus;

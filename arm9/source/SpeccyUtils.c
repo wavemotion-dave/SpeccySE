@@ -949,7 +949,7 @@ void SetDefaultGameConfig(void)
     myConfig.tapeSpeed   = 1;                           // Normally accelerated
     myConfig.autoFire    = 0;                           // Default to no auto-fire on either button
     myConfig.dpad        = DPAD_NORMAL;                 // Normal DPAD use - mapped to joystick
-    myConfig.autoLoad    = 1;                           // Default is to to auto-load TAP and TZX games
+    myConfig.autoPlay    = 1;                           // Default is to to auto-load TAP and TZX games
     myConfig.machine     = myGlobalConfig.defMachine;   // Default machine is 48K but can be changed globally
     myConfig.gameSpeed   = 0;                           // Default is 100% game speed
     myConfig.ULAplus     = myGlobalConfig.defULAplus;   // Default is to allow ULA Plus but can be changed globally
@@ -1058,6 +1058,12 @@ void FindConfig(void)
     // ------------------------------------------------------------------------
     if (!bFound)
     {
+        // If the file is larger than 300K we turn on the 'SEARCH' loader
+        if (file_size >= (300*1024))
+        {
+            myConfig.autoPlay = 2;
+        }        
+        
         // A whole bunch of games need the 48K machine and won't run on the 128K machine. We do our best on the more popular games to auto-detect.
         if      (strcasestr(gpFic[ucGameChoice].szName, "ATIC ATAC")         != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "ATIC-ATAC")         != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
@@ -1139,7 +1145,7 @@ const struct options_t Option_Table[2][20] =
         {"ULA PLUS",       {"DISABLED",  "ENABLED"},                                    &myConfig.ULAplus,           2},
         {"ULA TIMING",     {"NORMAL", "DELAYED", "UNCONTESTED"},                        &myConfig.ULAtiming,         3},
         {"FRAMESKIP",      {"OFF (SHOW ALL)", "ON (SHOW 3/4)"},                         &myConfig.frameSkip,         2},
-        {"AUTO PLAY",      {"NO", "YES"},                                               &myConfig.autoLoad,          2},
+        {"AUTO PLAY",      {"NO", "YES", "YES - SEARCH"},                               &myConfig.autoPlay,          3},
         {"AUTO STOP",      {"NO", "YES", "AGGRESSIVE"},                                 &myConfig.autoStop,          3},
         {"AUTO FIRE",      {"OFF", "ON"},                                               &myConfig.autoFire,          2},
         {"TAPE SPEED",     {"NORMAL", "ACCELERATED"},                                   &myConfig.tapeSpeed,         2},

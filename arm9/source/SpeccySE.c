@@ -1318,7 +1318,7 @@ void SpeccySE_main(void)
                     // Tape Loader - Put the LOAD "" into the keyboard buffer
                     if (speccy_mode < MODE_SNA)
                     {
-                        if (myConfig.autoLoad)
+                        if (myConfig.autoPlay)
                         {
                             if (zx_128k_mode)
                             {
@@ -1328,7 +1328,7 @@ void SpeccySE_main(void)
                             {
                                 BufferKey('J'); BufferKey(KBD_KEY_SYMBOL); BufferKey('P'); BufferKey(KBD_KEY_SYMBOL); BufferKey('P'); BufferKey(KBD_KEY_RET);
                             }
-                            if (myConfig.autoLoad && (myConfig.tapeSpeed == 0)) bStartIn = 2; // Start tape in 2 seconds...
+                            if (myConfig.autoPlay && (myConfig.tapeSpeed == 0)) bStartIn = 2; // Start tape in 2 seconds...
                         }
                     }
                     else if (speccy_mode == MODE_ZX81)
