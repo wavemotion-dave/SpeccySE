@@ -22,7 +22,7 @@ Features :
 * Loads .ROM files (16K diagnostics ROMs or 512K Dandanator ROMs)
 * Loads .P files for ZX81 emulation (see below)
 * Supports .POK files (same name as base game and stored in POK subdir)
-* Kempston, Sinclair and Protek joystick support
+* Kempston (including 8-bit), Sinclair and Protek joystick support
 * Fully configurable keys for the 12 NDS keys to any combination of joystick/keyboard
 * Save and Restore states so you can pick up where you left off
 * ULAPlus support for enhanced 64 color mode (from a palette of 256 colors)
@@ -284,9 +284,7 @@ might not work the way you expect if you do it at the wrong time).
 Known Issues :
 -----------------------
 * Not all Dandanator compilation games run properly - support is preliminary (but good enough for the few games that really need it).
-* Roger the Pangolin has graphical glitches (stray pixels) during gameplay. Likely timing issues.
-* Genesis has graphical glitching (screen jitter) during gameplay. Likely timing issue.
-* Ghosts-n-Goblins doesn't run - graphics go wonky right after the main gameplay is started. Cause unknown.
+* Some of the cutting-edge Nirvana+ games will run with small graphical glitches. For example, Roger the Pangolin has graphical glitches (stray pixel lines) during gameplay. It should be minor enough that it won't impact gameplay.
 * Disk files are not supported yet. Most games have TAP or Dandanator alternatives - but not all.
 
 Why? :
@@ -303,10 +301,15 @@ you're likely going to want ZXDS.
 
 Version History :
 -----------------------
-Version 1.9b - 22-July-2026 by wavemotion-dave
-* Max tape size is now 800K
-* Gandalf DX now runs!
+Version 2.0 - 24-July-2026 by wavemotion-dave
+* Interrupt handling improved. Gandalf DX now runs. Genesis - Dawn of a New Day now runs.
+* Improved ULA timing - more of the Nirvana+ games look correct.
+* Ghosts n Goblins now runs (improved undocumented flags handling).
 * Added new 'Autoload Search' option - allows seeking for large tape games like Guns & Gears.
+* New Kempston 8-bit joystick mapping with all 4 buttons available.
+* Fixed several 48K only games so they run with the right default machine type.
+* Fixed Sinclair joystick maps. Provide Sinclair P1 and P2 mappings.
+* Max tape size is now 800K for the really big demos and compilation tapes.
 
 Version 1.9 - 19-July-2026 by wavemotion-dave
 * New top screen graphic.

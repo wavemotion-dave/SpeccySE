@@ -122,35 +122,37 @@ u16 keyCoresp[MAX_KEY_OPTIONS] __attribute__((section(".dtcm"))) = {
     JST_RIGHT,
     JST_FIRE,
     JST_FIRE2,  //5
+    JST_FIRE3,
+    JST_START,  //7
 
-    META_KBD_A, //6
+    META_KBD_A, //8
     META_KBD_B,
-    META_KBD_C,
+    META_KBD_C, //10
     META_KBD_D,
     META_KBD_E,
-    META_KBD_F, //10
+    META_KBD_F,
     META_KBD_G,
-    META_KBD_H,
+    META_KBD_H, //15
     META_KBD_I,
-    META_KBD_J, //15
+    META_KBD_J,
     META_KBD_K,
     META_KBD_L,
-    META_KBD_M,
+    META_KBD_M, //20
     META_KBD_N,
-    META_KBD_O, //20
+    META_KBD_O,
     META_KBD_P,
     META_KBD_Q,
-    META_KBD_R,
+    META_KBD_R, //25
     META_KBD_S,
-    META_KBD_T, //25
+    META_KBD_T,
     META_KBD_U,
     META_KBD_V,
-    META_KBD_W,
+    META_KBD_W, //30
     META_KBD_X,
-    META_KBD_Y, //30
-    META_KBD_Z, //31
+    META_KBD_Y,
+    META_KBD_Z, //33
 
-    META_KBD_1, //32
+    META_KBD_1, //34
     META_KBD_2,
     META_KBD_3,
     META_KBD_4,
@@ -159,12 +161,12 @@ u16 keyCoresp[MAX_KEY_OPTIONS] __attribute__((section(".dtcm"))) = {
     META_KBD_7,
     META_KBD_8,
     META_KBD_9,
-    META_KBD_0, //41
+    META_KBD_0, //43
 
-    META_KBD_SHIFT,
-    META_KBD_SYMBOL,
-    META_KBD_SPACE,
-    META_KBD_RETURN // 45
+    META_KBD_SHIFT, // 44
+    META_KBD_SYMBOL,// 45
+    META_KBD_SPACE, // 46
+    META_KBD_RETURN // 47
 };
 
 int8 currentBrightness = 0;
@@ -1275,7 +1277,7 @@ void SpeccySE_main(void)
         {
             //if (keysCurrent() & KEY_X) debug[0]++;
             //if (keysCurrent() & KEY_Y) debug[0]--;
-            
+
             TIMER1_CR = 0;
             TIMER1_DATA = 0;
             TIMER1_CR=TIMER_ENABLE | TIMER_DIV_1024;
@@ -1368,7 +1370,7 @@ void SpeccySE_main(void)
                 bStartSoundEngine = 2;  // Unpause sound after 2 frames
                 SoundPause();           // But for now, keep muted while we load
                 currentBrightness = 0;  // Keep at full brightness while loading
-                dimDampen = 0;
+                dimDampen = 0;          // Reset brightness (at least temporarily)
                 break;                  // With tape playing, speedup to allow faster load
             }
         }
@@ -1479,7 +1481,7 @@ void SpeccySE_main(void)
             WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;WAITVBL;
             DSPrint(5,0,0,"        ");
       }
-      else if  (nds_key & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT | KEY_A | KEY_B | KEY_START | KEY_SELECT | KEY_R | KEY_L | KEY_X | KEY_Y))
+      else if  (nds_key & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT | KEY_A | KEY_B | KEY_X | KEY_Y | KEY_START | KEY_SELECT | KEY_R | KEY_L ))
       {
           if (myConfig.dpad == DPAD_DIAGONALS) // Diagonals... map standard Left/Right/Up/Down to combinations
           {

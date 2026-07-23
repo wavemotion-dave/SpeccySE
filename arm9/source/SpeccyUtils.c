@@ -80,8 +80,10 @@ const char szKeyName[MAX_KEY_OPTIONS][16] = {
   "KEMPSTON RIGHT",
   "KEMPSTON FIRE",
   "KEMPSTON FIRE2",
+  "KEMPSTON FIRE3",
+  "KEMPSTON START", // 7
 
-  "KEYBOARD A", //6
+  "KEYBOARD A", //8
   "KEYBOARD B",
   "KEYBOARD C",
   "KEYBOARD D",
@@ -106,9 +108,9 @@ const char szKeyName[MAX_KEY_OPTIONS][16] = {
   "KEYBOARD W",
   "KEYBOARD X",
   "KEYBOARD Y",
-  "KEYBOARD Z", // 31
+  "KEYBOARD Z", // 33
 
-  "KEYBOARD 1", // 32
+  "KEYBOARD 1", // 34
   "KEYBOARD 2",
   "KEYBOARD 3",
   "KEYBOARD 4",
@@ -117,12 +119,12 @@ const char szKeyName[MAX_KEY_OPTIONS][16] = {
   "KEYBOARD 7",
   "KEYBOARD 8",
   "KEYBOARD 9",
-  "KEYBOARD 0", // 41
+  "KEYBOARD 0", // 43
 
   "KEYBOARD SHIFT",
   "KEYBOARD SYMBOL",
   "KEYBOARD SPACE",
-  "KEYBOARD RETURN", // 45
+  "KEYBOARD RETURN", // 47
 };
 
 
@@ -825,7 +827,7 @@ void SaveConfig(bool bShow)
     }
 }
 
-void MapPlayer1(void)
+void MapKempstonP1(void)
 {
     myConfig.keymap[0]   = 0;    // NDS D-Pad mapped to Kempston Joystick UP
     myConfig.keymap[1]   = 1;    // NDS D-Pad mapped to Kempston Joystick DOWN
@@ -834,97 +836,131 @@ void MapPlayer1(void)
     myConfig.keymap[4]   = 4;    // NDS A Button mapped to Kempston Fire
 
     myConfig.keymap[5]   = 0;    // NDS B Button mapped to Kempston Joystick UP (jump)
-    myConfig.keymap[6]   = 44;   // NDS X Button mapped to SPACE
-    myConfig.keymap[7]   = 45;   // NDS Y Button mapped to RETURN
-    myConfig.keymap[8]   = 42;   // NDS R Button mapped to SHIFT
-    myConfig.keymap[9]   = 43;   // NDS L Button mapped to SYMBOL
-    myConfig.keymap[10]  = 41;   // NDS START mapped to '0'
-    myConfig.keymap[11]  = 32;   // NDS SELECT mapped to '1'
+    myConfig.keymap[6]   = 46;   // NDS X Button mapped to SPACE
+    myConfig.keymap[7]   = 47;   // NDS Y Button mapped to RETURN
+    myConfig.keymap[8]   = 44;   // NDS R Button mapped to SHIFT
+    myConfig.keymap[9]   = 45;   // NDS L Button mapped to SYMBOL
+    myConfig.keymap[10]  = 43;   // NDS START mapped to '0'
+    myConfig.keymap[11]  = 34;   // NDS SELECT mapped to '1'
+}
+
+
+void MapKempston8(void)
+{
+    myConfig.keymap[0]   = 0;    // NDS D-Pad mapped to Kempston Joystick UP
+    myConfig.keymap[1]   = 1;    // NDS D-Pad mapped to Kempston Joystick DOWN
+    myConfig.keymap[2]   = 2;    // NDS D-Pad mapped to Kempston Joystick LEFT
+    myConfig.keymap[3]   = 3;    // NDS D-Pad mapped to Kempston Joystick RIGHT
+    myConfig.keymap[4]   = 4;    // NDS A Button mapped to Kempston Fire 1
+    myConfig.keymap[5]   = 5;    // NDS B Button mapped to Kempston Fire 2
+    myConfig.keymap[6]   = 6;    // NDS X Button mapped to Kempston Fire 3
+    myConfig.keymap[7]   = 7;    // NDS Y Button mapped to Kempston Start
+    
+    myConfig.keymap[8]   = 44;   // NDS R Button mapped to SHIFT
+    myConfig.keymap[9]   = 45;   // NDS L Button mapped to SYMBOL
+    myConfig.keymap[10]  = 43;   // NDS START mapped to '0'
+    myConfig.keymap[11]  = 34;   // NDS SELECT mapped to '1'
 }
 
 
 void MapQAOP(void)
 {
-    myConfig.keymap[0]   = 22;   // Q
-    myConfig.keymap[1]   =  6;   // A
-    myConfig.keymap[2]   = 20;   // O
-    myConfig.keymap[3]   = 21;   // P
-    myConfig.keymap[4]   = 44;   // Space
-    myConfig.keymap[5]   = 18;   // M
-    myConfig.keymap[6]   = 31;   // Z
-    myConfig.keymap[7]   = 31;   // Z
-    myConfig.keymap[8]   = 42;   // NDS R Button mapped to SHIFT
-    myConfig.keymap[9]   = 43;   // NDS L Button mapped to SYMBOL
-    myConfig.keymap[10]  = 41;   // NDS START mapped to '0'
-    myConfig.keymap[11]  = 32;   // NDS SELECT mapped to '1'
+    myConfig.keymap[0]   = 24;   // Q
+    myConfig.keymap[1]   =  8;   // A
+    myConfig.keymap[2]   = 22;   // O
+    myConfig.keymap[3]   = 23;   // P
+    myConfig.keymap[4]   = 46;   // Space
+    myConfig.keymap[5]   = 20;   // M
+    myConfig.keymap[6]   = 33;   // Z
+    myConfig.keymap[7]   = 34;   // Z
+    myConfig.keymap[8]   = 44;   // NDS R Button mapped to SHIFT
+    myConfig.keymap[9]   = 45;   // NDS L Button mapped to SYMBOL
+    myConfig.keymap[10]  = 43;   // NDS START mapped to '0'
+    myConfig.keymap[11]  = 34;   // NDS SELECT mapped to '1'
 }
 
 void MapWASD(void)
 {
-    myConfig.keymap[0]   = 28;    // W (up)
-    myConfig.keymap[1]   = 24;    // S (down)
-    myConfig.keymap[2]   =  6;    // A (left)
-    myConfig.keymap[3]   =  9;    // D (right)
-    myConfig.keymap[4]   = 44;   // Space
-    myConfig.keymap[5]   = 44;   // Space
-    myConfig.keymap[6]   = 31;   // Z
-    myConfig.keymap[7]   = 31;   // Z
-    myConfig.keymap[8]   = 42;   // NDS R Button mapped to SHIFT
-    myConfig.keymap[9]   = 43;   // NDS L Button mapped to SYMBOL
-    myConfig.keymap[10]  = 41;   // NDS START mapped to '0'
-    myConfig.keymap[11]  = 32;   // NDS SELECT mapped to '1'
+    myConfig.keymap[0]   = 30;    // W (up)
+    myConfig.keymap[1]   = 26;    // S (down)
+    myConfig.keymap[2]   =  8;    // A (left)
+    myConfig.keymap[3]   = 11;    // D (right)
+    myConfig.keymap[4]   = 46;   // Space
+    myConfig.keymap[5]   = 46;   // Space
+    myConfig.keymap[6]   = 33;   // Z
+    myConfig.keymap[7]   = 33;   // Z
+    myConfig.keymap[8]   = 44;   // NDS R Button mapped to SHIFT
+    myConfig.keymap[9]   = 45;   // NDS L Button mapped to SYMBOL
+    myConfig.keymap[10]  = 43;   // NDS START mapped to '0'
+    myConfig.keymap[11]  = 34;   // NDS SELECT mapped to '1'
 }
 
 void MapZXSpace(void)
 {
-    myConfig.keymap[0]   = 17;   // K
-    myConfig.keymap[1]   = 19;   // M
-    myConfig.keymap[2]   = 31;   // Z
-    myConfig.keymap[3]   = 29;   // X
-    myConfig.keymap[4]   = 44;   // Space
-    myConfig.keymap[5]   = 44;   // Space
-    myConfig.keymap[6]   = 45;   // Return
-    myConfig.keymap[7]   = 45;   // Return
-    myConfig.keymap[8]   = 42;   // NDS R Button mapped to SHIFT
-    myConfig.keymap[9]   = 43;   // NDS L Button mapped to SYMBOL
-    myConfig.keymap[10]  = 41;   // NDS START mapped to '0'
-    myConfig.keymap[11]  = 32;   // NDS SELECT mapped to '1'
+    myConfig.keymap[0]   = 19;   // K
+    myConfig.keymap[1]   = 21;   // M
+    myConfig.keymap[2]   = 33;   // Z
+    myConfig.keymap[3]   = 31;   // X
+    myConfig.keymap[4]   = 46;   // Space
+    myConfig.keymap[5]   = 46;   // Space
+    myConfig.keymap[6]   = 47;   // Return
+    myConfig.keymap[7]   = 47;   // Return
+    myConfig.keymap[8]   = 44;   // NDS R Button mapped to SHIFT
+    myConfig.keymap[9]   = 45;   // NDS L Button mapped to SYMBOL
+    myConfig.keymap[10]  = 43;   // NDS START mapped to '0'
+    myConfig.keymap[11]  = 34;   // NDS SELECT mapped to '1'
 }
 
 
-// 6 (left), 7 (right), 8 (down), 9 (up) and 0 (fire) for Sinclair P1
-// 1 (left), 2 (right), 3 (down), 4 (up) and 5 (fire) for Sinclair P2
+// Sinclair P1:  1 (left), 2 (right), 3 (down), 4 (up) and 5 (fire) for 
 void Sinclair1(void)
 {
-    myConfig.keymap[0]   = 40;   // UP
-    myConfig.keymap[1]   = 39;   // DOWN
-    myConfig.keymap[2]   = 37;   // LEFT
-    myConfig.keymap[3]   = 38;   // RIGHT
-    myConfig.keymap[4]   = 41;   // FIRE
-    myConfig.keymap[5]   = 44;   // Space
-    myConfig.keymap[6]   = 44;   // Space
-    myConfig.keymap[7]   = 44;   // Space
-    myConfig.keymap[8]   = 42;   // NDS R Button mapped to SHIFT
-    myConfig.keymap[9]   = 43;   // NDS L Button mapped to SYMBOL
-    myConfig.keymap[10]  = 41;   // NDS START mapped to '0'
-    myConfig.keymap[11]  = 32;   // NDS SELECT mapped to '1'
+    myConfig.keymap[0]   = 37;   // UP
+    myConfig.keymap[1]   = 36;   // DOWN
+    myConfig.keymap[2]   = 34;   // LEFT
+    myConfig.keymap[3]   = 35;   // RIGHT
+    myConfig.keymap[4]   = 38;   // FIRE
+    myConfig.keymap[5]   = 46;   // Space
+    myConfig.keymap[6]   = 46;   // Space
+    myConfig.keymap[7]   = 46;   // Space
+    myConfig.keymap[8]   = 44;   // NDS R Button mapped to SHIFT
+    myConfig.keymap[9]   = 45;   // NDS L Button mapped to SYMBOL
+    myConfig.keymap[10]  = 43;   // NDS START mapped to '0'
+    myConfig.keymap[11]  = 34;   // NDS SELECT mapped to '1'
+}
+
+// Sinclair P2:  6 (left), 7 (right), 8 (down), 9 (up) and 0 (fire)
+void Sinclair2(void)
+{
+    myConfig.keymap[0]   = 42;   // UP
+    myConfig.keymap[1]   = 41;   // DOWN
+    myConfig.keymap[2]   = 39;   // LEFT
+    myConfig.keymap[3]   = 40;   // RIGHT
+    myConfig.keymap[4]   = 43;   // FIRE
+    myConfig.keymap[5]   = 46;   // Space
+    myConfig.keymap[6]   = 46;   // Space
+    myConfig.keymap[7]   = 46;   // Space
+    myConfig.keymap[8]   = 44;   // NDS R Button mapped to SHIFT
+    myConfig.keymap[9]   = 45;   // NDS L Button mapped to SYMBOL
+    myConfig.keymap[10]  = 43;   // NDS START mapped to '0'
+    myConfig.keymap[11]  = 34;   // NDS SELECT mapped to '1'
 }
 
 // 5 (left), 6 (down), 7 (up), 8 (right) and 0 (fire) - PROTEK uses this mapping
 void Cursors(void)
 {
-    myConfig.keymap[0]   = 38;   // UP (7)
-    myConfig.keymap[1]   = 37;   // DOWN (6)
-    myConfig.keymap[2]   = 36;   // LEFT (5)
-    myConfig.keymap[3]   = 39;   // RIGHT (8)
-    myConfig.keymap[4]   = 41;   // Fire (0)
-    myConfig.keymap[5]   = 45;   // Return
-    myConfig.keymap[6]   = 44;   // Space
-    myConfig.keymap[7]   = 44;   // Space
-    myConfig.keymap[8]   = 42;   // NDS R Button mapped to SHIFT
-    myConfig.keymap[9]   = 43;   // NDS L Button mapped to SYMBOL
-    myConfig.keymap[10]  = 41;   // NDS START mapped to '0'
-    myConfig.keymap[11]  = 42;   // NDS SELECT mapped to '1'
+    myConfig.keymap[0]   = 40;   // UP (7)
+    myConfig.keymap[1]   = 39;   // DOWN (6)
+    myConfig.keymap[2]   = 38;   // LEFT (5)
+    myConfig.keymap[3]   = 41;   // RIGHT (8)
+    myConfig.keymap[4]   = 43;   // Fire (0)
+    myConfig.keymap[5]   = 47;   // Return
+    myConfig.keymap[6]   = 46;   // Space
+    myConfig.keymap[7]   = 46;   // Space
+    myConfig.keymap[8]   = 44;   // NDS R Button mapped to SHIFT
+    myConfig.keymap[9]   = 45;   // NDS L Button mapped to SYMBOL
+    myConfig.keymap[10]  = 43;   // NDS START mapped to '0'
+    myConfig.keymap[11]  = 34;   // NDS SELECT mapped to '1'
 }
 
 
@@ -943,7 +979,7 @@ void SetDefaultGameConfig(void)
 {
     myConfig.game_crc    = 0;    // No game in this slot yet
 
-    MapPlayer1();                // Default to Player 1 mapping
+    MapKempstonP1();             // Default to Player 1 Kempston mapping
 
     myConfig.autoStop    = 1;                           // Normally detect STOP tape
     myConfig.tapeSpeed   = 1;                           // Normally accelerated
@@ -953,10 +989,10 @@ void SetDefaultGameConfig(void)
     myConfig.machine     = myGlobalConfig.defMachine;   // Default machine is 48K but can be changed globally
     myConfig.gameSpeed   = 0;                           // Default is 100% game speed
     myConfig.ULAplus     = myGlobalConfig.defULAplus;   // Default is to allow ULA Plus but can be changed globally
-    myConfig.ULAtiming   = 0;                           // Normal timing
+    myConfig.ULAcontend  = 1;                           // Normal contend memory access
+    myConfig.ULAtiming   = 0;                           // Normal timing - no tweaks
     myConfig.turbo       = 0;                           // Normal Z80 clock (1=TURBO 7MHz)
     myConfig.frameSkip   = (isDSiMode() ? 0:1);         // Frameskip for DS-Lite/Phat by default
-    myConfig.reserved6   = 0;
     myConfig.reserved7   = 0;
     myConfig.reserved8   = 0;
     myConfig.reserved9   = 0xA5;    // So it's easy to spot on an "upgrade" and we can re-default it
@@ -996,17 +1032,6 @@ void LoadConfig(void)
         {
             bInitDatabase = 1;
         }
-        else // Run through database looking for myConfig.reserved8 to be 0xA5
-        {
-            for (int i=0; i<MAX_CONFIGS; i++)
-            {
-                if (AllConfigs[i].reserved8 == 0xA5)
-                {
-                    AllConfigs[i].reserved8 = 0;
-                    AllConfigs[i].frameSkip = (isDSiMode() ? 0:1); // Frameskip enabled for DS-Lite/Phat
-                }
-            }
-        }    
     }
     else    // Not found... init the entire database...
     {
@@ -1069,6 +1094,10 @@ void FindConfig(void)
         else if (strcasestr(gpFic[ucGameChoice].szName, "ATIC-ATAC")         != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "ATICATAC")          != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "ATIC_ATAC")         != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "DARKSTAR")          != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "DARK_STAR")         != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "BOMBJACK")          != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "BOMB JACK")         != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "KNIGHTLORE")        != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "KNIGHT LORE")       != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "HYPER SPORTS")      != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
@@ -1097,26 +1126,33 @@ void FindConfig(void)
         else if (strcasestr(gpFic[ucGameChoice].szName, "CHUCKIE")           != 0) {myConfig.machine = 0; myConfig.frameSkip = 0; myConfig.dpad = 2;}
                  
         // And some games that need some special ULA timing to look 'correct'
-        else if (strcasestr(gpFic[ucGameChoice].szName, "GLUF")              != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "DREAMWALKER")       != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "DREAM WALKER")      != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "MULTIDUDE")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "MULTI DUDE")        != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "MANICPIE")          != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "MANIC PIE")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "YAZZIE")            != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "OUTOFMARS")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "OUT OF MARS")       != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "GANDALF")           != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "STORMFINCH")        != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "STORM FINCH")       != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "SNAKESCAPE")        != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "SNAKEESC")          != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "SNAKE ESC")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "NIRVANA")           != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "POWERJACK")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "POWER JACK")        != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
-        else if (strcasestr(gpFic[ucGameChoice].szName, "PANGOLIN")          != 0) {myConfig.machine = 0; myConfig.ULAtiming = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "GLUF")              != 0) {myConfig.machine = 1; myConfig.ULAtiming = 7;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "DREAMWALKER")       != 0) {myConfig.machine = 1; myConfig.ULAtiming = 3;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "DREAM WALKER")      != 0) {myConfig.machine = 1; myConfig.ULAtiming = 3;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "MULTIDUDE")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 3;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "MULTI DUDE")        != 0) {myConfig.machine = 1; myConfig.ULAtiming = 3;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "MANICPIE")          != 0) {myConfig.machine = 1; myConfig.ULAtiming = 3;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "MANIC PIE")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 3;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "PIETRO BROS")       != 0) {myConfig.machine = 1; myConfig.ULAtiming = 4;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "PIETRO_BROS")       != 0) {myConfig.machine = 1; myConfig.ULAtiming = 4;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "PIETROBROS")        != 0) {myConfig.machine = 1; myConfig.ULAtiming = 4;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "PIETRO_RELEASE")    != 0) {myConfig.machine = 1; myConfig.ULAtiming = 4;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "YAZZIEJR")          != 0) {myConfig.machine = 1; myConfig.ULAtiming = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "YAZZIE JUN")        != 0) {myConfig.machine = 1; myConfig.ULAtiming = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "YAZZIE")            != 0) {myConfig.machine = 1; myConfig.ULAtiming = 3;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "OUTOFMARS")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 4;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "OUT OF MARS")       != 0) {myConfig.machine = 1; myConfig.ULAtiming = 4;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "GANDALF")           != 0) {myConfig.machine = 1; myConfig.ULAtiming = 5;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "SHAOLIN")           != 0) {myConfig.machine = 1; myConfig.ULAtiming = 3;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "STORMFINCH")        != 0) {myConfig.machine = 1; myConfig.ULAtiming = 3;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "STORM FINCH")       != 0) {myConfig.machine = 1; myConfig.ULAtiming = 3;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "SNAKESCAPE")        != 0) {myConfig.machine = 1; myConfig.ULAtiming = 3;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "SNAKEESC")          != 0) {myConfig.machine = 1; myConfig.ULAtiming = 3;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "SNAKE ESC")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 4;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "NIRVANA")           != 0) {myConfig.machine = 1; myConfig.ULAtiming = 4;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "POWERJACK")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 4;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "POWER JACK")        != 0) {myConfig.machine = 1; myConfig.ULAtiming = 4;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "PANGOLIN")          != 0) {myConfig.machine = 1; myConfig.ULAtiming = 1;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "ALTER EGO")         != 0) myConfig.machine = 0; // Do this after checks above for DREAMWALKER
         else if (strcasestr(gpFic[ucGameChoice].szName, "ALTEREGO")          != 0) myConfig.machine = 0; // Do this after checks above for DREAMWALKER
     }
@@ -1132,7 +1168,7 @@ void FindConfig(void)
 struct options_t
 {
     const char  *label;
-    const char  *option[16];
+    const char  *option[32];
     u8          *option_val;
     u8           option_max;
 };
@@ -1143,7 +1179,9 @@ const struct options_t Option_Table[2][20] =
     {
         {"MACHINE",        {"48K SPECTRUM", "128K SPECTRUM"},                           &myConfig.machine,           2},
         {"ULA PLUS",       {"DISABLED",  "ENABLED"},                                    &myConfig.ULAplus,           2},
-        {"ULA TIMING",     {"NORMAL", "DELAYED", "UNCONTESTED"},                        &myConfig.ULAtiming,         3},
+        {"ULA CONTEND",    {"UNCONTESTED", "NORMAL"},                                   &myConfig.ULAcontend,        2},
+        {"ULA TIMING",     {"NORMAL", "TWEAK 1", "TWEAK 2", "TWEAK 3", "TWEAK 4", 
+                            "TWEAK 5", "TWEAK 6", "TWEAK 7"},                           &myConfig.ULAtiming,         8},
         {"FRAMESKIP",      {"OFF (SHOW ALL)", "ON (SHOW 3/4)"},                         &myConfig.frameSkip,         2},
         {"AUTO PLAY",      {"NO", "YES", "YES - SEARCH"},                               &myConfig.autoPlay,          3},
         {"AUTO STOP",      {"NO", "YES", "AGGRESSIVE"},                                 &myConfig.autoStop,          3},
@@ -1152,7 +1190,6 @@ const struct options_t Option_Table[2][20] =
         {"GAME SPEED",     {"100%","102%","105%","110%","120%","98%","95%","90%","80%"},&myConfig.gameSpeed,         9},
         {"Z80 MODE",       {"3.5MHZ NORMAL", "7MHZ TURBO"},                             &myConfig.turbo,             2},
         {"NDS D-PAD",      {"NORMAL", "DIAGONALS", "SLIDE-N-GLIDE"},                    &myConfig.dpad,              3},
-        
         {NULL,             {"",      ""},                                               NULL,                        1},
     },
     // Global Options
@@ -1322,15 +1359,17 @@ void DisplayKeymapName(u32 uY)
 u8 keyMapType = 0;
 void SwapKeymap(void)
 {
-    keyMapType = (keyMapType+1) % 6;
+    keyMapType = (keyMapType+1) % 8;
     switch (keyMapType)
     {
-        case 0: MapPlayer1();  DSPrint(8,3,0,("  KEMPSTON P1 ")); break;
-        case 1: Sinclair1();   DSPrint(8,3,0,("  SINCLAIR P1 ")); break;
-        case 2: Cursors();     DSPrint(8,3,0,("PROTEK CURSORS")); break;
-        case 3: MapQAOP();     DSPrint(8,3,0,("     QAOP     ")); break;
-        case 4: MapWASD();     DSPrint(8,3,0,("     WASD     ")); break;
-        case 5: MapZXSpace();  DSPrint(8,3,0,("   ZX SPACE   ")); break;
+        case 0: MapKempstonP1();DSPrint(8,3,0,("  KEMPSTON P1 ")); break;
+        case 1: Sinclair1();    DSPrint(8,3,0,("  SINCLAIR P1 ")); break;
+        case 2: Sinclair2();    DSPrint(8,3,0,("  SINCLAIR P2 ")); break;
+        case 3: Cursors();      DSPrint(8,3,0,("PROTEK CURSORS")); break;
+        case 4: MapQAOP();      DSPrint(8,3,0,("     QAOP     ")); break;
+        case 5: MapWASD();      DSPrint(8,3,0,("     WASD     ")); break;
+        case 6: MapZXSpace();   DSPrint(8,3,0,("   ZX SPACE   ")); break;
+        case 7: MapKempston8(); DSPrint(8,3,0,("KEMPSTON 8-BIT")); break;
     }
     WAITVBL;WAITVBL;WAITVBL;WAITVBL;
     DSPrint(8,3,0,("               "));

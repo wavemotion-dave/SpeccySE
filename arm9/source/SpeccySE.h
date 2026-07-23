@@ -40,6 +40,8 @@ extern u32 DX, DY;
 #define JST_LEFT            0x0008
 #define JST_FIRE            0x0010
 #define JST_FIRE2           0x0020
+#define JST_FIRE3           0x0040  // Only on Kempston 8-bit interface
+#define JST_START           0x0080  // Only on Kempston 8-bit interface
 
 // -----------------------------------------------------------------------------------
 // And these are meta keys for mapping NDS keys to keyboard keys (many of the computer
@@ -88,7 +90,7 @@ extern u32 DX, DY;
 #define META_KBD_SPACE      0xF029
 #define META_KBD_RETURN     0xF02A
 
-#define MAX_KEY_OPTIONS     46
+#define MAX_KEY_OPTIONS     48
 
 // -----------------------------
 // For the Full Keyboard...

@@ -1022,7 +1022,7 @@ u8 inline __attribute__((always_inline)) tape_pulse_fast_no_shift(void)
 
 //PC will be 0x05F3 when we get here from the standard BIOS but were are being location agnostic
 //so that we can use this same routine when the standard loader is used in other memory locations.
-ITCM_CODE u8 tape_sample_standard(void)
+u8 tape_sample_standard(void)
 {
     if (!tape_state) tape_state = TAPE_START; // If we aren't playing the tape, may as well do so as we're trying to find an edge
 

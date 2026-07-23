@@ -301,6 +301,8 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
             if (JoyState & JST_UP)    joy1 |= 0x08;
             if (JoyState & JST_FIRE)  joy1 |= 0x10;
             if (JoyState & JST_FIRE2) joy1 |= 0x20;
+            if (JoyState & JST_FIRE3) joy1 |= 0x40; // Only for Kempston 8-bit interface
+            if (JoyState & JST_START) joy1 |= 0x80; // Only for Kempston 8-bit interface
             
             return joy1;
         }
@@ -328,11 +330,15 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
                     }
                 }
             }
-         } 
-         else if (Port == 0x007f) // Fuller Joystick - non-responsive (Arcadia hits this one)
-         {
-             return 0xFF;
-         }
+        } 
+        else if (Port == 0x007f) // Fuller Joystick - non-responsive (Arcadia hits this one)
+        {
+            return 0xFF;
+        }
+        else if ((Port & 0x3F) == 0x37)  // Kempston 2nd Joystick interface... Not supported.
+        {
+            return 0x00;
+        }
      }
 
     // ---------------------------------------------------------------------------------------------
@@ -403,7 +409,7 @@ ITCM_CODE void zx_bank(u8 new_portFD)
     MemoryMap[3] = RAM_Memory128 + ((portFD & 0x07) * 0x4000) - 0xC000;
     
     // Set the upper bank of memory to 'contended' if we are swapping in an 'odd' 128K bank
-    if ((myConfig.ULAtiming & 2) == 0)
+    if (myConfig.ULAcontend)
     {
         ContendMap[3] = (zx_128k_mode && (portFD & 1));
     }
@@ -783,7 +789,7 @@ void speccy_reset(void)
             }
 
     // Normally we always contend 0x4000-0x7FFF unless we are configured for 'no contend'
-    ContendMap[1] = (myConfig.ULAtiming & 2) ? 0:1;
+    ContendMap[1] = (myConfig.ULAcontend) ? 1:0;
     ContendMap[3] = 0; // Assume no contention on upper memory until 128K odd bank mapped in
     
     // Restore the original palette (in case ULA+ changed it)
@@ -910,8 +916,9 @@ void speccy_reset(void)
 // -----------------------------------------------------------------------------
 ITCM_CODE u32 speccy_run(void)
 {
+    const u8 ULATweak[] = {0, 14, 36, 72, 104, 130, 180, 230};
     ++zx_current_line; // This is the pixel line we're working on...
-    int starting_line = (myConfig.machine ? 63:64)+(myConfig.ULAtiming&1); // And this is the first line we draw (48K machines start 1 line later)
+    int starting_line = (myConfig.machine ? 63:64); // And this is the first line we draw (48K machines start 1 line later)
     int ending_line   = (zx_128k_mode ? SCANLINES_PER_FRAME_128:SCANLINES_PER_FRAME_48);
     
     // ----------------------------------------------
@@ -935,7 +942,7 @@ ITCM_CODE u32 speccy_run(void)
     else
     {
         // This puts the CPU exactly where we should be for the end of the scanline
-        ExecZ80_Speccy((zx_128k_mode ? (CYCLES_PER_SCANLINE_128<<myConfig.turbo):(CYCLES_PER_SCANLINE_48<<myConfig.turbo)) * zx_current_line);
+        ExecZ80_Speccy(((zx_128k_mode ? (CYCLES_PER_SCANLINE_128<<myConfig.turbo):(CYCLES_PER_SCANLINE_48<<myConfig.turbo)) * zx_current_line) + ULATweak[myConfig.ULAtiming]);
         
         // Grab 4 samples worth of AY sound to mix with the beeper
         if (isDSiMode()) processDirectAudioDSI(); else processDirectAudio();
