@@ -35,7 +35,6 @@ extern u32 debug[];
 extern u32 DX,DY;
 extern u8 zx_128k_mode, portFD;
 static void EI_Enable(void);
-void ExecOneInstruction(void);
 void ResetZ80(Z80 *R);
 
 #define T_INC(X)
@@ -668,36 +667,6 @@ static void CodesFD_Speccy(void)
 #undef XX
 }
 
-// ------------------------------------------------------------------------------
-// Almost 15K wasted space... but needed so we can keep the Enable Interrupt
-// instruction out of the main fast Z80 instruction loop. When the EI instruction
-// is issued, the interrupts are not enabled until one instruction later. This
-// function let's us execute that one instruction - somewhat more slowly but
-// interrupts are enabled very infrequently (often enabled and left that way).
-// ------------------------------------------------------------------------------
-void ExecOneInstruction(void)
-{
-  register byte I;
-  register pair J;
-  u32 RunToCycles = CPU.TStates+1;
-
-  I=OpZ80(CPU.PC.W++);
-  CPU.TStates += Cycles[I];
-
-  /* R register incremented on each M1 cycle */
-  INCR(1);
-
-  /* Interpret opcode */
-  switch(I)
-  {
-#include "Codes.h"
-    case PFX_CB: CodesCB_Speccy();break;
-    case PFX_ED: CodesED_Speccy();break;
-    case PFX_FD: CodesFD_Speccy();break;
-    case PFX_DD: CodesDD_Speccy();break;
-  }
-}
-
 // ------------------------------------------------------------------------
 // The Enable Interrupt is delayed 1 M1 instruction and we must also check
 // to see if we are within the 32 TState period where the ZX Spectrum ULA
@@ -705,12 +674,10 @@ void ExecOneInstruction(void)
 // ------------------------------------------------------------------------
 static void EI_Enable(void)
 {
-   u32 requestAt = CPU.TStates+4;
-   ExecOneInstruction();
    CPU.IFF=(CPU.IFF&~IFF_EI)|IFF_1;
    if (CPU.IRequest != INT_NONE)
    {
-       if ((requestAt - CPU.TStates_IRequest) <= ULA_HOLD_INT_LINE) IntZ80(&CPU, CPU.IRequest); // Fire the interrupt
+       if ((CPU.TStates - CPU.TStates_IRequest) <= ULA_HOLD_INT_LINE) IntZ80(&CPU, CPU.IRequest); // Fire the interrupt
        else CPU.IRequest = INT_NONE; // We missed the interrupt...
    }
 }
