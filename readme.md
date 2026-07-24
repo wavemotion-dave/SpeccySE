@@ -283,7 +283,7 @@ might not work the way you expect if you do it at the wrong time).
 
 Known Issues :
 -----------------------
-* Not all Dandanator compilation games run properly - support is preliminary (but good enough for the few games that really need it).
+* Not all Dandanator compilation games run properly - support is basic (but good enough for the few games that really need it).
 * Some of the cutting-edge Nirvana+ games will run with small graphical glitches. For example, Roger the Pangolin has graphical glitches (stray pixel lines) during gameplay. It should be minor enough that it won't impact gameplay.
 * Disk files are not supported yet. Most games have TAP or Dandanator alternatives - but not all.
 
@@ -304,7 +304,7 @@ Version History :
 Version 2.0 - 24-July-2026 by wavemotion-dave
 * Interrupt handling improved. Gandalf DX now runs. Genesis - Dawn of a New Day now runs.
 * Improved ULA timing - more of the Nirvana+ games look correct.
-* Ghosts n Goblins now runs (improved undocumented flags handling).
+* Ghosts n Goblins now runs (improved Z80 undocumented flags handling).
 * Added new 'Autoload Search' option - allows seeking for large tape games like Guns & Gears.
 * New Kempston 8-bit joystick mapping with all 4 buttons available.
 * Fixed several 48K only games so they run with the right default machine type.
