@@ -19,7 +19,7 @@ Features :
 * Loads .TZX files up to 800K total length (can swap tapes mid-game)
 * Loads .Z80 snapshots (V1, V2 and V3 formats, 48K or 128K)
 * Loads .SNA snapshots (48K only)
-* Loads .ROM files (16K diagnostics ROMs or 512K Dandanator ROMs)
+* Loads .ROM files (Interface II ROMs, 16K diagnostics ROMs or 512K Dandanator ROMs)
 * Loads .P files for ZX81 emulation (see below)
 * Supports .POK files (same name as base game and stored in POK subdir)
 * Kempston (including 8-bit), Sinclair and Protek joystick support
@@ -29,7 +29,7 @@ Features :
 * Slide-n-Glide style Joystick configuration to make climbing ladders in games like Chuckie-Egg more forgiving (try it - you'll like it!)
 * High Score saving for 10 scores with initials, date/time.
 * Favorites list so you can mark games as 'like' or 'love' - a yellow or red heart icon will mark your favorite games.
-* Solid Z80 core that passes the ZEXDOC test suite (covering everything but not undocumented flags).
+* Solid Z80 core that passes the ZEXDOC test suite (covering everything except undocumented flags which are partially supported for the few games that need them).
 * Minimal design aesthetic - pick game, play game. Runs unpatched from your SD card via TWL++ or similar.
 
 Copyright :
@@ -155,8 +155,9 @@ The emulator has support for the Kempston and Sinclair (67890) joysticks but
 really any keyboard key can be mapped to any one of the 12 NDS buttons
 so you should be able to configure things exactly as desired. When using
 the 'REDEFINE KEYS' menu, you can press the NDS 'X' button to toggle between
-a number of commonly used preset keys for various ZX games (QAOP, ZX-Space, etc).
-By default, the configuration for any game is set to use the Kempston joystick.
+a number of commonly used preset keys for various ZX games (Kempston, Sinclair,
+WSAD, QAOP, ZX-Space, etc). By default, the configuration for any game is set
+to use the ever popular Kempston joystick.
 
 Also be aware that there is a D-PAD option that can be set to 'SLIDE-N-GLIDE'
 for games that are often unforgiving using a joystick. If you've ever played 
@@ -194,6 +195,15 @@ for the joystick and the aforementioned Slide-n-Glide mode of joystick d-pad
 handling. One of the more useful per-game options is to decide how you
 want to load the game - using a 48K Spectrum or the upgraded 128K Spectrum.
 If you don't understand an option - don't touch it. You have been duly warned!
+
+One item of note is the ULA TIMING which for 99% of games is set to 'Normal'.
+Since the timing on Speccy-SE is not perfectly accurate (but very close), you 
+might find some cutting edge games that rely on precise timing need a bit of
+tweaking. Mostly those are multicolor effects such as are used for the Nirvana+
+or Bifrost graphics engines. At the time of Speccy-SE release, most known
+games that need tweaks have been pre-set but if you discover some graphical 
+glitches in any future games, you can play with this setting to see if things
+are improved.
 
 Snapshot Format Support :
 -----------------------
@@ -240,9 +250,11 @@ library of known good working images for Speccy-SE.
 ROM Support :
 -----------------------
 The emulator allows you to load a .ROM file directly into the same memory
-location as the BIOS (+0000 to +4000). The emulator supports 16K BIOS "replacement"
-files and 512K banked Dandanator files (e.g. Sword of Ianna). The 16K BIOS replacement
-mode is mainly used to load diagnostic test programs such as the amazing RETROLEUM DIAGROM.
+location as the BIOS (+0000 to +4000). The emulator supports up to 16K Interface II 
+ROMs, 16K BIOS "replacement" files and 512K banked Dandanator files (e.g. Sword of Ianna). 
+The 16K BIOS replacement mode is mainly used to load diagnostic test programs such 
+as the amazing RETROLEUM DIAGROM. Simply name your file with .ROM and select and load
+it normally.
 
 ZX81 Support :
 -----------------------
@@ -283,8 +295,9 @@ might not work the way you expect if you do it at the wrong time).
 
 Known Issues :
 -----------------------
-* Not all Dandanator compilation games run properly - support is preliminary (but good enough for the few games that really need it).
+* Not all Dandanator compilation games run properly - support is basic (but good enough for the few games that really need it).
 * Some of the cutting-edge Nirvana+ games will run with small graphical glitches. For example, Roger the Pangolin has graphical glitches (stray pixel lines) during gameplay. It should be minor enough that it won't impact gameplay.
+* World of Spells has glitches. The timing is tight on that one and Speccy-SE is not up to the task (yet).
 * Disk files are not supported yet. Most games have TAP or Dandanator alternatives - but not all.
 
 Why? :
@@ -304,7 +317,7 @@ Version History :
 Version 2.0 - 24-July-2026 by wavemotion-dave
 * Interrupt handling improved. Gandalf DX now runs. Genesis - Dawn of a New Day now runs.
 * Improved ULA timing - more of the Nirvana+ games look correct.
-* Ghosts n Goblins now runs (improved undocumented flags handling).
+* Ghosts n Goblins now runs (improved Z80 undocumented flags handling).
 * Added new 'Autoload Search' option - allows seeking for large tape games like Guns & Gears.
 * New Kempston 8-bit joystick mapping with all 4 buttons available.
 * Fixed several 48K only games so they run with the right default machine type.

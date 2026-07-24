@@ -912,14 +912,14 @@ void MapZXSpace(void)
 }
 
 
-// Sinclair P1:  1 (left), 2 (right), 3 (down), 4 (up) and 5 (fire) for 
+// Sinclair P1:  6 (left), 7 (right), 8 (down), 9 (up) and 0 (fire)
 void Sinclair1(void)
 {
-    myConfig.keymap[0]   = 37;   // UP
-    myConfig.keymap[1]   = 36;   // DOWN
-    myConfig.keymap[2]   = 34;   // LEFT
-    myConfig.keymap[3]   = 35;   // RIGHT
-    myConfig.keymap[4]   = 38;   // FIRE
+    myConfig.keymap[0]   = 42;   // UP
+    myConfig.keymap[1]   = 41;   // DOWN
+    myConfig.keymap[2]   = 39;   // LEFT
+    myConfig.keymap[3]   = 40;   // RIGHT
+    myConfig.keymap[4]   = 43;   // FIRE
     myConfig.keymap[5]   = 46;   // Space
     myConfig.keymap[6]   = 46;   // Space
     myConfig.keymap[7]   = 46;   // Space
@@ -929,14 +929,14 @@ void Sinclair1(void)
     myConfig.keymap[11]  = 34;   // NDS SELECT mapped to '1'
 }
 
-// Sinclair P2:  6 (left), 7 (right), 8 (down), 9 (up) and 0 (fire)
+// Sinclair P2:  1 (left), 2 (right), 3 (down), 4 (up) and 5 (fire) for 
 void Sinclair2(void)
 {
-    myConfig.keymap[0]   = 42;   // UP
-    myConfig.keymap[1]   = 41;   // DOWN
-    myConfig.keymap[2]   = 39;   // LEFT
-    myConfig.keymap[3]   = 40;   // RIGHT
-    myConfig.keymap[4]   = 43;   // FIRE
+    myConfig.keymap[0]   = 37;   // UP
+    myConfig.keymap[1]   = 36;   // DOWN
+    myConfig.keymap[2]   = 34;   // LEFT
+    myConfig.keymap[3]   = 35;   // RIGHT
+    myConfig.keymap[4]   = 38;   // FIRE
     myConfig.keymap[5]   = 46;   // Space
     myConfig.keymap[6]   = 46;   // Space
     myConfig.keymap[7]   = 46;   // Space
