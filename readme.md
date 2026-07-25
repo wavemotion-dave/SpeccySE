@@ -250,7 +250,7 @@ library of known good working images for Speccy-SE.
 ROM Support :
 -----------------------
 The emulator allows you to load a .ROM file directly into the same memory
-location as the BIOS (+0000 to +4000). The emulator supports up to 16K Interface II 
+location as the BIOS (0x0000 to 0x4000). The emulator supports up to 16K Interface II 
 ROMs, 16K BIOS "replacement" files and 512K banked Dandanator files (e.g. Sword of Ianna). 
 The 16K BIOS replacement mode is mainly used to load diagnostic test programs such 
 as the amazing RETROLEUM DIAGROM. Simply name your file with .ROM and select and load
