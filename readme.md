@@ -79,8 +79,8 @@ into the same directory as the emulator or else /ROMS/BIOS (that's where
 the cool kids keep them):
 
 ```
-* 48.ROM    with CRC32 of ddee531f
-* 128.ROM   with CRC32 of 2cbe8995
+* 48.ROM    16K file with CRC32 of ddee531f
+* 128.ROM   32K file with CRC32 of 2cbe8995
 ```
 
 Use of any other non-standard ZX Spectrum roms is likely to end in tears.
