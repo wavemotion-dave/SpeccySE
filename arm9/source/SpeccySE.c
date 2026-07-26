@@ -1856,8 +1856,24 @@ void LoadBIOSFiles(void)
         if (!size) size = ReadFileCarefully("zxs128.rom", SpectrumBios128, 0x8000, 0);
         if (!size) size = ReadFileCarefully("/roms/bios/zxs128.rom", SpectrumBios128, 0x8000, 0);
         if (!size) size = ReadFileCarefully("/data/bios/zxs128.rom", SpectrumBios128, 0x8000, 0);
+        
+        if (!size)
+        {
+            size = ReadFileCarefully("128-0.rom", SpectrumBios128, 0x4000, 0);
+            if (size) size = ReadFileCarefully("128-1.rom", SpectrumBios128+0x4000, 0x4000, 0);
+        }
+        if (!size)
+        {
+            size = ReadFileCarefully("/data/bios/128-0.rom", SpectrumBios128, 0x4000, 0);
+            if (size) size = ReadFileCarefully("/data/bios/128-1.rom", SpectrumBios128+0x4000, 0x4000, 0);
+        }
+        if (!size)
+        {
+            size = ReadFileCarefully("/roms/bios/128-0.rom", SpectrumBios128, 0x4000, 0);
+            if (size) size = ReadFileCarefully("/roms/bios/128-1.rom", SpectrumBios128+0x4000, 0x4000, 0);
+        }
 
-        if (size) bSpeccyBiosFound = true; else memset(SpectrumBios128, 0xFF, 0x8000);
+        if (size) bSpeccyBiosFound = true; else {memset(SpectrumBios128, 0xFF, 0x8000); bSpeccyBiosFound = false;}
     }
 
     // ---------------------------------------------------------------------------

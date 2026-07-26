@@ -1106,6 +1106,7 @@ void FindConfig(void)
         else if (strcasestr(gpFic[ucGameChoice].szName, "ULTIMATE CARTOON")  != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "CARTOON ADVENTURE") != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "INFERNO")           != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "GUNRUN")            != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "WULF")              != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "SKOOL")             != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "ELITE")             != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
@@ -1148,6 +1149,7 @@ void FindConfig(void)
         else if (strcasestr(gpFic[ucGameChoice].szName, "STORM FINCH")       != 0) {myConfig.machine = 1; myConfig.ULAtiming = 3;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "SNAKESCAPE")        != 0) {myConfig.machine = 1; myConfig.ULAtiming = 3;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "SNAKEESC")          != 0) {myConfig.machine = 1; myConfig.ULAtiming = 3;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "BRICKSVS")          != 0) {myConfig.machine = 1; myConfig.ULAtiming = 3;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "SNAKE ESC")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 4;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "NIRVANA")           != 0) {myConfig.machine = 1; myConfig.ULAtiming = 4;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "POWERJACK")         != 0) {myConfig.machine = 1; myConfig.ULAtiming = 4;}

@@ -81,6 +81,11 @@ the cool kids keep them):
 ```
 * 48.ROM    16K file with CRC32 of ddee531f
 * 128.ROM   32K file with CRC32 of 2cbe8995
+
+It is also acceptable to have the 128 ROM split across two files:
+
+* 128-0.ROM   16K file with CRC32 of e76799d2
+* 128-1.ROM   16K file with CRC32 of b96a36be
 ```
 
 Use of any other non-standard ZX Spectrum roms is likely to end in tears.
@@ -314,6 +319,11 @@ you're likely going to want ZXDS.
 
 Version History :
 -----------------------
+Version 2.0a - 26-July-2026 by wavemotion-dave
+* Now allow the 128.rom to be split as 128-0.rom and 128.1.rom as is often found when searching.
+* A few more games added to the tweaks database.
+* Minor improvement for the undocumented flags handling.
+
 Version 2.0 - 24-July-2026 by wavemotion-dave
 * Interrupt handling improved. Gandalf DX now runs. Genesis - Dawn of a New Day now runs.
 * Improved ULA timing - more of the Nirvana+ games look correct.
