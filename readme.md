@@ -135,11 +135,10 @@ the games that you want to come back to more regularly.
 
 The emulator tries to start in the /roms/speccy directory but you can change
 this in the 'Global Configuration'. You can have as many subdirectories
-under that as you wish. The emulator can support a file listing of up 
-to 1024 files with names no longer than 160 characters (so please keep
-your filenames on the shorter side... although the emulator can scroll
-the filename, there only about 30 characters can be shown on the screen
-at a time).
+under that as you wish. The emulator can support a file name lengths of up
+to 160 characters (so please keep your filenames on the shorter side... although 
+the emulator can scroll the filename, there only about 30 characters can be shown 
+on the screen at a time).
 
 The ZX Keyboard :
 -----------------------
@@ -201,7 +200,7 @@ handling. One of the more useful per-game options is to decide how you
 want to load the game - using a 48K Spectrum or the upgraded 128K Spectrum.
 If you don't understand an option - don't touch it. You have been duly warned!
 
-One item of note is the ULA TIMING which for 99% of games is set to 'Normal'.
+Another item of note is the ULA TIMING which for 99% of games is set to 'Normal'.
 Since the timing on Speccy-SE is not perfectly accurate (but very close), you 
 might find some cutting edge games that rely on precise timing need a bit of
 tweaking. Mostly those are multicolor effects such as are used for the Nirvana+
