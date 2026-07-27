@@ -318,6 +318,12 @@ you're likely going to want ZXDS.
 
 Version History :
 -----------------------
+Version 2.0b - 27-July-2026 by wavemotion-dave
+* Gauntlet defaults to aggressive tape stop to allow it to load properly.
+* Pressing START/SELECT will stop tape load
+* Improved key handling for SHIFT and SYMBOL when mapped to one of the NDS buttons.
+* Minor optimization buying one additional frame of improvement.
+
 Version 2.0a - 26-July-2026 by wavemotion-dave
 * Now allow the 128.rom to be split as 128-0.rom and 128.1.rom as is often found when searching.
 * A few more games added to the tweaks database.

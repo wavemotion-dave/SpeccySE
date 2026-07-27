@@ -56,7 +56,7 @@ extern u8 dandy_disabled;
 ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
 {
     static u8 bNonSpecialKeyWasPressed = 0;
-    
+
     if ((Port & 1) == 0) // Any Even Address will cause the ULA to respond
     {
         // ----------------------------------------------------------------------------------------
@@ -88,10 +88,10 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
                     CPU.TStates += cpu_contended_delay_48[(CPU.TStates+1) % CYCLES_PER_SCANLINE_48];
                 }
             }
-            
+
             CPU.TStates += 4; // The IO takes 4 cycles
         }
-         
+
         // --------------------------------------------------------
         // If we are not playing the tape but we got a hit on the
         // loader we can start the tape in motion - auto play...
@@ -111,7 +111,7 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
         if (tape_state)
         {
             zx_special_key = 0;
-            
+
             // ----------------------------------------------------------------
             // See if this read is patched... for faster tape edge detection.
             // ----------------------------------------------------------------
@@ -119,10 +119,10 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
             {
                 return PatchLookup[CPU.PC.W]();
             }
-            
+
             // -------------------------------------------------------------
-            // If we are running the tape but aren't in a tape accelerator, 
-            // we occasionally check for the presence of a loader that may 
+            // If we are running the tape but aren't in a tape accelerator,
+            // we occasionally check for the presence of a loader that may
             // have been moved elsewhere in memory.
             // -------------------------------------------------------------
             static int loader_search_counter = 0;
@@ -134,7 +134,7 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
 
             return ~tape_pulse();
         }
-        
+
         // -----------------------------
         // Otherwise normal handling...
         // -----------------------------
@@ -287,10 +287,10 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
             {
                 // high byte uncontended, odd port: N:4
             }
-            
+
             CPU.TStates += 4;
         }
-        
+
         if ((Port & 0x3F) == 0x1F)  // Kempston Joystick interface... (only A5 driven low)
         {
             u8 joy1 = 0x00;
@@ -303,7 +303,7 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
             if (JoyState & JST_FIRE2) joy1 |= 0x20;
             if (JoyState & JST_FIRE3) joy1 |= 0x40; // Only for Kempston 8-bit interface
             if (JoyState & JST_START) joy1 |= 0x80; // Only for Kempston 8-bit interface
-            
+
             return joy1;
         }
         else
@@ -330,7 +330,7 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
                     }
                 }
             }
-        } 
+        }
         else if (Port == 0x007f) // Fuller Joystick - non-responsive (Arcadia hits this one)
         {
             return 0xFF;
@@ -407,7 +407,7 @@ ITCM_CODE void zx_bank(u8 new_portFD)
 
     // Map in the correct page of banked memory to 0xC000
     MemoryMap[3] = RAM_Memory128 + ((portFD & 0x07) * 0x4000) - 0xC000;
-    
+
     // Set the upper bank of memory to 'contended' if we are swapping in an 'odd' 128K bank
     if (myConfig.ULAcontend)
     {
@@ -440,7 +440,7 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
         }
 
         // -------------------------------------------------------------------------------
-        // For rapid pulsing... Mojon Twin games and games like Multidude will hit the 
+        // For rapid pulsing... Mojon Twin games and games like Multidude will hit the
         // speaker hard in the intro screens so we just respond as fast as we can here...
         // -------------------------------------------------------------------------------
         if ((portFE ^ Value) & 0x10)
@@ -452,7 +452,7 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
         }
 
         portFE = Value;
-        
+
         if (accurate_emulation)
         {
              if (myConfig.machine) // 128K
@@ -479,7 +479,7 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
                      CPU.TStates += cpu_contended_delay_48[(CPU.TStates+1) % CYCLES_PER_SCANLINE_48];
                  }
              }
-             
+
              CPU.TStates += 4;
         }
     }
@@ -508,7 +508,7 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
               {
                   // high byte uncontended, odd port: N:4
               }
-              
+
               CPU.TStates += 4;
          }
     }
@@ -534,7 +534,7 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
         if (myConfig.ULAplus)
         {
             // 0xBF3B is Register Port
-            // 0xFF3B is the Data Port            
+            // 0xFF3B is the Data Port
             if (Port == 0xBF3B)
             {
                 zx_ula_plus_group = Value;
@@ -589,7 +589,7 @@ void apply_ula_plus_palette(void)
 }
 
 // ----------------------------------------------------------------------------
-// ULA Plus render line - this repurposes the BRIGHT and FLASH bits as 
+// ULA Plus render line - this repurposes the BRIGHT and FLASH bits as
 // palette select (0-3). Ink gets 8 colors and Paper gets 8 other colors
 // and this provides 4 palette 'banks' of 16 colors for a total of 64 colors.
 // ----------------------------------------------------------------------------
@@ -605,7 +605,7 @@ ITCM_CODE void speccy_render_screen_line_ula_plus(u32 *vidBuf, u8* attrPtr, u8*p
 
         u8 ink   = 0x80 | (((attr >> 6) * 16) + (attr & 0x07));            // Ink Color is the foreground
         u8 paper = 0x80 | (((attr >> 6) * 16) + ((attr >> 3) & 0x07) + 8); // Paper is the background
-        
+
         // --------------------------------------------------------------------------
         // And now the pixel drawing... We try to speed this up as much as possible.
         // --------------------------------------------------------------------------
@@ -622,8 +622,9 @@ ITCM_CODE void speccy_render_screen_line_ula_plus(u32 *vidBuf, u8* attrPtr, u8*p
             // --------------------------------------------------------------------------------------
             // Draw background directly to the screen - this is slightly faster than a lookup table.
             // --------------------------------------------------------------------------------------
-            *vidBuf++ = (paper << 24) | (paper << 16) | (paper << 8) | paper;
-            *vidBuf++ = (paper << 24) | (paper << 16) | (paper << 8) | paper;
+            u32 background = (paper << 24) | (paper << 16) | (paper << 8) | paper;
+            *vidBuf++ = background;
+            *vidBuf++ = background;
         }
     }
 }
@@ -643,7 +644,7 @@ ITCM_CODE void speccy_render_screen_line(u8 line)
 {
     u32 *vidBuf;
     u8 *zx_ScreenPage = 0;
-    
+
     if (line == 0) // At start of each new frame, handle the flashing 'timer'
     {
         if (!tape_is_playing()) // Double-buffer and draw the screen in the background - reduces tearing
@@ -658,8 +659,8 @@ ITCM_CODE void speccy_render_screen_line(u8 line)
                 else
                 {
                     backgroundRenderScreen = 0x80 | (flash_timer & 1); // Since flash_timer is incremented below, this will render the buffer just drawn...
-                }                
-                
+                }
+
                 if (!isDSiMode())
                 {
                     // ------------------------------------------------------------------------------
@@ -671,22 +672,22 @@ ITCM_CODE void speccy_render_screen_line(u8 line)
                     {
                         if (myConfig.frameSkip) skip_frames = 1;
                     }
-                }                   
+                }
             }
         }
         else skip_frames = 0; // Playing tape... which has its own frame skip handling...
-        
+
         tape_play_skip_frame++;
-        if (++flash_timer & 0x10) {flash_timer=0; bFlash ^= 1;} // Same timing as real ULA - 16 frames on and 16 frames off
+        if (++flash_timer & 0x10) {flash_timer=0; bFlash ^= 0xFF;} // Same timing as real ULA - 16 frames on and 16 frames off
     }
-    
+
     // If the tape isn't playing, we double-buffer to ensure smooth reasonably tear-free display output
     if (!tape_is_playing())
     {
         if (skip_frames) return;
 
         // ------------------------------------------------------------------------------------
-        // Video buffer... write 32-bits at a time for maximum speed. Note these ping-pong 
+        // Video buffer... write 32-bits at a time for maximum speed. Note these ping-pong
         // buffers are reversed from what you see in SpeccySE.c where we render the screen.
         // While we are building up buffer A, we want to output buffer B and vice-versa.
         // ------------------------------------------------------------------------------------
@@ -721,7 +722,7 @@ ITCM_CODE void speccy_render_screen_line(u8 line)
     u8 *attrPtr = &zx_ScreenPage[0x1800 + ((line/8)*32)];
     word offset = ((line&0x07) << 8) | ((line&0x38) << 2) | ((line&0xC0) << 5);
     u8 *pixelPtr = zx_ScreenPage+offset;
-    
+
     if (zx_ula_plus_enabled)
     {
         speccy_render_screen_line_ula_plus(vidBuf, attrPtr, pixelPtr);
@@ -730,15 +731,15 @@ ITCM_CODE void speccy_render_screen_line(u8 line)
     // ---------------------------------------------------------------------
     // With 8 pixels per byte, there are 32 bytes of horizontal screen data
     // ---------------------------------------------------------------------
-    for (int x=0; x<32; x++)
+    for (int x = 0; x < 32; x++)
     {
-        u8 attr = *attrPtr++;           // The color attribute and possible flashing
-        u8 paper = ((attr>>3) & 0x0F);  // Paper is the background
-        u8 pixel = *pixelPtr++;         // And here is 8 pixels to draw
+        u8 attr = *attrPtr++;
+        u8 paper = (attr >> 3) & 0x0F;
+        u8 pixel = *pixelPtr++;
 
-        if (attr & 0x80) // Flashing swaps pen/ink
+        if (attr & 0x80)
         {
-            if (bFlash) pixel = ~pixel; // Faster to just invert the pixel itself...
+             pixel ^= bFlash; // Invert pixel if flashing
         }
 
         // --------------------------------------------------------------------------
@@ -746,23 +747,23 @@ ITCM_CODE void speccy_render_screen_line(u8 line)
         // --------------------------------------------------------------------------
         if (pixel) // Is at least one pixel on?
         {
-            u8 ink   = (attr & 0x07);       // Ink Color is the foreground
-            if (attr & 0x40) ink |= 0x08;   // Brightness
+            u8 ink = (attr & 0x07) | ((attr & 0x40) >> 3);    // Ink Color is the foreground
 
-            // ------------------------------------------------------------------------------------------------------------------------
-            // Bit shifting was faster in a few cases, but generally this lookup table in this specific order is generally fastest.
+            // -------------------------------------------------------------------------------------------------------------------
+            // Bit shifting was faster in a few cases, but generally this lookup table in this specific order is usually fastest.
             // The paper color changes least frequently so it improves the cache density if the lookup is in this specific order.
-            // ------------------------------------------------------------------------------------------------------------------------
-            *vidBuf++ = pre_render_lookup[paper][ink][pixel>>4];
-            *vidBuf++ = pre_render_lookup[paper][ink][pixel&0xF];
+            // -------------------------------------------------------------------------------------------------------------------
+            *vidBuf++ = pre_render_lookup[paper][ink][pixel >> 4];
+            *vidBuf++ = pre_render_lookup[paper][ink][pixel & 0xF];
         }
         else // Just drawing all background which is common...
         {
             // --------------------------------------------------------------------------------------
             // Draw background directly to the screen - this is slightly faster than a lookup table.
             // --------------------------------------------------------------------------------------
-            *vidBuf++ = (paper << 24) | (paper << 16) | (paper << 8) | paper;
-            *vidBuf++ = (paper << 24) | (paper << 16) | (paper << 8) | paper;
+            u32 background = (paper << 24) | (paper << 16) | (paper << 8) | paper;
+            *vidBuf++ = background;
+            *vidBuf++ = background;
         }
     }
 }
@@ -780,7 +781,7 @@ void speccy_reset(void)
     tape_reset();
     tape_patch();
     pok_init();
-    
+
     for (int pixel=0; pixel<16; pixel++)
         for (int paper=0; paper<16; paper++)
             for (int ink=0; ink<16; ink++)
@@ -791,7 +792,7 @@ void speccy_reset(void)
     // Normally we always contend 0x4000-0x7FFF unless we are configured for 'no contend'
     ContendMap[1] = (myConfig.ULAcontend) ? 1:0;
     ContendMap[3] = 0; // Assume no contention on upper memory until 128K odd bank mapped in
-    
+
     // Restore the original palette (in case ULA+ changed it)
     spectrumSetPalette();
 
@@ -810,14 +811,14 @@ void speccy_reset(void)
 
     zx_128k_mode        = 0;   // Assume 48K until told otherwise
     rom_special_bank    = 0;   // Assume no special ROM in SLOT0 until proven otherwise below
-    
+
     accurate_emulation  = 0;   // Set to 1 when we need to handle more accurate TState accounting / Contended Memory
-    
+
     zx_ula_plus_enabled     = 0;   // Assume no ULA+ (normal Spectrum ULA)
     zx_ula_plus_group       = 0x00;
     zx_ula_plus_palette_reg = 0x00;
     memset(zx_ula_plus_palette, 0x00, sizeof(zx_ula_plus_palette));
-    
+
     tape_play_skip_frame   = 0;
 
     backgroundRenderScreen = 0;
@@ -917,17 +918,18 @@ void speccy_reset(void)
 ITCM_CODE u32 speccy_run(void)
 {
     const u8 ULATweak[] = {0, 14, 36, 72, 104, 130, 180, 230};
+    const int starting_line = (myConfig.machine ? 63:64); // And this is the first line we draw (48K machines start 1 line later)
+    const int ending_line   = (zx_128k_mode ? SCANLINES_PER_FRAME_128:SCANLINES_PER_FRAME_48);
+
     ++zx_current_line; // This is the pixel line we're working on...
-    int starting_line = (myConfig.machine ? 63:64); // And this is the first line we draw (48K machines start 1 line later)
-    int ending_line   = (zx_128k_mode ? SCANLINES_PER_FRAME_128:SCANLINES_PER_FRAME_48);
-    
+
     // ----------------------------------------------
     // Execute 1 scanline worth of CPU instructions.
     // -----------------------------------------------
     if (tape_state)
     {
         // ---------------------------------------------------------------------------------------------
-        // If we are playing back the tape - just run the emulation as fast as possible and try not to 
+        // If we are playing back the tape - just run the emulation as fast as possible and try not to
         // touch CPU.TStates as we can use some speed-up tricks when accelerating the tape playback...
         // ---------------------------------------------------------------------------------------------
         ExecZ80_Speccy(CPU.TStates + (zx_128k_mode ? CYCLES_PER_SCANLINE_128:CYCLES_PER_SCANLINE_48));
@@ -943,7 +945,7 @@ ITCM_CODE u32 speccy_run(void)
     {
         // This puts the CPU exactly where we should be for the end of the scanline
         ExecZ80_Speccy(((zx_128k_mode ? (CYCLES_PER_SCANLINE_128<<myConfig.turbo):(CYCLES_PER_SCANLINE_48<<myConfig.turbo)) * zx_current_line) + ULATweak[myConfig.ULAtiming]);
-        
+
         // Grab 4 samples worth of AY sound to mix with the beeper
         if (isDSiMode()) processDirectAudioDSI(); else processDirectAudio();
 
@@ -970,16 +972,16 @@ ITCM_CODE u32 speccy_run(void)
         speccy_render_screen_line(zx_current_line - starting_line);
         last_line_drawn++;  // Used for floating bus handling
         accurate_emulation = (tape_state ? 0 : 1); // If tape playing, skip accurate emulation
-    } 
+    }
     else
     {
         last_line_drawn = 0;
         accurate_emulation = 0; // If in top/bottom border areas, skip accurate cycle emulation (no contention)
 
-        // --------------------------------------------------------------
-        // Generate an interrupt only at end of frame. The ULA generates
-        // the interrupt 1 scanline before the top blanking begins.
-        // --------------------------------------------------------------
+        // ---------------------------------------------------------------------------------
+        // Generate an interrupt only at end of frame. The ULA normally generates the
+        // interrupt 1 scanline before the top blanking begins but we aren't that accurate.
+        // ---------------------------------------------------------------------------------
         if (zx_current_line == ending_line)
         {
             zx_current_line = 0;

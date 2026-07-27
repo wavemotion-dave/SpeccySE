@@ -1220,6 +1220,8 @@ u8 slide_n_glide_key_down = 0;
 u8 slide_n_glide_key_left = 0;
 u8 slide_n_glide_key_right = 0;
 
+int button_interrupt_tape = 0;
+
 // ------------------------------------------------------------------------
 // The main emulation loop is here... call into the Z80 and render frame
 // ------------------------------------------------------------------------
@@ -1483,67 +1485,75 @@ void SpeccySE_main(void)
       }
       else if  (nds_key & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT | KEY_A | KEY_B | KEY_X | KEY_Y | KEY_START | KEY_SELECT | KEY_R | KEY_L ))
       {
-          if (myConfig.dpad == DPAD_DIAGONALS) // Diagonals... map standard Left/Right/Up/Down to combinations
+          // START or SELECT will interrupt the tape playing...
+          if (tape_is_playing() && (nds_key & (KEY_START | KEY_SELECT)))
           {
-                   if (nds_key & KEY_UP)    nds_key |= KEY_RIGHT;  // UP-RIGHT
-              else if (nds_key & KEY_DOWN)  nds_key |= KEY_LEFT;   // DOWN-LEFT
-              else if (nds_key & KEY_LEFT)  nds_key |= KEY_UP;     // UP-LEFT
-              else if (nds_key & KEY_RIGHT) nds_key |= KEY_DOWN;   // DOWN-RIGHT
+              if (++button_interrupt_tape > 10) // Long press of button will interrupt tape play
+              {
+                  tape_stop();
+              }
           }
+          else
+          {          
+              if (myConfig.dpad == DPAD_DIAGONALS) // Diagonals... map standard Left/Right/Up/Down to combinations
+              {
+                       if (nds_key & KEY_UP)    nds_key |= KEY_RIGHT;  // UP-RIGHT
+                  else if (nds_key & KEY_DOWN)  nds_key |= KEY_LEFT;   // DOWN-LEFT
+                  else if (nds_key & KEY_LEFT)  nds_key |= KEY_UP;     // UP-LEFT
+                  else if (nds_key & KEY_RIGHT) nds_key |= KEY_DOWN;   // DOWN-RIGHT
+              }
 
-          if (myConfig.dpad == DPAD_SLIDE_N_GLIDE) // CHUCKIE-EGG Style... hold left/right or up/down for a few frames
-          {
-                if (nds_key & KEY_UP)
-                {
-                    slide_n_glide_key_up    = 12;
-                    slide_n_glide_key_down  = 0;
-                }
-                if (nds_key & KEY_DOWN)
-                {
-                    slide_n_glide_key_down  = 12;
-                    slide_n_glide_key_up    = 0;
-                }
-                if (nds_key & KEY_LEFT)
-                {
-                    slide_n_glide_key_left  = 12;
-                    slide_n_glide_key_right = 0;
-                }
-                if (nds_key & KEY_RIGHT)
-                {
-                    slide_n_glide_key_right = 12;
-                    slide_n_glide_key_left  = 0;
-                }
+              if (myConfig.dpad == DPAD_SLIDE_N_GLIDE) // CHUCKIE-EGG Style... hold left/right or up/down for a few frames
+              {
+                    if (nds_key & KEY_UP)
+                    {
+                        slide_n_glide_key_up    = 12;
+                        slide_n_glide_key_down  = 0;
+                    }
+                    if (nds_key & KEY_DOWN)
+                    {
+                        slide_n_glide_key_down  = 12;
+                        slide_n_glide_key_up    = 0;
+                    }
+                    if (nds_key & KEY_LEFT)
+                    {
+                        slide_n_glide_key_left  = 12;
+                        slide_n_glide_key_right = 0;
+                    }
+                    if (nds_key & KEY_RIGHT)
+                    {
+                        slide_n_glide_key_right = 12;
+                        slide_n_glide_key_left  = 0;
+                    }
 
-                if (slide_n_glide_key_up)
-                {
-                    slide_n_glide_key_up--;
-                    nds_key |= KEY_UP;
-                }
+                    if (slide_n_glide_key_up)
+                    {
+                        slide_n_glide_key_up--;
+                        nds_key |= KEY_UP;
+                    }
 
-                if (slide_n_glide_key_down)
-                {
-                    slide_n_glide_key_down--;
-                    nds_key |= KEY_DOWN;
-                }
+                    if (slide_n_glide_key_down)
+                    {
+                        slide_n_glide_key_down--;
+                        nds_key |= KEY_DOWN;
+                    }
 
-                if (slide_n_glide_key_left)
-                {
-                    slide_n_glide_key_left--;
-                    nds_key |= KEY_LEFT;
-                }
+                    if (slide_n_glide_key_left)
+                    {
+                        slide_n_glide_key_left--;
+                        nds_key |= KEY_LEFT;
+                    }
 
-                if (slide_n_glide_key_right)
-                {
-                    slide_n_glide_key_right--;
-                    nds_key |= KEY_RIGHT;
-                }
-          }
+                    if (slide_n_glide_key_right)
+                    {
+                        slide_n_glide_key_right--;
+                        nds_key |= KEY_RIGHT;
+                    }
+              }
 
-          // --------------------------------------------------------------------------------------------------
-          // There are 12 NDS buttons (D-Pad, XYAB, L/R and Start+Select) - we allow mapping of any of these.
-          // --------------------------------------------------------------------------------------------------
-          if (!key_debounce)
-          {
+              // --------------------------------------------------------------------------------------------------
+              // There are 12 NDS buttons (D-Pad, XYAB, L/R and Start+Select) - we allow mapping of any of these.
+              // --------------------------------------------------------------------------------------------------
               for (u8 i=0; i<12; i++)
               {
                   if (nds_key & NDS_keyMap[i])
@@ -1578,6 +1588,7 @@ void SpeccySE_main(void)
           if (slide_n_glide_key_left)  slide_n_glide_key_left--;
           if (slide_n_glide_key_right) slide_n_glide_key_right--;
           last_mapped_key = 0;
+          button_interrupt_tape = 0;
       }
 
       // ------------------------------------------------------------------------------------------
