@@ -42,13 +42,9 @@ u8  last_line_drawn         __attribute__((section(".dtcm"))) = 0;
 u8  backgroundRenderScreen  __attribute__((section(".dtcm"))) = 0;
 u8  bRenderSkipOnce         __attribute__((section(".dtcm"))) = 1;
 
-u32  pre_render_lookup[16][16][16];
-
 u8  zx_ula_plus_palette[64] = {0};
 u8  zx_ula_plus_group       = 0x00;
 u8  zx_ula_plus_palette_reg = 0x00;
-
-extern u8 dandy_disabled;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
@@ -588,6 +584,78 @@ void apply_ula_plus_palette(void)
     }
 }
 
+// Adjust "__attribute__((section(".dtcm")))" to match your specific ARM9 toolchain SDK linker script
+u32 Pixel_maskTable_High[256] __attribute__((section(".dtcm"))) = {
+    0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+    0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+    0xFF000000, 0xFF000000, 0xFF000000, 0xFF000000, 0xFF000000, 0xFF000000, 0xFF000000, 0xFF000000,
+    0xFF000000, 0xFF000000, 0xFF000000, 0xFF000000, 0xFF000000, 0xFF000000, 0xFF000000, 0xFF000000,
+    0x00FF0000, 0x00FF0000, 0x00FF0000, 0x00FF0000, 0x00FF0000, 0x00FF0000, 0x00FF0000, 0x00FF0000,
+    0x00FF0000, 0x00FF0000, 0x00FF0000, 0x00FF0000, 0x00FF0000, 0x00FF0000, 0x00FF0000, 0x00FF0000,
+    0xFFFF0000, 0xFFFF0000, 0xFFFF0000, 0xFFFF0000, 0xFFFF0000, 0xFFFF0000, 0xFFFF0000, 0xFFFF0000,
+    0xFFFF0000, 0xFFFF0000, 0xFFFF0000, 0xFFFF0000, 0xFFFF0000, 0xFFFF0000, 0xFFFF0000, 0xFFFF0000,
+    0x0000FF00, 0x0000FF00, 0x0000FF00, 0x0000FF00, 0x0000FF00, 0x0000FF00, 0x0000FF00, 0x0000FF00,
+    0x0000FF00, 0x0000FF00, 0x0000FF00, 0x0000FF00, 0x0000FF00, 0x0000FF00, 0x0000FF00, 0x0000FF00,
+    0xFF00FF00, 0xFF00FF00, 0xFF00FF00, 0xFF00FF00, 0xFF00FF00, 0xFF00FF00, 0xFF00FF00, 0xFF00FF00,
+    0xFF00FF00, 0xFF00FF00, 0xFF00FF00, 0xFF00FF00, 0xFF00FF00, 0xFF00FF00, 0xFF00FF00, 0xFF00FF00,
+    0x00FFFF00, 0x00FFFF00, 0x00FFFF00, 0x00FFFF00, 0x00FFFF00, 0x00FFFF00, 0x00FFFF00, 0x00FFFF00,
+    0x00FFFF00, 0x00FFFF00, 0x00FFFF00, 0x00FFFF00, 0x00FFFF00, 0x00FFFF00, 0x00FFFF00, 0x00FFFF00,
+    0xFFFFFF00, 0xFFFFFF00, 0xFFFFFF00, 0xFFFFFF00, 0xFFFFFF00, 0xFFFFFF00, 0xFFFFFF00, 0xFFFFFF00,
+    0xFFFFFF00, 0xFFFFFF00, 0xFFFFFF00, 0xFFFFFF00, 0xFFFFFF00, 0xFFFFFF00, 0xFFFFFF00, 0xFFFFFF00,
+    0x000000FF, 0x000000FF, 0x000000FF, 0x000000FF, 0x000000FF, 0x000000FF, 0x000000FF, 0x000000FF,
+    0x000000FF, 0x000000FF, 0x000000FF, 0x000000FF, 0x000000FF, 0x000000FF, 0x000000FF, 0x000000FF,
+    0xFF0000FF, 0xFF0000FF, 0xFF0000FF, 0xFF0000FF, 0xFF0000FF, 0xFF0000FF, 0xFF0000FF, 0xFF0000FF,
+    0xFF0000FF, 0xFF0000FF, 0xFF0000FF, 0xFF0000FF, 0xFF0000FF, 0xFF0000FF, 0xFF0000FF, 0xFF0000FF,
+    0x00FF00FF, 0x00FF00FF, 0x00FF00FF, 0x00FF00FF, 0x00FF00FF, 0x00FF00FF, 0x00FF00FF, 0x00FF00FF,
+    0x00FF00FF, 0x00FF00FF, 0x00FF00FF, 0x00FF00FF, 0x00FF00FF, 0x00FF00FF, 0x00FF00FF, 0x00FF00FF,
+    0xFFFF00FF, 0xFFFF00FF, 0xFFFF00FF, 0xFFFF00FF, 0xFFFF00FF, 0xFFFF00FF, 0xFFFF00FF, 0xFFFF00FF,
+    0xFFFF00FF, 0xFFFF00FF, 0xFFFF00FF, 0xFFFF00FF, 0xFFFF00FF, 0xFFFF00FF, 0xFFFF00FF, 0xFFFF00FF,
+    0x0000FFFF, 0x0000FFFF, 0x0000FFFF, 0x0000FFFF, 0x0000FFFF, 0x0000FFFF, 0x0000FFFF, 0x0000FFFF,
+    0x0000FFFF, 0x0000FFFF, 0x0000FFFF, 0x0000FFFF, 0x0000FFFF, 0x0000FFFF, 0x0000FFFF, 0x0000FFFF,
+    0xFF00FFFF, 0xFF00FFFF, 0xFF00FFFF, 0xFF00FFFF, 0xFF00FFFF, 0xFF00FFFF, 0xFF00FFFF, 0xFF00FFFF,
+    0xFF00FFFF, 0xFF00FFFF, 0xFF00FFFF, 0xFF00FFFF, 0xFF00FFFF, 0xFF00FFFF, 0xFF00FFFF, 0xFF00FFFF,
+    0x00FFFFFF, 0x00FFFFFF, 0x00FFFFFF, 0x00FFFFFF, 0x00FFFFFF, 0x00FFFFFF, 0x00FFFFFF, 0x00FFFFFF,
+    0x00FFFFFF, 0x00FFFFFF, 0x00FFFFFF, 0x00FFFFFF, 0x00FFFFFF, 0x00FFFFFF, 0x00FFFFFF, 0x00FFFFFF,
+    0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+    0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF
+};
+
+u32 Pixel_maskTable_Low[256] __attribute__((section(".dtcm"))) = {
+    0x00000000, 0xFF000000, 0x00FF0000, 0xFFFF0000, 0x0000FF00, 0xFF00FF00, 0x00FFFF00, 0xFFFFFF00,
+    0x000000FF, 0xFF0000FF, 0x00FF00FF, 0xFFFF00FF, 0x0000FFFF, 0xFF00FFFF, 0x00FFFFFF, 0xFFFFFFFF,
+    0x00000000, 0xFF000000, 0x00FF0000, 0xFFFF0000, 0x0000FF00, 0xFF00FF00, 0x00FFFF00, 0xFFFFFF00,
+    0x000000FF, 0xFF0000FF, 0x00FF00FF, 0xFFFF00FF, 0x0000FFFF, 0xFF00FFFF, 0x00FFFFFF, 0xFFFFFFFF,
+    0x00000000, 0xFF000000, 0x00FF0000, 0xFFFF0000, 0x0000FF00, 0xFF00FF00, 0x00FFFF00, 0xFFFFFF00,
+    0x000000FF, 0xFF0000FF, 0x00FF00FF, 0xFFFF00FF, 0x0000FFFF, 0xFF00FFFF, 0x00FFFFFF, 0xFFFFFFFF,
+    0x00000000, 0xFF000000, 0x00FF0000, 0xFFFF0000, 0x0000FF00, 0xFF00FF00, 0x00FFFF00, 0xFFFFFF00,
+    0x000000FF, 0xFF0000FF, 0x00FF00FF, 0xFFFF00FF, 0x0000FFFF, 0xFF00FFFF, 0x00FFFFFF, 0xFFFFFFFF,
+    0x00000000, 0xFF000000, 0x00FF0000, 0xFFFF0000, 0x0000FF00, 0xFF00FF00, 0x00FFFF00, 0xFFFFFF00,
+    0x000000FF, 0xFF0000FF, 0x00FF00FF, 0xFFFF00FF, 0x0000FFFF, 0xFF00FFFF, 0x00FFFFFF, 0xFFFFFFFF,
+    0x00000000, 0xFF000000, 0x00FF0000, 0xFFFF0000, 0x0000FF00, 0xFF00FF00, 0x00FFFF00, 0xFFFFFF00,
+    0x000000FF, 0xFF0000FF, 0x00FF00FF, 0xFFFF00FF, 0x0000FFFF, 0xFF00FFFF, 0x00FFFFFF, 0xFFFFFFFF,
+    0x00000000, 0xFF000000, 0x00FF0000, 0xFFFF0000, 0x0000FF00, 0xFF00FF00, 0x00FFFF00, 0xFFFFFF00,
+    0x000000FF, 0xFF0000FF, 0x00FF00FF, 0xFFFF00FF, 0x0000FFFF, 0xFF00FFFF, 0x00FFFFFF, 0xFFFFFFFF,
+    0x00000000, 0xFF000000, 0x00FF0000, 0xFFFF0000, 0x0000FF00, 0xFF00FF00, 0x00FFFF00, 0xFFFFFF00,
+    0x000000FF, 0xFF0000FF, 0x00FF00FF, 0xFFFF00FF, 0x0000FFFF, 0xFF00FFFF, 0x00FFFFFF, 0xFFFFFFFF,
+    0x00000000, 0xFF000000, 0x00FF0000, 0xFFFF0000, 0x0000FF00, 0xFF00FF00, 0x00FFFF00, 0xFFFFFF00,
+    0x000000FF, 0xFF0000FF, 0x00FF00FF, 0xFFFF00FF, 0x0000FFFF, 0xFF00FFFF, 0x00FFFFFF, 0xFFFFFFFF,
+    0x00000000, 0xFF000000, 0x00FF0000, 0xFFFF0000, 0x0000FF00, 0xFF00FF00, 0x00FFFF00, 0xFFFFFF00,
+    0x000000FF, 0xFF0000FF, 0x00FF00FF, 0xFFFF00FF, 0x0000FFFF, 0xFF00FFFF, 0x00FFFFFF, 0xFFFFFFFF,
+    0x00000000, 0xFF000000, 0x00FF0000, 0xFFFF0000, 0x0000FF00, 0xFF00FF00, 0x00FFFF00, 0xFFFFFF00,
+    0x000000FF, 0xFF0000FF, 0x00FF00FF, 0xFFFF00FF, 0x0000FFFF, 0xFF00FFFF, 0x00FFFFFF, 0xFFFFFFFF,
+    0x00000000, 0xFF000000, 0x00FF0000, 0xFFFF0000, 0x0000FF00, 0xFF00FF00, 0x00FFFF00, 0xFFFFFF00,
+    0x000000FF, 0xFF0000FF, 0x00FF00FF, 0xFFFF00FF, 0x0000FFFF, 0xFF00FFFF, 0x00FFFFFF, 0xFFFFFFFF,
+    0x00000000, 0xFF000000, 0x00FF0000, 0xFFFF0000, 0x0000FF00, 0xFF00FF00, 0x00FFFF00, 0xFFFFFF00,
+    0x000000FF, 0xFF0000FF, 0x00FF00FF, 0xFFFF00FF, 0x0000FFFF, 0xFF00FFFF, 0x00FFFFFF, 0xFFFFFFFF,
+    0x00000000, 0xFF000000, 0x00FF0000, 0xFFFF0000, 0x0000FF00, 0xFF00FF00, 0x00FFFF00, 0xFFFFFF00,
+    0x000000FF, 0xFF0000FF, 0x00FF00FF, 0xFFFF00FF, 0x0000FFFF, 0xFF00FFFF, 0x00FFFFFF, 0xFFFFFFFF,
+    0x00000000, 0xFF000000, 0x00FF0000, 0xFFFF0000, 0x0000FF00, 0xFF00FF00, 0x00FFFF00, 0xFFFFFF00,
+    0x000000FF, 0xFF0000FF, 0x00FF00FF, 0xFFFF00FF, 0x0000FFFF, 0xFF00FFFF, 0x00FFFFFF, 0xFFFFFFFF,
+    0x00000000, 0xFF000000, 0x00FF0000, 0xFFFF0000, 0x0000FF00, 0xFF00FF00, 0x00FFFF00, 0xFFFFFF00,
+    0x000000FF, 0xFF0000FF, 0x00FF00FF, 0xFFFF00FF, 0x0000FFFF, 0xFF00FFFF, 0x00FFFFFF, 0xFFFFFFFF
+};
+
+
 // ----------------------------------------------------------------------------
 // ULA Plus render line - this repurposes the BRIGHT and FLASH bits as
 // palette select (0-3). Ink gets 8 colors and Paper gets 8 other colors
@@ -605,24 +673,31 @@ ITCM_CODE void speccy_render_screen_line_ula_plus(u32 *vidBuf, u8* attrPtr, u8*p
 
         u8 ink   = 0x80 | (((attr >> 6) * 16) + (attr & 0x07));            // Ink Color is the foreground
         u8 paper = 0x80 | (((attr >> 6) * 16) + ((attr >> 3) & 0x07) + 8); // Paper is the background
+        u32 background = (paper << 24) | (paper << 16) | (paper << 8) | paper;
 
         // --------------------------------------------------------------------------
         // And now the pixel drawing... We try to speed this up as much as possible.
         // --------------------------------------------------------------------------
         if (pixel) // Is at least one pixel on?
         {
-            // ------------------------------------------------------------------------------------------------------------------------
-            // I've tried look-up tables here, but nothing was as fast as checking the bit and shifting ink/paper to the right spot...
-            // ------------------------------------------------------------------------------------------------------------------------
-            *vidBuf++ = (((pixel & 0x80) ? ink:paper)) | (((pixel & 0x40) ? ink:paper) << 8) | (((pixel & 0x20) ? ink:paper) << 16) | (((pixel & 0x10) ? ink:paper) << 24);
-            *vidBuf++ = (((pixel & 0x08) ? ink:paper)) | (((pixel & 0x04) ? ink:paper) << 8) | (((pixel & 0x02) ? ink:paper) << 16) | (((pixel & 0x01) ? ink:paper) << 24);
+            // -----------------------------------------------------------------------
+            // I've profiled and tried every possible bit-shift and table-lookup that
+            // might speed this up... but ultimately this was the fastest code block.
+            // -----------------------------------------------------------------------
+            u32 ink32 = (ink << 24) | (ink << 16) | (ink << 8) | ink;
+            u32 diff  = ink32 ^ background; // This is the "difference mask"
+            u32 mask1 = Pixel_maskTable_High[pixel];
+            u32 mask2 = Pixel_maskTable_Low[pixel];
+
+            // Perform fast XOR blend operations
+            *vidBuf++ = background ^ (diff & mask1);
+            *vidBuf++ = background ^ (diff & mask2);
         }
         else // Just drawing all background which is common...
         {
             // --------------------------------------------------------------------------------------
             // Draw background directly to the screen - this is slightly faster than a lookup table.
             // --------------------------------------------------------------------------------------
-            u32 background = (paper << 24) | (paper << 16) | (paper << 8) | paper;
             *vidBuf++ = background;
             *vidBuf++ = background;
         }
@@ -736,6 +811,7 @@ ITCM_CODE void speccy_render_screen_line(u8 line)
         u8 attr = *attrPtr++;
         u8 paper = (attr >> 3) & 0x0F;
         u8 pixel = *pixelPtr++;
+        u32 background = (paper << 24) | (paper << 16) | (paper << 8) | paper;
 
         if (attr & 0x80)
         {
@@ -749,19 +825,24 @@ ITCM_CODE void speccy_render_screen_line(u8 line)
         {
             u8 ink = (attr & 0x07) | ((attr & 0x40) >> 3);    // Ink Color is the foreground
 
-            // -------------------------------------------------------------------------------------------------------------------
-            // Bit shifting was faster in a few cases, but generally this lookup table in this specific order is usually fastest.
-            // The paper color changes least frequently so it improves the cache density if the lookup is in this specific order.
-            // -------------------------------------------------------------------------------------------------------------------
-            *vidBuf++ = pre_render_lookup[paper][ink][pixel >> 4];
-            *vidBuf++ = pre_render_lookup[paper][ink][pixel & 0xF];
+            // -----------------------------------------------------------------------
+            // I've profiled and tried every possible bit-shift and table-lookup that
+            // might speed this up... but ultimately this was the fastest code block.
+            // -----------------------------------------------------------------------
+            u32 ink32 = (ink << 24) | (ink << 16) | (ink << 8) | ink;
+            u32 diff  = ink32 ^ background; // This is the "difference mask"
+            u32 mask1 = Pixel_maskTable_High[pixel];
+            u32 mask2 = Pixel_maskTable_Low[pixel];
+
+            // Perform fast XOR blend operations
+            *vidBuf++ = background ^ (diff & mask1);
+            *vidBuf++ = background ^ (diff & mask2);
         }
         else // Just drawing all background which is common...
         {
             // --------------------------------------------------------------------------------------
             // Draw background directly to the screen - this is slightly faster than a lookup table.
             // --------------------------------------------------------------------------------------
-            u32 background = (paper << 24) | (paper << 16) | (paper << 8) | paper;
             *vidBuf++ = background;
             *vidBuf++ = background;
         }
@@ -781,13 +862,6 @@ void speccy_reset(void)
     tape_reset();
     tape_patch();
     pok_init();
-
-    for (int pixel=0; pixel<16; pixel++)
-        for (int paper=0; paper<16; paper++)
-            for (int ink=0; ink<16; ink++)
-            {
-                pre_render_lookup[paper][ink][pixel] = (((pixel & 0x08) ? ink:paper)) | (((pixel & 0x04) ? ink:paper) << 8) | (((pixel & 0x02) ? ink:paper) << 16) | (((pixel & 0x01) ? ink:paper) << 24);
-            }
 
     // Normally we always contend 0x4000-0x7FFF unless we are configured for 'no contend'
     ContendMap[1] = (myConfig.ULAcontend) ? 1:0;
@@ -917,7 +991,7 @@ void speccy_reset(void)
 // -----------------------------------------------------------------------------
 ITCM_CODE u32 speccy_run(void)
 {
-    const u8 ULATweak[] = {0, 14, 36, 72, 104, 130, 180, 230};
+    const u8 ULATweak[] = {0, 14, 36, 72, 104, 130, 170, 230};
     const int starting_line = (myConfig.machine ? 63:64); // And this is the first line we draw (48K machines start 1 line later)
     const int ending_line   = (zx_128k_mode ? SCANLINES_PER_FRAME_128:SCANLINES_PER_FRAME_48);
 

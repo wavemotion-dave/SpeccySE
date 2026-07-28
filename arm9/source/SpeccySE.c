@@ -247,7 +247,7 @@ ITCM_CODE mm_word OurSoundMixer(mm_word len, mm_addr dest, mm_stream_formats for
             }
         }
         if (breather) {breather -= len; if (breather < 0) breather = 0;}
-        
+
         last_sample = local_sample;
     }
 
@@ -279,7 +279,7 @@ ITCM_CODE mm_word OurSoundMixerDSI(mm_word len, mm_addr dest, mm_stream_formats 
             }
         }
         if (breather) {breather -= len; if (breather < 0) breather = 0;}
-        
+
         last_sample = local_sample;
     }
 
@@ -301,24 +301,24 @@ ITCM_CODE void processDirectAudio(void)
 {
     if (ay_sample_idx & 0xF8)
     {
-        if (zx_AY_enabled) ay38910Mixer(8, mixbufAY, &myAY); // Grab 8 samples 
+        if (zx_AY_enabled) ay38910Mixer(8, mixbufAY, &myAY); // Grab 8 samples
         ay_sample_idx = 0;
     }
 
     for (u8 i=0; i<2; i++)
     {
         if (breather) {return;}
-        
+
         if (beeper_pulses_idx)
         {
             beeper_vol = (beeper_vol) ? 0x000:0x1C00;
             beeper_pulses_idx--;
         }
-        
+
         s32 sample = (s32)mixbufAY[ay_sample_idx++] + (s32)beeper_vol;
         if (sample > 32767) sample = 32767;
         mixer[mixer_write++] = (s16)sample;
-        
+
         mixer_write &= WAVE_DIRECT_BUF_SIZE;
         if (((mixer_write+1)&WAVE_DIRECT_BUF_SIZE) == mixer_read) {breather = 1024;}
     }
@@ -328,12 +328,12 @@ ITCM_CODE void processDirectAudioDSI(void)
 {
     if (ay_sample_idx & 0xF8)
     {
-        if (zx_AY_enabled) ay38910Mixer(8, mixbufAY, &myAY); // Grab 8 samples 
+        if (zx_AY_enabled) ay38910Mixer(8, mixbufAY, &myAY); // Grab 8 samples
         ay_sample_idx = 0;
     }
-    
+
     if (breather) {return;}
-    
+
     for (u8 i=0; i<4; i++)
     {
         if (beeper_pulses_idx)
@@ -341,12 +341,12 @@ ITCM_CODE void processDirectAudioDSI(void)
             beeper_vol = beeper_vol ^ 0x4000;
             beeper_pulses_idx--;
         }
-        
+
         s32 sample = (s32)mixbufAY[ay_sample_idx] + (s32)beeper_vol;
         if (i&1) ay_sample_idx++; // Consume AY samples half as fast as DS-Lite
         if (sample > 32767) sample = 32767;
         mixer_DSI[mixer_write++] = (s16)sample;
-        
+
         mixer_write &= WAVE_DIRECT_BUF_SIZE_DSI;
         if (((mixer_write+1)&WAVE_DIRECT_BUF_SIZE_DSI) == mixer_read) {breather = 2048; return;}
     }
@@ -364,9 +364,9 @@ static u32 sample_rate_adjust[] = {100, 102, 105, 110, 120, 98, 95, 90, 80};
 int get_sample_rate(void)
 {
     // Adjust the sample rate to match the core emulation speed... user can override from 80% to 120%
-    
+
     int sample_rate;
-    
+
     if (isDSiMode())
     {
         sample_rate = (myConfig.machine ? 61700:62100);  // 48K has one more scanline (~400 more samples per second)
@@ -375,9 +375,9 @@ int get_sample_rate(void)
     {
         sample_rate = (myConfig.machine ? 30700:30900); // 48K has one more scanline (~200 more samples per second)
     }
-    
+
     int new_sample_rate = (sample_rate * sample_rate_adjust[myConfig.gameSpeed]) / 100;
-    
+
     return new_sample_rate;
 }
 
@@ -387,7 +387,7 @@ void newStreamSampleRate(void)
     {
         last_game_speed = myConfig.gameSpeed;
         last_machine = myConfig.machine;
-        
+
         mmStreamClose();
 
         myStream.sampling_rate  = get_sample_rate();      // sample_rate for the ZX to match the AY/Beeper drivers
@@ -450,7 +450,7 @@ void sound_chip_reset()
   {
       mixer_DSI[i] = last_sample;
   }
-  
+
   mixer_read=0;
   mixer_write=0;
 }
@@ -603,7 +603,7 @@ void DisplayStatusLine(bool bForce)
         last_speccy_mode = speccy_mode;
         DSPrint(28,0,2, zx_128k_mode ? "128K" : " 48K");
     }
-    
+
     if (zx_ula_plus_enabled)
     {
         DSPrint(23,0,2, "UL[+");
@@ -1114,7 +1114,7 @@ u8 speccyTapePosition(void)
 
     BottomScreenCassette();
     DisplayFileNameCassette();
-    
+
     sprintf(tmp, "CURRENT BLOCK: %03d", current_block);
     DSPrint(8,14,0,tmp);
 
@@ -1494,7 +1494,7 @@ void SpeccySE_main(void)
               }
           }
           else
-          {          
+          {
               if (myConfig.dpad == DPAD_DIAGONALS) // Diagonals... map standard Left/Right/Up/Down to combinations
               {
                        if (nds_key & KEY_UP)    nds_key |= KEY_RIGHT;  // UP-RIGHT
@@ -1788,7 +1788,7 @@ ITCM_CODE void irqVBlank(void)
 {
     // Manage time
     vusCptVBL++;
-    
+
     if (backgroundRenderScreen) // Render screen to DSi LCD
     {
         extern u8 screen_buffer_A[];
@@ -1803,11 +1803,11 @@ ITCM_CODE void irqVBlank(void)
     }
 
     // ------------------------------------------------------------------------------
-    // And now for some DS trickery... we are emulating a 50Hz PAL machine so we 
+    // And now for some DS trickery... we are emulating a 50Hz PAL machine so we
     // abuse the DS VCOUNT register by subtracting enough scanlines here to make
     // us equivalent to a 50Hz PAL machine. This will bring the number of scalines
     // to 311 (128K) or 312 (48K). It's not perfect but does help prevent the normal
-    // 60Hz refresh from coming in too quickly and sometimes finding nothing to 
+    // 60Hz refresh from coming in too quickly and sometimes finding nothing to
     // render because the emulation hasn't filled the last frame of screen data.
     // ------------------------------------------------------------------------------
     VCOUNT = (VCOUNT - ((myConfig.machine ? SCANLINES_PER_FRAME_128:SCANLINES_PER_FRAME_48) - 262));
@@ -1867,7 +1867,7 @@ void LoadBIOSFiles(void)
         if (!size) size = ReadFileCarefully("zxs128.rom", SpectrumBios128, 0x8000, 0);
         if (!size) size = ReadFileCarefully("/roms/bios/zxs128.rom", SpectrumBios128, 0x8000, 0);
         if (!size) size = ReadFileCarefully("/data/bios/zxs128.rom", SpectrumBios128, 0x8000, 0);
-        
+
         if (!size)
         {
             size = ReadFileCarefully("128-0.rom", SpectrumBios128, 0x4000, 0);
@@ -1951,7 +1951,7 @@ int main(int argc, char **argv)
   // with the game that was selected later...
   // -----------------------------------------------------------------
   LoadConfig();
-  
+
   // Do an initial load of the Favorites file
   LoadFavorites();
 

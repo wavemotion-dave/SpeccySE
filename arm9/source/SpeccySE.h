@@ -167,6 +167,7 @@ extern u8 rom_special_bank;
 extern u8 dandanator_cmd;
 extern u8 dandanator_data1;
 extern u8 dandanator_data2;
+extern u8 dandy_disabled;
 extern u8 zx_ula_plus_enabled;
 extern u8 zx_ula_plus_group;
 extern u8 zx_ula_plus_palette_reg;
