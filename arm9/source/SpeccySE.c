@@ -296,6 +296,7 @@ s16 mixbufAY[16]        __attribute__((section(".dtcm"))) = { 0x000, 0x000, 0x00
 s16 beeper_vol          __attribute__((section(".dtcm"))) = 0;
 u32 ay_sample_idx       __attribute__((section(".dtcm"))) = 0;
 u32 beeper_pulses_idx   __attribute__((section(".dtcm"))) = 0;
+u8  beeper_toggle[]     __attribute__((section(".dtcm"))) = {0x00, 0x01, 0x05, 0x0B, 0x0F};
 
 ITCM_CODE void processDirectAudio(void)
 {
@@ -305,13 +306,13 @@ ITCM_CODE void processDirectAudio(void)
         ay_sample_idx = 0;
     }
 
+    if (breather) {return;}
+    
     for (u8 i=0; i<2; i++)
     {
-        if (breather) {return;}
-
         if (beeper_pulses_idx)
         {
-            beeper_vol = (beeper_vol) ? 0x000:0x1C00;
+            beeper_vol = beeper_vol ^ 0x4000;
             beeper_pulses_idx--;
         }
 
@@ -320,7 +321,7 @@ ITCM_CODE void processDirectAudio(void)
         mixer[mixer_write++] = (s16)sample;
 
         mixer_write &= WAVE_DIRECT_BUF_SIZE;
-        if (((mixer_write+1)&WAVE_DIRECT_BUF_SIZE) == mixer_read) {breather = 1024;}
+        if (((mixer_write+1)&WAVE_DIRECT_BUF_SIZE) == mixer_read) {breather = 1024; return;}
     }
 }
 
@@ -334,12 +335,14 @@ ITCM_CODE void processDirectAudioDSI(void)
 
     if (breather) {return;}
 
+    u8 toggle = beeper_toggle[beeper_pulses_idx];
+    beeper_pulses_idx = 0;
+
     for (u8 i=0; i<4; i++)
     {
-        if (beeper_pulses_idx)
+        if (toggle & (1 << i))
         {
             beeper_vol = beeper_vol ^ 0x4000;
-            beeper_pulses_idx--;
         }
 
         s32 sample = (s32)mixbufAY[ay_sample_idx] + (s32)beeper_vol;
@@ -364,16 +367,18 @@ static u32 sample_rate_adjust[] = {100, 102, 105, 110, 120, 98, 95, 90, 80};
 int get_sample_rate(void)
 {
     // Adjust the sample rate to match the core emulation speed... user can override from 80% to 120%
+    // The sample rates below are hand-tuned so that we end up coming up a tiny bit slower with the 
+    // interrupt and so we never run out of buffer to process. Change these at your own risk!
 
     int sample_rate;
 
     if (isDSiMode())
     {
-        sample_rate = (myConfig.machine ? 61700:62100);  // 48K has one more scanline (~400 more samples per second)
+        sample_rate = (myConfig.machine ? 61450:61650);  // 48K has one more scanline (~200 more samples per second)
     }
     else
     {
-        sample_rate = (myConfig.machine ? 30700:30900); // 48K has one more scanline (~200 more samples per second)
+        sample_rate = (myConfig.machine ? 30500:30600); // 48K has one more scanline (~100 more samples per second)
     }
 
     int new_sample_rate = (sample_rate * sample_rate_adjust[myConfig.gameSpeed]) / 100;

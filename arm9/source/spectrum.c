@@ -49,6 +49,49 @@ u8  zx_ula_plus_palette_reg = 0x00;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
 
+__attribute__((noinline)) unsigned char ULA_floating_bus(void)
+{
+    // ---------------------------------------------------------------------------------------------
+    // Poor Man's floating bus. Very few games use this - so we basically handle it a bit roughly.
+    // If we are not drawing the screen - the ULA will be idle and we will return 0xFF (below).
+    // If we are rending the screen... we will return the Attribute byte mid-scanline which is
+    // good enough for games like Sidewine and Short Circuit and Cobra, etc.
+    // ---------------------------------------------------------------------------------------------
+    if (myConfig.machine) // 128K
+    {
+        if (CPU.TStates >= CONTENTION_START_CYCLE_128 && CPU.TStates < (CONTENTION_START_CYCLE_128+(192*CYCLES_PER_SCANLINE_128)))
+        {
+            u8 *floatBusPtr;
+
+            // For the ZX 128K, we might be using page 7 for video display... it's rare, but possible...
+            if (zx_128k_mode) floatBusPtr = RAM_Memory128 + (((portFD & 0x08) ? 7:5) * 0x4000) + 0x1800;
+            else floatBusPtr = RAM_Memory + 0x5800;
+
+            u8 *attrPtr = &floatBusPtr[(last_line_drawn/8)*32];
+
+            if (((CPU.TStates-CONTENTION_START_CYCLE_128) % CYCLES_PER_SCANLINE_128) < 128)
+            {
+                return attrPtr[((CPU.TStates-CONTENTION_START_CYCLE_128) % CYCLES_PER_SCANLINE_128) / 4];
+            }
+        }
+    }
+    else // 48K
+    {
+        if (CPU.TStates >= CONTENTION_START_CYCLE_48 && CPU.TStates < (CONTENTION_START_CYCLE_48+(192*CYCLES_PER_SCANLINE_48)))
+        {
+            u8 *floatBusPtr = RAM_Memory + 0x5800;
+            u8 *attrPtr = &floatBusPtr[(last_line_drawn/8)*32];
+
+            if (((CPU.TStates-CONTENTION_START_CYCLE_48) % CYCLES_PER_SCANLINE_48) < 128)
+            {
+                return attrPtr[((CPU.TStates-CONTENTION_START_CYCLE_48) % CYCLES_PER_SCANLINE_48) / 4];
+            }
+        }
+    }
+
+    return 0xFF;  // Unused port returns 0xFF when ULA is idle
+}
+
 ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
 {
     static u8 bNonSpecialKeyWasPressed = 0;
@@ -336,46 +379,8 @@ ITCM_CODE unsigned char cpu_readport_speccy(register unsigned short Port)
             return 0x00;
         }
      }
-
-    // ---------------------------------------------------------------------------------------------
-    // Poor Man's floating bus. Very few games use this - so we basically handle it a bit roughly.
-    // If we are not drawing the screen - the ULA will be idle and we will return 0xFF (below).
-    // If we are rending the screen... we will return the Attribute byte mid-scanline which is
-    // good enough for games like Sidewine and Short Circuit and Cobra, etc.
-    // ---------------------------------------------------------------------------------------------
-    if (myConfig.machine) // 128K
-    {
-        if (CPU.TStates >= CONTENTION_START_CYCLE_128 && CPU.TStates < (CONTENTION_START_CYCLE_128+(192*CYCLES_PER_SCANLINE_128)))
-        {
-            u8 *floatBusPtr;
-
-            // For the ZX 128K, we might be using page 7 for video display... it's rare, but possible...
-            if (zx_128k_mode) floatBusPtr = RAM_Memory128 + (((portFD & 0x08) ? 7:5) * 0x4000) + 0x1800;
-            else floatBusPtr = RAM_Memory + 0x5800;
-
-            u8 *attrPtr = &floatBusPtr[(last_line_drawn/8)*32];
-
-            if (((CPU.TStates-CONTENTION_START_CYCLE_128) % CYCLES_PER_SCANLINE_128) < 128)
-            {
-                return attrPtr[((CPU.TStates-CONTENTION_START_CYCLE_128) % CYCLES_PER_SCANLINE_128) / 4];
-            }
-        }
-    }
-    else // 48K
-    {
-        if (CPU.TStates >= CONTENTION_START_CYCLE_48 && CPU.TStates < (CONTENTION_START_CYCLE_48+(192*CYCLES_PER_SCANLINE_48)))
-        {
-            u8 *floatBusPtr = RAM_Memory + 0x5800;
-            u8 *attrPtr = &floatBusPtr[(last_line_drawn/8)*32];
-
-            if (((CPU.TStates-CONTENTION_START_CYCLE_48) % CYCLES_PER_SCANLINE_48) < 128)
-            {
-                return attrPtr[((CPU.TStates-CONTENTION_START_CYCLE_48) % CYCLES_PER_SCANLINE_48) / 4];
-            }
-        }
-    }
-
-    return 0xFF;  // Unused port returns 0xFF when ULA is idle
+     
+     return ULA_floating_bus();
 }
 
 // --------------------------------------------------------------------------------------
@@ -430,7 +435,7 @@ ITCM_CODE void cpu_writeport_speccy(register unsigned short Port,register unsign
     if ((Port & 1) == 0) // Any even port (usually 0xFE) is our ULA and beeper output
     {
         // Change the background color as needed...
-        if ((portFE & 0x07) != (Value & 0x07))
+        if ((portFE ^ Value) & 0x07)
         {
              BG_PALETTE_SUB[1] = zx_border_colors[Value & 0x07];
         }
@@ -729,24 +734,21 @@ ITCM_CODE void speccy_render_screen_line(u8 line)
             {
                 if (skip_frames)
                 {
-                    skip_frames--;
+                    skip_frames = 0;
                 }
                 else
                 {
                     backgroundRenderScreen = 0x80 | (flash_timer & 1); // Since flash_timer is incremented below, this will render the buffer just drawn...
                 }
 
-                if (!isDSiMode())
+                // ------------------------------------------------------------------------------
+                // For the DS-Lite/Phat, we skip 1 frames out of 4 frames to help the speed.
+                // This allows the older handheld to still double-buffer (to reduce tearing)
+                // and provides an 75% render rate which is smooth enough. User can disable.
+                // ------------------------------------------------------------------------------
+                if ((tape_play_skip_frame & 0x3) == 3)
                 {
-                    // ------------------------------------------------------------------------------
-                    // For the DS-Lite/Phat, we skip 1 frames out of 4 frames to help the speed.
-                    // This allows the older handheld to still double-buffer (to reduce tearing)
-                    // and provides an 75% render rate which is smooth enough. User can disable.
-                    // ------------------------------------------------------------------------------
-                    if ((tape_play_skip_frame & 0x3) == 3)
-                    {
-                        if (myConfig.frameSkip) skip_frames = 1;
-                    }
+                    if (myConfig.frameSkip) skip_frames = 1;
                 }
             }
         }

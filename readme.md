@@ -318,16 +318,14 @@ you're likely going to want ZXDS.
 
 Version History :
 -----------------------
-Version 2.0c - 28-July-2026 by wavemotion-dave
-* Gauntlet defaults to aggressive tape stop to allow it to load properly.
-* Pressing START/SELECT will stop tape load
+Version 2.1 - 30-July-2026 by wavemotion-dave
+* Optimization pass on beeper driver so games sound a bit more authentic with fewer buffer drops.
+* Optimization pass on CPU and ULA driver to eek out another 3% speed.
+* Pressing START/SELECT will stop tape load and return to normal play mode.
 * Improved key handling for SHIFT and SYMBOL when mapped to one of the NDS buttons.
-* ULA optimization buying 1-2 additional frames of improvement.
-
-Version 2.0a - 26-July-2026 by wavemotion-dave
 * Now allow the 128.rom to be split as 128-0.rom and 128.1.rom as is often found when searching.
-* A few more games added to the tweaks database.
-* Minor improvement for the undocumented flags handling.
+* A few more games added to the tweaks database so they run and look correct (Gauntlet, Darius+, etc)
+* Minor improvement for the undocumented flags handling for improved accuracy.
 
 Version 2.0 - 24-July-2026 by wavemotion-dave
 * Interrupt handling improved. Gandalf DX now runs. Genesis - Dawn of a New Day now runs.

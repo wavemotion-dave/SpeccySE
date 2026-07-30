@@ -1124,10 +1124,17 @@ void FindConfig(void)
         else if (strcasestr(gpFic[ucGameChoice].szName, "PSSST")             != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "UNDERWURLDE")       != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "ARCADIA")           != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "BUCCANEER")         != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "BUGABOO")           != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "DRAGON BANE")       != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "DRAGONS BANE")      != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "ULTIMATE CARTOON")  != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
+        else if (strcasestr(gpFic[ucGameChoice].szName, "ULTIMATECARTOON")   != 0) {myConfig.machine = 0; myConfig.frameSkip = 0;}
         else if (strcasestr(gpFic[ucGameChoice].szName, "CHUCKIE")           != 0) {myConfig.machine = 0; myConfig.frameSkip = 0; myConfig.dpad = 2;}
         
         // A few games that need special options to load/run correctly
         else if (strcasestr(gpFic[ucGameChoice].szName, "GAUNTLET")          != 0) {myConfig.machine = 1; myConfig.autoStop = 2; myConfig.autoPlay = 2;} // Gauntlet needs aggressive tape stop and tape search
+        else if (strcasestr(gpFic[ucGameChoice].szName, "DARIUS")            != 0) {myConfig.machine = 1; myConfig.autoStop = 0;}   // Darius+ needs tape to keep playing
                  
         // And some games that need some special ULA timing to look 'correct'
         else if (strcasestr(gpFic[ucGameChoice].szName, "GLUF")              != 0) {myConfig.machine = 1; myConfig.ULAtiming = 7;}
