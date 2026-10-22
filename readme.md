@@ -318,6 +318,10 @@ you're likely going to want ZXDS.
 
 Version History :
 -----------------------
+Version 2.2 - 22-Oct-2026 by wavemotion-dave
+* Hotfix for DS-Lite/Phat save of configuration and save states. Compression algorithm could run out of memory!
+* Added ROM write protection - should fix Retroleum Diagnostics.
+
 Version 2.1 - 30-July-2026 by wavemotion-dave
 * Optimization pass on beeper driver so games sound a bit more authentic with fewer buffer drops.
 * Optimization pass on CPU and ULA driver to eek out another 3% speed.

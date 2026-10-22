@@ -194,8 +194,8 @@ void spectrumSaveState()
         // still quite fast for such small memory buffers and often shrinks
         // 48K games down under 32K and 128K games down closer to 64K.
         // -------------------------------------------------------------------
-        int max_len = lzav_compress_bound_hi( mem_size );
-        int comp_len = lzav_compress_hi( ptr, CompressBuffer, mem_size, max_len );
+        int max_len = lzav_compress_bound( mem_size );
+        int comp_len = lzav_compress_default( ptr, CompressBuffer, mem_size, max_len );
 
         if (retVal) retVal = fwrite(&comp_len,          sizeof(comp_len), 1, handle);
         if (retVal) retVal = fwrite(&CompressBuffer,    comp_len,         1, handle);

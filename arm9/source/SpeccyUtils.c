@@ -244,7 +244,7 @@ u8 showMessage(char *szCh1, char *szCh2)
 void LoadFavorites(void)
 {
     memset(myFavs, 0x00, sizeof(myFavs));
-    FILE *fp = fopen("/data/SpeccySE.fav", "rb");
+    FILE *fp = fopen("/data/Hachibitto.fav", "rb");
     if (fp)
     {
         fread(&myFavs, sizeof(myFavs), 1, fp);
@@ -267,7 +267,7 @@ void SaveFavorites(void)
         mkdir("/data", 0777);   // Doesn't exist - make it...
     }
         
-    FILE *fp = fopen("/data/SpeccySE.fav", "wb");
+    FILE *fp = fopen("/data/Hachibitto.fav", "wb");
     if (fp)
     {
         fwrite(&myFavs, sizeof(myFavs), 1, fp);
@@ -811,8 +811,8 @@ void SaveConfig(bool bShow)
         // --------------------------------------------------------------------
         // Compress the configuration data - this shrinks down quite nicely...
         // --------------------------------------------------------------------
-        int max_len = lzav_compress_bound_hi( sizeof(AllConfigs) );
-        int comp_len = lzav_compress_hi( &AllConfigs, CompressBuffer, sizeof(AllConfigs), max_len );
+        int max_len = lzav_compress_bound( sizeof(AllConfigs) );
+        int comp_len = lzav_compress_default( &AllConfigs, CompressBuffer, sizeof(AllConfigs), max_len );
 
         fwrite(&comp_len,          sizeof(comp_len), 1, fp);
         fwrite(CompressBuffer,     comp_len,         1, fp);
